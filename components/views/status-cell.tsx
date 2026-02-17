@@ -129,11 +129,11 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
     return (
       <div
         className={cn(
-          'flex items-center justify-center w-8 h-8 rounded-md',
-          'bg-gray-100 dark:bg-gray-800/40 cursor-not-allowed'
+          'flex items-center justify-center w-8 h-8 rounded-lg',
+          'bg-muted/40 cursor-not-allowed'
         )}
       >
-        <Minus className="size-3.5 text-gray-300 dark:text-gray-600" />
+        <Minus className="size-3.5 text-muted-foreground/30" />
       </div>
     );
   }
@@ -145,12 +145,12 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
         type="button"
         onClick={handleClick}
         className={cn(
-          'flex items-center justify-center w-8 h-8 rounded-md',
-          'border border-dashed border-gray-200 dark:border-gray-700',
-          'text-gray-300 dark:text-gray-600',
-          'hover:border-blue-300 hover:text-blue-400 hover:bg-blue-50/50',
-          'dark:hover:border-blue-600 dark:hover:text-blue-500 dark:hover:bg-blue-900/20',
-          'transition-colors cursor-pointer'
+          'flex items-center justify-center w-8 h-8 rounded-lg',
+          'border border-dashed border-muted-foreground/20',
+          'text-muted-foreground/30',
+          'hover:border-primary/40 hover:text-primary/60 hover:bg-primary/5',
+          'transition-all duration-200 cursor-pointer',
+          'hover:scale-110'
         )}
         aria-label="클릭하여 체크 시작"
       >
@@ -176,9 +176,10 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               onTouchEnd={handleTouchEnd}
               onTouchCancel={handleTouchEnd}
               className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-md',
-                'transition-all duration-150 cursor-pointer',
+                'flex items-center justify-center w-8 h-8 rounded-lg',
+                'transition-all duration-200 cursor-pointer',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'hover:scale-110 hover:shadow-md active:scale-95',
                 colors.bg,
                 colors.darkBg,
                 colors.text,
@@ -194,7 +195,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={4}>
-          <p>{STATUS_LABELS[status]}</p>
+          <p className="font-medium">{STATUS_LABELS[status]}</p>
           {check.note && (
             <p className="mt-1 text-[10px] opacity-80">{check.note}</p>
           )}
@@ -217,7 +218,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               value={noteValue}
               onChange={(e) => setNoteValue(e.target.value)}
               placeholder="메모를 입력하세요..."
-              className="mt-1 h-8 text-sm"
+              className="mt-1 h-8 text-sm rounded-lg"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNoteSave();
               }}
@@ -228,10 +229,11 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               variant="ghost"
               size="xs"
               onClick={() => setNoteOpen(false)}
+              className="rounded-lg"
             >
               취소
             </Button>
-            <Button size="xs" onClick={handleNoteSave}>
+            <Button size="xs" onClick={handleNoteSave} className="rounded-lg">
               저장
             </Button>
           </div>

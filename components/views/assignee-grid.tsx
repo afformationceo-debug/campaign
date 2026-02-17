@@ -212,7 +212,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
           <span className="text-sm">데이터를 불러오는 중...</span>
         </div>
       </div>
@@ -221,7 +221,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
 
   if (filteredCampaigns.length === 0 && globalTasks.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+      <div className="flex flex-col items-center justify-center py-20 text-sm text-muted-foreground gap-2">
+        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+          <span className="text-lg">📋</span>
+        </div>
         표시할 데이터가 없습니다.
       </div>
     );

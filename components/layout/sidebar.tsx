@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar-store';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { PresenceIndicator } from './presence-indicator';
@@ -63,15 +62,21 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent',
+        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200',
         isActive
-          ? 'bg-accent text-accent-foreground font-medium'
-          : 'text-muted-foreground',
-        isCollapsed && 'justify-center px-2'
+          ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        isCollapsed && 'justify-center px-2.5'
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      {!isCollapsed && <span>{label}</span>}
+      {isActive && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+      )}
+      <Icon className={cn(
+        'h-[18px] w-[18px] shrink-0 transition-transform duration-200',
+        !isActive && 'group-hover:scale-110'
+      )} />
+      {!isCollapsed && <span className="truncate">{label}</span>}
     </Link>
   );
 
@@ -79,7 +84,7 @@ function NavItem({
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right">{label}</TooltipContent>
+        <TooltipContent side="right" className="font-medium">{label}</TooltipContent>
       </Tooltip>
     );
   }
@@ -87,66 +92,72 @@ function NavItem({
   return content;
 }
 
+function NavGroup({
+  title,
+  items,
+  isCollapsed,
+}: {
+  title?: string;
+  items: typeof mainNav;
+  isCollapsed: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      {title && !isCollapsed && (
+        <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
+          {title}
+        </p>
+      )}
+      {isCollapsed && title && (
+        <div className="mx-auto w-6 h-px bg-border my-2" />
+      )}
+      {items.map((item) => (
+        <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
+      ))}
+    </div>
+  );
+}
+
 function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
   const isAdmin = useIsAdmin();
 
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex items-center h-14 px-4', isCollapsed && 'justify-center px-2')}>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
-            <span className="text-xs font-bold text-white">AF</span>
+      {/* Logo */}
+      <div className={cn(
+        'flex items-center h-14 px-4 shrink-0',
+        isCollapsed && 'justify-center px-2'
+      )}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md shadow-indigo-500/20">
+            <span className="text-[11px] font-bold text-white tracking-tight">AF</span>
           </div>
           {!isCollapsed && (
-            <span className="font-semibold tracking-tight text-sm">어포메이션 CMS</span>
+            <div className="flex flex-col">
+              <span className="font-bold tracking-tight text-[13px] leading-tight">어포메이션</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">Campaign CMS</span>
+            </div>
           )}
         </div>
       </div>
 
-      <Separator />
-
-      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-6">
-        <div className="space-y-1">
-          {mainNav.map((item) => (
-            <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-          ))}
-        </div>
-
-        <div className="space-y-1">
-          {!isCollapsed && (
-            <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              일일 업무
-            </p>
-          )}
-          {viewNav.map((item) => (
-            <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-          ))}
-        </div>
-
+      {/* Nav */}
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5 scrollbar-thin">
+        <NavGroup items={mainNav} isCollapsed={isCollapsed} />
+        <NavGroup title="일일 업무" items={viewNav} isCollapsed={isCollapsed} />
         {isAdmin && (
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                관리
-              </p>
-            )}
-            {manageNav.map((item) => (
-              <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-            ))}
-          </div>
+          <NavGroup title="관리" items={manageNav} isCollapsed={isCollapsed} />
         )}
-
         {isAdmin && (
-          <div className="space-y-1">
-            {logNav.map((item) => (
-              <NavItem key={item.href} {...item} isCollapsed={isCollapsed} />
-            ))}
-          </div>
+          <NavGroup items={logNav} isCollapsed={isCollapsed} />
         )}
       </div>
 
-      <Separator />
-      <div className={cn('p-3', isCollapsed && 'px-2')}>
+      {/* Presence */}
+      <div className={cn(
+        'border-t p-3 shrink-0',
+        isCollapsed && 'px-2'
+      )}>
         <PresenceIndicator isCollapsed={isCollapsed} />
       </div>
     </div>
@@ -161,15 +172,15 @@ export function Sidebar() {
       {/* Desktop */}
       <aside
         className={cn(
-          'hidden md:flex flex-col border-r bg-card transition-all duration-300 relative',
-          isCollapsed ? 'w-16' : 'w-64'
+          'hidden md:flex flex-col border-r bg-sidebar/80 backdrop-blur-xl transition-all duration-300 relative',
+          isCollapsed ? 'w-[68px]' : 'w-[260px]'
         )}
       >
         <SidebarContent isCollapsed={isCollapsed} />
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="absolute -right-3 top-16 h-6 w-6 rounded-full border bg-background shadow-sm"
+          className="absolute -right-3 top-[68px] h-6 w-6 rounded-full bg-background shadow-md border hover:bg-accent transition-transform duration-200 hover:scale-110"
           onClick={toggle}
         >
           {isCollapsed ? (
@@ -182,7 +193,7 @@ export function Sidebar() {
 
       {/* Mobile */}
       <Sheet open={isMobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-[260px] p-0">
           <SidebarContent isCollapsed={false} />
         </SheetContent>
       </Sheet>

@@ -3,9 +3,11 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
@@ -52,36 +54,45 @@ export default function AssigneeViewPage() {
   }, [assigneeId, users]);
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-4"
+    >
       {/* Page Header */}
-      <div>
+      <motion.div variants={fadeUpItem}>
         <h1 className="text-xl font-bold tracking-tight">
           담당자별 일일 체크
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           담당자가 맡은 캠페인의 업무 진행 상황을 한눈에 확인하고 체크할 수 있습니다.
         </p>
-      </div>
+      </motion.div>
 
       {/* Filter Bar */}
-      <FilterBar
-        date={date}
-        onDateChange={setDate}
-        users={users}
-        selectedUserId={assigneeId}
-        onUserChange={setAssigneeId}
-        categories={allCategories}
-        selectedCategories={selectedCategories}
-        onCategoryChange={setSelectedCategories}
-      />
+      <motion.div variants={fadeUpItem}>
+        <FilterBar
+          date={date}
+          onDateChange={setDate}
+          users={users}
+          selectedUserId={assigneeId}
+          onUserChange={setAssigneeId}
+          categories={allCategories}
+          selectedCategories={selectedCategories}
+          onCategoryChange={setSelectedCategories}
+        />
+      </motion.div>
 
       {/* Grid */}
-      <AssigneeGrid
-        date={date}
-        assigneeId={assigneeId}
-        assigneeName={assigneeName}
-        categories={selectedCategories}
-      />
-    </div>
+      <motion.div variants={fadeUpItem}>
+        <AssigneeGrid
+          date={date}
+          assigneeId={assigneeId}
+          assigneeName={assigneeName}
+          categories={selectedCategories}
+        />
+      </motion.div>
+    </motion.div>
   );
 }

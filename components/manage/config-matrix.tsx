@@ -20,28 +20,31 @@ import type { Campaign, CampaignConfig } from '@/lib/types/database';
 // Config keys grouped by type, matching DEFAULT_TEMPLATE_CONFIGS
 const CONFIG_GROUPS: { type: string; keys: string[] }[] = [
   {
-    type: '기본 정보',
-    keys: ['홈페이지 URL', '인스타그램 URL', '담당 병원/클리닉', '주요 시술 항목'],
+    type: '세팅 관련',
+    keys: [
+      '인스타그램 URL', '페이스북 URL', '트위터 URL', '틱톡 URL',
+      '플랫폼별 ID/PW', '고객전용 라인', '고객전용 왓츠앱 링크',
+      '홈페이지 링크', '구글맵 세팅여부', '리틀리 세팅여부', '리틀리 링크',
+    ],
   },
   {
-    type: 'DM 템플릿',
-    keys: ['초기 DM 텍스트', '팔로업 DM 텍스트', '예약 확인 DM'],
+    type: '인플루언서 관련',
+    keys: [
+      '인플루언서 전용 라인 세팅', '인플루언서 전용 왓츠앱 세팅',
+      '스카웃매니저 메신저 연동', '스카웃매니저 캠페인 등록',
+    ],
   },
   {
-    type: '이메일 템플릿',
-    keys: ['웰컴 이메일', '예약 확인 이메일'],
+    type: '지식베이스',
+    keys: ['고객전용 지식베이스 세팅여부', '인플전용 지식베이스 세팅여부'],
   },
   {
-    type: '결제 정보',
-    keys: ['결제 계좌', '월 예산'],
+    type: 'CS어드민',
+    keys: ['메신저 채널 연동 여부'],
   },
   {
-    type: '계약 조건',
-    keys: ['계약 기간', '수수료율'],
-  },
-  {
-    type: '타겟 설정',
-    keys: ['타겟 국가', '타겟 연령대', '타겟 키워드'],
+    type: 'CRM',
+    keys: ['CRM 등록여부'],
   },
 ];
 
@@ -141,7 +144,7 @@ export function ConfigMatrix() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
           <span className="text-sm">데이터를 불러오는 중...</span>
         </div>
       </div>

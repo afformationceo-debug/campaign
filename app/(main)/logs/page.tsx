@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import {
   Calendar as CalendarIcon,
   Filter,
@@ -14,6 +15,7 @@ import {
   ArrowRight,
   RefreshCw,
 } from 'lucide-react';
+import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { cn } from '@/lib/utils';
@@ -316,7 +318,7 @@ export default function LogsPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
       </div>
     );
   }
@@ -324,28 +326,38 @@ export default function LogsPage() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        <div className="text-center space-y-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <span className="text-lg">🔒</span>
+          </div>
+          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-6"
+    >
+      <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">활동 로그</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-xl font-bold tracking-tight">활동 로그</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             시스템 활동 내역을 확인합니다.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-lg">
           <RefreshCw className="h-4 w-4" />
           새로고침
         </Button>
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-3">
         <Filter className="h-4 w-4 text-muted-foreground" />
 
         <Select value={userFilter} onValueChange={setUserFilter}>
@@ -424,15 +436,21 @@ export default function LogsPage() {
             필터 초기화
           </Button>
         )}
-      </div>
+      </motion.div>
 
       {/* Log List */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-32 text-muted-foreground">
-          로딩 중...
+        <div className="flex items-center justify-center h-32">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <span className="text-sm">데이터를 불러오는 중...</span>
+          </div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-muted-foreground border rounded-lg">
+        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border rounded-lg gap-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-lg">📋</span>
+          </div>
           활동 로그가 없습니다.
         </div>
       ) : (
@@ -544,6 +562,6 @@ export default function LogsPage() {
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

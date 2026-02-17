@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { Filter, ToggleLeft, Columns3, Rows3 } from 'lucide-react';
+import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -260,7 +262,7 @@ export default function TaskConfigPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
       </div>
     );
   }
@@ -268,22 +270,32 @@ export default function TaskConfigPage() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        <div className="text-center space-y-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <span className="text-lg">🔒</span>
+          </div>
+          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Task 적용설정</h1>
-        <p className="text-muted-foreground text-sm">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-4"
+    >
+      <motion.div variants={fadeUpItem}>
+        <h1 className="text-xl font-bold tracking-tight">Task 적용설정</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           캠페인별 업무 적용 여부를 설정합니다. ({filteredCampaigns.length}개 캠페인 x {tasks.length}개 업무)
         </p>
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={countryFilter} onValueChange={setCountryFilter}>
@@ -331,15 +343,18 @@ export default function TaskConfigPage() {
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* Matrix */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-32 text-muted-foreground">
-          로딩 중...
+        <div className="flex items-center justify-center h-32">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <span className="text-sm">데이터를 불러오는 중...</span>
+          </div>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
+        <motion.div variants={fadeUpItem} className="border rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
           <table className="text-xs">
             <thead className="sticky top-0 z-20 bg-background">
               {/* Category header row */}
@@ -479,8 +494,8 @@ export default function TaskConfigPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }

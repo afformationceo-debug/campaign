@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
@@ -295,7 +297,7 @@ export default function TasksPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
       </div>
     );
   }
@@ -303,37 +305,52 @@ export default function TasksPage() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        <div className="text-center space-y-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <span className="text-lg">🔒</span>
+          </div>
+          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-6"
+    >
+      <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">행위 관리</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-xl font-bold tracking-tight">행위 관리</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             전체 {tasks.length}개 업무 항목을 관리합니다.
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
+        <Button onClick={openCreateDialog} className="rounded-lg">
           <Plus className="h-4 w-4 mr-2" />
           새 업무
         </Button>
-      </div>
+      </motion.div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-32 text-muted-foreground">
-          로딩 중...
+        <div className="flex items-center justify-center h-32">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <span className="text-sm">데이터를 불러오는 중...</span>
+          </div>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={tasks}
-          searchKey="task_name"
-          searchPlaceholder="업무명 검색..."
-        />
+        <motion.div variants={fadeUpItem}>
+          <DataTable
+            columns={columns}
+            data={tasks}
+            searchKey="task_name"
+            searchPlaceholder="업무명 검색..."
+          />
+        </motion.div>
       )}
 
       {/* Edit Dialog */}
@@ -482,6 +499,6 @@ export default function TasksPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

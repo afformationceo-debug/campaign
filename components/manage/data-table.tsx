@@ -126,7 +126,7 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>

@@ -95,7 +95,7 @@ export function FilterBar({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2.5 rounded-xl border bg-card/60 backdrop-blur-sm p-3">
       {/* Date Selector */}
       <div className="flex items-center gap-1">
         <Button
@@ -103,8 +103,9 @@ export function FilterBar({
           size="icon-sm"
           onClick={handlePrevDay}
           aria-label="이전 날짜"
+          className="h-7 w-7 rounded-lg"
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className="size-3.5" />
         </Button>
 
         <Popover>
@@ -112,11 +113,9 @@ export function FilterBar({
             <Button
               variant="outline"
               size="sm"
-              className={cn(
-                'min-w-[160px] justify-start text-left font-normal'
-              )}
+              className="min-w-[160px] justify-start text-left font-normal h-7 rounded-lg text-xs"
             >
-              <CalendarDays className="size-4" />
+              <CalendarDays className="size-3.5 text-primary/70" />
               <span>
                 {format(parsedDate, 'yyyy년 M월 d일 (EEE)', { locale: ko })}
               </span>
@@ -137,19 +136,23 @@ export function FilterBar({
           size="icon-sm"
           onClick={handleNextDay}
           aria-label="다음 날짜"
+          className="h-7 w-7 rounded-lg"
         >
-          <ChevronRight className="size-4" />
+          <ChevronRight className="size-3.5" />
         </Button>
 
         <Button
           variant="ghost"
           size="xs"
           onClick={handleToday}
-          className="text-xs text-muted-foreground"
+          className="text-[11px] text-primary/70 hover:text-primary h-7 rounded-lg"
         >
           오늘
         </Button>
       </div>
+
+      {/* Divider */}
+      <div className="hidden sm:block h-5 w-px bg-border" />
 
       {/* User Selector */}
       {users && onUserChange && (
@@ -159,7 +162,7 @@ export function FilterBar({
             onUserChange(val === '__all__' ? null : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[120px]">
+          <SelectTrigger size="sm" className="min-w-[110px] h-7 rounded-lg text-xs">
             <SelectValue placeholder="담당자 선택" />
           </SelectTrigger>
           <SelectContent>
@@ -181,7 +184,7 @@ export function FilterBar({
             onCountryChange(val === '__all__' ? '' : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[100px]">
+          <SelectTrigger size="sm" className="min-w-[90px] h-7 rounded-lg text-xs">
             <SelectValue placeholder="국가 선택" />
           </SelectTrigger>
           <SelectContent>
@@ -203,7 +206,7 @@ export function FilterBar({
             onStatusFilterChange(val === '__all__' ? '' : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[100px]">
+          <SelectTrigger size="sm" className="min-w-[90px] h-7 rounded-lg text-xs">
             <SelectValue placeholder="상태" />
           </SelectTrigger>
           <SelectContent>
@@ -219,7 +222,7 @@ export function FilterBar({
       {categories && onCategoryChange && selectedCategories && (
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="text-xs">
+            <Button variant="outline" size="sm" className="text-xs h-7 rounded-lg">
               카테고리
               {selectedCategories.length > 0 &&
                 selectedCategories.length < CATEGORY_ORDER.length && (
@@ -230,7 +233,7 @@ export function FilterBar({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-2" align="start">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {CATEGORY_ORDER.map((cat) => {
                 const isActive = selectedCategories.includes(cat);
                 return (
@@ -239,7 +242,7 @@ export function FilterBar({
                     type="button"
                     onClick={() => handleCategoryToggle(cat)}
                     className={cn(
-                      'flex w-full items-center rounded-md px-2 py-1.5 text-xs transition-colors',
+                      'flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs transition-colors',
                       isActive
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-muted-foreground'
@@ -247,7 +250,7 @@ export function FilterBar({
                   >
                     <span
                       className={cn(
-                        'mr-2 h-2 w-2 rounded-full',
+                        'mr-2 h-2 w-2 rounded-full transition-colors',
                         isActive ? 'bg-primary' : 'bg-muted-foreground/30'
                       )}
                     />
@@ -268,7 +271,7 @@ export function FilterBar({
             value={searchText ?? ''}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="검색..."
-            className="h-8 w-[180px] pl-8 text-sm"
+            className="h-7 w-[160px] pl-8 text-xs rounded-lg"
           />
         </div>
       )}

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X, Pencil, Save, Plus, Trash2, FileText, Settings, LayoutGrid, List } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check, X, Pencil, Save, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload } from 'lucide-react';
+import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { logActivity } from '@/lib/utils/log-activity';
@@ -44,33 +46,80 @@ import {
 import type { Campaign, CampaignConfig } from '@/lib/types/database';
 
 const CONFIG_TYPE_OPTIONS = [
-  '기본 정보',
-  'DM 템플릿',
-  '이메일 템플릿',
-  '결제 정보',
-  '계약 조건',
-  '타겟 설정',
+  '세팅 관련',
+  '인플루언서 관련',
+  '지식베이스',
+  'CS어드민',
+  'CRM',
   '기타',
 ];
 
 const DEFAULT_TEMPLATE_CONFIGS = [
-  { config_type: '기본 정보', config_key: '홈페이지 URL' },
-  { config_type: '기본 정보', config_key: '인스타그램 URL' },
-  { config_type: '기본 정보', config_key: '담당 병원/클리닉' },
-  { config_type: '기본 정보', config_key: '주요 시술 항목' },
-  { config_type: 'DM 템플릿', config_key: '초기 DM 텍스트' },
-  { config_type: 'DM 템플릿', config_key: '팔로업 DM 텍스트' },
-  { config_type: 'DM 템플릿', config_key: '예약 확인 DM' },
-  { config_type: '이메일 템플릿', config_key: '웰컴 이메일' },
-  { config_type: '이메일 템플릿', config_key: '예약 확인 이메일' },
-  { config_type: '결제 정보', config_key: '결제 계좌' },
-  { config_type: '결제 정보', config_key: '월 예산' },
-  { config_type: '계약 조건', config_key: '계약 기간' },
-  { config_type: '계약 조건', config_key: '수수료율' },
-  { config_type: '타겟 설정', config_key: '타겟 국가' },
-  { config_type: '타겟 설정', config_key: '타겟 연령대' },
-  { config_type: '타겟 설정', config_key: '타겟 키워드' },
+  // 세팅 관련
+  { config_type: '세팅 관련', config_key: '인스타그램 URL' },
+  { config_type: '세팅 관련', config_key: '페이스북 URL' },
+  { config_type: '세팅 관련', config_key: '트위터 URL' },
+  { config_type: '세팅 관련', config_key: '틱톡 URL' },
+  { config_type: '세팅 관련', config_key: '플랫폼별 ID/PW' },
+  { config_type: '세팅 관련', config_key: '고객전용 라인' },
+  { config_type: '세팅 관련', config_key: '고객전용 왓츠앱 링크' },
+  { config_type: '세팅 관련', config_key: '홈페이지 링크' },
+  { config_type: '세팅 관련', config_key: '구글맵 세팅여부' },
+  { config_type: '세팅 관련', config_key: '리틀리 세팅여부' },
+  { config_type: '세팅 관련', config_key: '리틀리 링크' },
+  // 인플루언서 관련
+  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 라인 세팅' },
+  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 왓츠앱 세팅' },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 메신저 연동' },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 캠페인 등록' },
+  // 지식베이스
+  { config_type: '지식베이스', config_key: '고객전용 지식베이스 세팅여부' },
+  { config_type: '지식베이스', config_key: '인플전용 지식베이스 세팅여부' },
+  // CS어드민
+  { config_type: 'CS어드민', config_key: '메신저 채널 연동 여부' },
+  // CRM
+  { config_type: 'CRM', config_key: 'CRM 등록여부' },
 ];
+
+// Parse a single CSV line handling quoted fields with commas/quotes inside
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+function escapeCsvField(val: string): string {
+  if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+    return `"${val.replace(/"/g, '""')}"`;
+  }
+  return val;
+}
 
 export default function ConfigsPage() {
   const supabase = createClient();
@@ -87,6 +136,16 @@ export default function ConfigsPage() {
   const [newConfigType, setNewConfigType] = useState('');
   const [newConfigKey, setNewConfigKey] = useState('');
   const [newConfigValue, setNewConfigValue] = useState('');
+
+  // CSV upload state (per-campaign)
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<{ updated: number; created: number } | null>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  // All-campaigns CSV state
+  const [allCsvUploading, setAllCsvUploading] = useState(false);
+  const [allCsvResult, setAllCsvResult] = useState<{ updated: number; created: number; skipped: number } | null>(null);
+  const allCsvFileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery({
@@ -298,10 +357,380 @@ export default function ConfigsPage() {
     deleteConfigMutation.mutate(id);
   };
 
+  // CSV Download - export current campaign configs
+  const handleCsvDownload = useCallback(() => {
+    if (!selectedCampaignId || configs.length === 0) return;
+    const campaign = campaigns.find((c) => c.id === selectedCampaignId);
+    const campaignName = campaign
+      ? `${campaign.client_name}_${campaign.campaign_name}`
+      : 'campaign';
+
+    const BOM = '\uFEFF';
+    const header = '설정유형,항목이름,값,상태';
+    const rows = configs.map((config) =>
+      [
+        escapeCsvField(config.config_type),
+        escapeCsvField(config.config_key),
+        escapeCsvField(config.config_value ?? ''),
+        escapeCsvField(config.status),
+      ].join(',')
+    );
+
+    const csvContent = BOM + [header, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${campaignName}_설정.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [selectedCampaignId, configs, campaigns]);
+
+  // CSV Upload - parse and upsert to Supabase
+  const handleCsvUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !selectedCampaignId) return;
+
+      setCsvUploading(true);
+      setCsvResult(null);
+
+      try {
+        const text = await file.text();
+        const content = text.replace(/^\uFEFF/, '');
+        const lines = content.split(/\r?\n/).filter((line) => line.trim());
+
+        if (lines.length < 2) {
+          alert('CSV 파일에 데이터가 없습니다.');
+          return;
+        }
+
+        // Parse & validate header
+        const headers = parseCsvLine(lines[0]);
+        const expectedHeaders = ['설정유형', '항목이름', '값', '상태'];
+        const headerMap: Record<string, number> = {};
+        for (const expected of expectedHeaders) {
+          const idx = headers.findIndex((h) => h.trim() === expected);
+          if (idx === -1) {
+            alert(
+              `필수 컬럼 "${expected}"이(가) 없습니다.\n예상 형식: ${expectedHeaders.join(',')}`
+            );
+            return;
+          }
+          headerMap[expected] = idx;
+        }
+
+        // Parse data rows
+        const rows: {
+          config_type: string;
+          config_key: string;
+          config_value: string;
+          status: string;
+        }[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const fields = parseCsvLine(lines[i]);
+          if (fields.length < 4) continue;
+          const config_type = fields[headerMap['설정유형']].trim();
+          const config_key = fields[headerMap['항목이름']].trim();
+          const config_value = fields[headerMap['값']].trim();
+          const status = fields[headerMap['상태']].trim();
+          if (!config_type || !config_key) continue;
+          rows.push({
+            config_type,
+            config_key,
+            config_value,
+            status: status || '미완료',
+          });
+        }
+
+        if (rows.length === 0) {
+          alert('유효한 데이터가 없습니다.');
+          return;
+        }
+
+        // Fetch existing configs for matching
+        const { data: existingConfigs, error: fetchError } = await supabase
+          .from('campaign_configs')
+          .select('*')
+          .eq('campaign_id', selectedCampaignId);
+        if (fetchError) throw fetchError;
+
+        // Build lookup: config_type::config_key → existing record
+        const existingMap = new Map<string, CampaignConfig>();
+        (existingConfigs || []).forEach((c: CampaignConfig) => {
+          existingMap.set(`${c.config_type}::${c.config_key}`, c);
+        });
+
+        let updated = 0;
+        let created = 0;
+
+        for (const row of rows) {
+          const key = `${row.config_type}::${row.config_key}`;
+          const existing = existingMap.get(key);
+
+          if (existing) {
+            const { error } = await supabase
+              .from('campaign_configs')
+              .update({
+                config_value: row.config_value,
+                status: row.status,
+              })
+              .eq('id', existing.id);
+            if (error) throw error;
+            updated++;
+          } else {
+            const { error } = await supabase
+              .from('campaign_configs')
+              .insert({
+                campaign_id: selectedCampaignId,
+                config_type: row.config_type,
+                config_key: row.config_key,
+                config_value: row.config_value,
+                status: row.status,
+              });
+            if (error) throw error;
+            created++;
+          }
+        }
+
+        logActivity({
+          userId: profile?.id,
+          actionType: 'csv_import',
+          targetTable: 'campaign_configs',
+          targetId: selectedCampaignId,
+          newValue: { updated, created, totalRows: rows.length },
+        });
+
+        // Invalidate caches
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.configs.byCampaign(selectedCampaignId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.configs.all,
+        });
+
+        setCsvResult({ updated, created });
+      } catch (err) {
+        console.error('CSV upload error:', err);
+        alert(
+          `CSV 업로드 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
+        );
+      } finally {
+        setCsvUploading(false);
+        if (csvFileInputRef.current) {
+          csvFileInputRef.current.value = '';
+        }
+      }
+    },
+    [selectedCampaignId, supabase, queryClient, profile]
+  );
+
+  // All-campaigns CSV Download
+  const handleAllCsvDownload = useCallback(async () => {
+    if (campaigns.length === 0) return;
+
+    // Fetch all configs across all campaigns
+    const { data: allConfigs, error } = await supabase
+      .from('campaign_configs')
+      .select('*')
+      .order('campaign_id')
+      .order('config_type')
+      .order('config_key');
+    if (error) {
+      alert(`데이터 조회 실패: ${error.message}`);
+      return;
+    }
+
+    // Build campaign lookup
+    const campaignMap = new Map<string, Campaign>();
+    campaigns.forEach((c) => campaignMap.set(c.id, c));
+
+    const BOM = '\uFEFF';
+    const header = '고객명,캠페인명,설정유형,항목이름,값,상태';
+    const rows = (allConfigs as CampaignConfig[]).map((config) => {
+      const campaign = campaignMap.get(config.campaign_id);
+      return [
+        escapeCsvField(campaign?.client_name ?? ''),
+        escapeCsvField(campaign?.campaign_name ?? ''),
+        escapeCsvField(config.config_type),
+        escapeCsvField(config.config_key),
+        escapeCsvField(config.config_value ?? ''),
+        escapeCsvField(config.status),
+      ].join(',');
+    });
+
+    const csvContent = BOM + [header, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `전체_캠페인_설정_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [campaigns, supabase]);
+
+  // All-campaigns CSV Upload
+  const handleAllCsvUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setAllCsvUploading(true);
+      setAllCsvResult(null);
+
+      try {
+        const text = await file.text();
+        const content = text.replace(/^\uFEFF/, '');
+        const lines = content.split(/\r?\n/).filter((line) => line.trim());
+
+        if (lines.length < 2) {
+          alert('CSV 파일에 데이터가 없습니다.');
+          return;
+        }
+
+        // Parse & validate header
+        const headers = parseCsvLine(lines[0]);
+        const expectedHeaders = ['고객명', '캠페인명', '설정유형', '항목이름', '값', '상태'];
+        const headerMap: Record<string, number> = {};
+        for (const expected of expectedHeaders) {
+          const idx = headers.findIndex((h) => h.trim() === expected);
+          if (idx === -1) {
+            alert(
+              `필수 컬럼 "${expected}"이(가) 없습니다.\n예상 형식: ${expectedHeaders.join(',')}`
+            );
+            return;
+          }
+          headerMap[expected] = idx;
+        }
+
+        // Parse data rows
+        const rows: {
+          client_name: string;
+          campaign_name: string;
+          config_type: string;
+          config_key: string;
+          config_value: string;
+          status: string;
+        }[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const fields = parseCsvLine(lines[i]);
+          if (fields.length < 6) continue;
+          const client_name = fields[headerMap['고객명']].trim();
+          const campaign_name = fields[headerMap['캠페인명']].trim();
+          const config_type = fields[headerMap['설정유형']].trim();
+          const config_key = fields[headerMap['항목이름']].trim();
+          const config_value = fields[headerMap['값']].trim();
+          const status = fields[headerMap['상태']].trim();
+          if (!client_name || !campaign_name || !config_type || !config_key) continue;
+          rows.push({
+            client_name,
+            campaign_name,
+            config_type,
+            config_key,
+            config_value,
+            status: status || '미완료',
+          });
+        }
+
+        if (rows.length === 0) {
+          alert('유효한 데이터가 없습니다.');
+          return;
+        }
+
+        // Build campaign lookup: client_name + campaign_name → campaign_id
+        const campaignLookup = new Map<string, string>();
+        campaigns.forEach((c) => {
+          campaignLookup.set(`${c.client_name}::${c.campaign_name}`, c.id);
+        });
+
+        // Fetch ALL existing configs
+        const { data: existingAll, error: fetchError } = await supabase
+          .from('campaign_configs')
+          .select('*');
+        if (fetchError) throw fetchError;
+
+        // Build lookup: campaign_id::config_type::config_key → existing record
+        const existingMap = new Map<string, CampaignConfig>();
+        (existingAll || []).forEach((c: CampaignConfig) => {
+          existingMap.set(`${c.campaign_id}::${c.config_type}::${c.config_key}`, c);
+        });
+
+        let updated = 0;
+        let created = 0;
+        let skipped = 0;
+
+        for (const row of rows) {
+          const campaignId = campaignLookup.get(
+            `${row.client_name}::${row.campaign_name}`
+          );
+          if (!campaignId) {
+            skipped++;
+            continue;
+          }
+
+          const key = `${campaignId}::${row.config_type}::${row.config_key}`;
+          const existing = existingMap.get(key);
+
+          if (existing) {
+            const { error: updateErr } = await supabase
+              .from('campaign_configs')
+              .update({
+                config_value: row.config_value,
+                status: row.status,
+              })
+              .eq('id', existing.id);
+            if (updateErr) throw updateErr;
+            updated++;
+          } else {
+            const { error: insertErr } = await supabase
+              .from('campaign_configs')
+              .insert({
+                campaign_id: campaignId,
+                config_type: row.config_type,
+                config_key: row.config_key,
+                config_value: row.config_value,
+                status: row.status,
+              });
+            if (insertErr) throw insertErr;
+            created++;
+          }
+        }
+
+        logActivity({
+          userId: profile?.id,
+          actionType: 'csv_import_all',
+          targetTable: 'campaign_configs',
+          targetId: null,
+          newValue: { updated, created, skipped, totalRows: rows.length },
+        });
+
+        // Invalidate all config caches
+        queryClient.invalidateQueries({ queryKey: ['configs'] });
+
+        setAllCsvResult({ updated, created, skipped });
+      } catch (err) {
+        console.error('All-campaigns CSV upload error:', err);
+        alert(
+          `전체 CSV 업로드 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
+        );
+      } finally {
+        setAllCsvUploading(false);
+        if (allCsvFileInputRef.current) {
+          allCsvFileInputRef.current.value = '';
+        }
+      }
+    },
+    [campaigns, supabase, queryClient, profile]
+  );
+
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
       </div>
     );
   }
@@ -309,19 +738,73 @@ export default function ConfigsPage() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        <div className="text-center space-y-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <span className="text-lg">🔒</span>
+          </div>
+          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">캠페인 세팅</h1>
-        <p className="text-muted-foreground text-sm">
-          캠페인별 설정 항목을 관리합니다.
-        </p>
-      </div>
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-6"
+    >
+      <motion.div variants={fadeUpItem} className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">캠페인 세팅</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            캠페인별 설정 항목을 관리합니다.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAllCsvDownload}
+            disabled={campaigns.length === 0}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            전체 CSV 다운로드
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => allCsvFileInputRef.current?.click()}
+            disabled={allCsvUploading}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            {allCsvUploading ? '업로드 중...' : '전체 CSV 업로드'}
+          </Button>
+          <input
+            ref={allCsvFileInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleAllCsvUpload}
+          />
+        </div>
+      </motion.div>
+
+      {/* All-campaigns CSV result */}
+      {allCsvResult && (
+        <motion.div variants={fadeUpItem} className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-2 rounded-lg">
+          <Check className="h-4 w-4 shrink-0" />
+          전체 CSV 업로드 완료: {allCsvResult.created}개 생성, {allCsvResult.updated}개 업데이트
+          {allCsvResult.skipped > 0 && `, ${allCsvResult.skipped}개 스킵 (캠페인 미매칭)`}
+          <button
+            className="ml-2 text-xs underline cursor-pointer"
+            onClick={() => setAllCsvResult(null)}
+          >
+            닫기
+          </button>
+        </motion.div>
+      )}
 
       <Tabs defaultValue="individual" className="space-y-4">
         <TabsList>
@@ -341,8 +824,8 @@ export default function ConfigsPage() {
 
         <TabsContent value="individual" className="space-y-6">
 
-      {/* Campaign selector */}
-      <div className="flex items-center gap-3">
+      {/* Campaign selector + action buttons */}
+      <div className="flex items-center gap-3 flex-wrap">
         <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
           <SelectTrigger className="w-[320px]">
             <SelectValue placeholder="캠페인을 선택하세요" />
@@ -365,9 +848,48 @@ export default function ConfigsPage() {
               <Plus className="h-4 w-4 mr-1" />
               새 설정 추가
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCsvDownload}
+              disabled={configs.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              CSV 다운로드
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => csvFileInputRef.current?.click()}
+              disabled={csvUploading}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              {csvUploading ? '업로드 중...' : 'CSV 업로드'}
+            </Button>
+            <input
+              ref={csvFileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleCsvUpload}
+            />
           </>
         )}
       </div>
+
+      {/* CSV upload result */}
+      {csvResult && (
+        <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-2 rounded-lg">
+          <Check className="h-4 w-4" />
+          CSV 업로드 완료: {csvResult.created}개 생성, {csvResult.updated}개 업데이트
+          <button
+            className="ml-2 text-xs underline cursor-pointer"
+            onClick={() => setCsvResult(null)}
+          >
+            닫기
+          </button>
+        </div>
+      )}
 
       {/* New Config Dialog */}
       <Dialog open={isNewConfigDialogOpen} onOpenChange={setIsNewConfigDialogOpen}>
@@ -445,8 +967,11 @@ export default function ConfigsPage() {
           </div>
         </div>
       ) : isLoading ? (
-        <div className="flex items-center justify-center h-32 text-muted-foreground">
-          로딩 중...
+        <div className="flex items-center justify-center h-32">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <span className="text-sm">데이터를 불러오는 중...</span>
+          </div>
         </div>
       ) : configs.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 border rounded-lg gap-4">
@@ -589,6 +1114,6 @@ export default function ConfigsPage() {
 
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }
