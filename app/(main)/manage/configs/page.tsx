@@ -10,6 +10,7 @@ import { queryKeys } from '@/lib/utils/query-keys';
 import { logActivity } from '@/lib/utils/log-activity';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { useAuth } from '@/hooks/use-auth';
+import { useRealtimeConfigs } from '@/hooks/use-realtime-configs';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -127,6 +128,9 @@ export default function ConfigsPage() {
   const isAdmin = useIsAdmin();
   const { profile } = useAuth();
 
+  // Realtime: sync config changes across all open tabs/PCs
+  useRealtimeConfigs();
+
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -182,6 +186,7 @@ export default function ConfigsPage() {
       return data as CampaignConfig[];
     },
     enabled: !!selectedCampaignId,
+    refetchOnWindowFocus: true,
   });
 
   // Update config value

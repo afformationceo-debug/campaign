@@ -8,6 +8,7 @@ import { fetchAll } from '@/lib/supabase/fetch-all';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { logActivity } from '@/lib/utils/log-activity';
 import { useAuth } from '@/hooks/use-auth';
+import { useRealtimeConfigs } from '@/hooks/use-realtime-configs';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -54,6 +55,9 @@ export function ConfigMatrix() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+
+  // Realtime: sync config changes across all open tabs/PCs
+  useRealtimeConfigs();
 
   // Fetch all campaigns
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
