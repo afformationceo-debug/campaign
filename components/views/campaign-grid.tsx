@@ -1,0 +1,412 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+import { fetchAll } from '@/lib/supabase/fetch-all';
+import { queryKeys } from '@/lib/utils/query-keys';
+import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { useRealtimeChecks } from '@/hooks/use-realtime-checks';
+import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
+import { useAuth } from '@/hooks/use-auth';
+import { StatusCell } from '@/components/views/status-cell';
+import { Badge } from '@/components/ui/badge';
+import type {
+  Task,
+  Campaign,
+  DailyCheck,
+  CampaignTaskConfig,
+  TaskCategory,
+} from '@/lib/types/database';
+
+interface CampaignGridProps {
+  date: string;
+  countryFilter: string;
+  searchText: string;
+  statusFilter: string;
+  onCampaignClick?: (campaignId: string) => void;
+}
+
+export function CampaignGrid({
+  date,
+  countryFilter,
+  searchText,
+  statusFilter,
+  onCampaignClick,
+}: CampaignGridProps) {
+  const supabase = createClient();
+  const { profile } = useAuth();
+
+  // Subscribe to realtime updates
+  useRealtimeChecks(date);
+  useRealtimeTaskConfig();
+
+  // Fetch daily checks for the selected date
+  const { data: checks = [], isLoading: checksLoading } = useQuery({
+    queryKey: queryKeys.checks.byDate(date),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_checks')
+        .select('*')
+        .eq('check_date', date);
+      if (error) throw error;
+      return (data ?? []) as DailyCheck[];
+    },
+  });
+
+  // Fetch all tasks
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: queryKeys.tasks.all,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('loop_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Task[];
+    },
+  });
+
+  // Fetch all campaigns
+  const { data: allCampaigns = [], isLoading: campaignsLoading } = useQuery({
+    queryKey: queryKeys.campaigns.all,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('campaign_name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Campaign[];
+    },
+  });
+
+  // Fetch campaign_task_config (paginated to bypass PostgREST 1000 row limit)
+  const { data: taskConfigs = [], isLoading: configsLoading } = useQuery({
+    queryKey: queryKeys.taskConfig.all,
+    queryFn: () => fetchAll<CampaignTaskConfig>(supabase, 'campaign_task_config'),
+  });
+
+  // Build config lookup
+  const configMap = useMemo(() => {
+    const map = new Map<string, CampaignTaskConfig>();
+    taskConfigs.forEach((config) => {
+      map.set(`${config.campaign_id}:${config.task_id}`, config);
+    });
+    return map;
+  }, [taskConfigs]);
+
+  // Build check lookup
+  const checkMap = useMemo(() => {
+    const map = new Map<string, DailyCheck>();
+    checks.forEach((check) => {
+      map.set(`${check.campaign_id}:${check.task_id}`, check);
+    });
+    return map;
+  }, [checks]);
+
+  // Filter campaigns
+  const filteredCampaigns = useMemo(() => {
+    let filtered = allCampaigns;
+
+    if (statusFilter) {
+      filtered = filtered.filter((c) => c.status === statusFilter);
+    }
+
+    if (countryFilter) {
+      filtered = filtered.filter(
+        (c) => c.target_country === countryFilter
+      );
+    }
+
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.client_name.toLowerCase().includes(lower) ||
+          c.campaign_name.toLowerCase().includes(lower)
+      );
+    }
+
+    return filtered;
+  }, [allCampaigns, statusFilter, countryFilter, searchText]);
+
+  // Filter out global tasks (campaign grid only shows campaign-scope tasks)
+  const campaignTasks = useMemo(() => {
+    return tasks.filter((t) => t.scope !== 'global');
+  }, [tasks]);
+
+  // Group tasks by category
+  const taskGroups = useMemo(() => {
+    const groups: { category: TaskCategory; tasks: Task[] }[] = [];
+    for (const category of CATEGORY_ORDER) {
+      const catTasks = campaignTasks.filter((t) => t.category === category);
+      if (catTasks.length > 0) {
+        groups.push({ category, tasks: catTasks });
+      }
+    }
+    return groups;
+  }, [campaignTasks]);
+
+  // Helper: is task applicable for a campaign?
+  const isApplicable = (campaignId: string, taskId: string): boolean => {
+    const config = configMap.get(`${campaignId}:${taskId}`);
+    if (config) return config.is_applicable;
+    const task = tasks.find((t) => t.id === taskId);
+    return task?.is_applicable_default ?? true;
+  };
+
+  // Calculate summary per campaign
+  const campaignSummary = useMemo(() => {
+    const summary = new Map<
+      string,
+      { completed: number; applicable: number; total: number }
+    >();
+    filteredCampaigns.forEach((campaign) => {
+      let completed = 0;
+      let applicable = 0;
+      campaignTasks.forEach((task) => {
+        if (isApplicable(campaign.id, task.id)) {
+          applicable++;
+          const check = checkMap.get(`${campaign.id}:${task.id}`);
+          if (check?.status === '완료' || check?.status === '해당없음') completed++;
+        }
+      });
+      summary.set(campaign.id, {
+        completed,
+        applicable,
+        total: campaignTasks.length,
+      });
+    });
+    return summary;
+  }, [filteredCampaigns, campaignTasks, checkMap, configMap]);
+
+  const isLoading =
+    checksLoading || tasksLoading || campaignsLoading || configsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span className="text-sm">데이터를 불러오는 중...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (filteredCampaigns.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+        조건에 맞는 캠페인이 없습니다.
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative overflow-auto rounded-lg border bg-background">
+      <table className="w-max min-w-full border-collapse">
+        {/* Header Row: Task Names (sticky top) */}
+        <thead>
+          <tr>
+            {/* Top-left corner */}
+            <th
+              className={cn(
+                'sticky left-0 top-0 z-30 min-w-[200px] max-w-[260px]',
+                'bg-background border-b border-r px-3 py-2',
+                'text-left text-xs font-semibold text-muted-foreground'
+              )}
+            >
+              캠페인
+            </th>
+
+            {/* Task Name Headers grouped by category */}
+            {taskGroups.map((group) => {
+              const catColors = CATEGORY_COLORS[group.category];
+              return group.tasks.map((task, taskIdx) => (
+                <th
+                  key={task.id}
+                  className={cn(
+                    'sticky top-0 z-20',
+                    'bg-background border-b px-0.5 py-1',
+                    'text-center min-w-[36px] max-w-[40px]',
+                    taskIdx === 0 && 'border-l',
+                    taskIdx === 0 && catColors.border
+                  )}
+                >
+                  <div
+                    className="flex flex-col items-center gap-0.5"
+                    title={`[${group.category}] ${task.task_name}${task.default_assignees?.length ? `\n담당: ${task.default_assignees.join(', ')}` : ''}`}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block w-1.5 h-1.5 rounded-full',
+                        catColors.text.replace('text-', 'bg-')
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'text-[9px] font-medium text-muted-foreground',
+                        'whitespace-nowrap',
+                        'max-h-[60px] overflow-hidden'
+                      )}
+                      style={{
+                        writingMode: 'vertical-lr',
+                      }}
+                    >
+                      {task.task_name}
+                    </span>
+                    {task.default_assignees && task.default_assignees.length > 0 && (
+                      <span className="text-[7px] text-muted-foreground/70 leading-tight text-center max-w-[36px] truncate">
+                        {task.default_assignees.map(n => n.charAt(0)).join('')}
+                      </span>
+                    )}
+                  </div>
+                </th>
+              ));
+            })}
+
+            {/* Summary Column Header */}
+            <th
+              className={cn(
+                'sticky top-0 right-0 z-20',
+                'bg-background border-b border-l px-2 py-2',
+                'text-center text-[10px] font-semibold text-muted-foreground',
+                'min-w-[70px]'
+              )}
+            >
+              완료율
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredCampaigns.map((campaign) => {
+            const summary = campaignSummary.get(campaign.id);
+            const pct =
+              summary && summary.applicable > 0
+                ? Math.round(
+                    (summary.completed / summary.applicable) * 100
+                  )
+                : 0;
+
+            return (
+              <tr
+                key={campaign.id}
+                className={cn(
+                  'hover:bg-muted/30 transition-colors',
+                  onCampaignClick && 'cursor-pointer'
+                )}
+                onClick={() => onCampaignClick?.(campaign.id)}
+              >
+                {/* Campaign Name (sticky left) */}
+                <td
+                  className={cn(
+                    'sticky left-0 z-10',
+                    'bg-background border-b border-r px-3 py-1.5',
+                    'text-xs font-medium text-foreground',
+                    'min-w-[200px] max-w-[260px]'
+                  )}
+                >
+                  <div className="truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
+                    <span className="font-semibold">{campaign.client_name}</span>
+                    <span className="text-muted-foreground ml-1">
+                      {campaign.campaign_name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {campaign.target_country && (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1 py-0"
+                      >
+                        {campaign.target_country}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'text-[9px] px-1 py-0',
+                        campaign.status === 'active' &&
+                          'border-emerald-300 text-emerald-600',
+                        campaign.status === 'paused' &&
+                          'border-amber-300 text-amber-600',
+                        campaign.status === 'completed' &&
+                          'border-gray-300 text-gray-500'
+                      )}
+                    >
+                      {campaign.status}
+                    </Badge>
+                  </div>
+                </td>
+
+                {/* Status Cells */}
+                {taskGroups.map((group) =>
+                  group.tasks.map((task, taskIdx) => {
+                    const applicable = isApplicable(campaign.id, task.id);
+                    const check =
+                      checkMap.get(`${campaign.id}:${task.id}`) ?? null;
+
+                    return (
+                      <td
+                        key={task.id}
+                        className={cn(
+                          'border-b px-0.5 py-1 text-center',
+                          taskIdx === 0 && 'border-l',
+                          taskIdx === 0 &&
+                            CATEGORY_COLORS[group.category].border
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          <StatusCell
+                            check={check}
+                            isApplicable={applicable}
+                            campaignId={campaign.id}
+                            taskId={task.id}
+                            date={date}
+                            assigneeId={profile?.id}
+                          />
+                        </div>
+                      </td>
+                    );
+                  })
+                )}
+
+                {/* Campaign Summary */}
+                <td
+                  className={cn(
+                    'sticky right-0 z-10',
+                    'bg-background border-b border-l px-2 py-1.5',
+                    'text-center'
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {summary?.completed ?? 0}/{summary?.applicable ?? 0}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        'text-[9px] px-1.5 py-0',
+                        pct === 100 &&
+                          'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
+                        pct > 0 &&
+                          pct < 100 &&
+                          'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                        pct === 0 && 'bg-gray-100 text-gray-500'
+                      )}
+                    >
+                      {pct}%
+                    </Badge>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
