@@ -37,7 +37,7 @@ Deno.serve(async () => {
       case 'daily': return true;
       case 'weekly': return t.day_of_week?.includes(dayOfWeek);
       case 'monthly': return new Date().getDate() === 1;
-      case 'once': return true;
+      case 'once': return false; // once tasks are created manually via UI
       case 'as_needed': return false;
       default: return false;
     }

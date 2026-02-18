@@ -174,7 +174,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   const supabase = createClient();
   const { profile } = useAuth();
   const effectiveUserId = userId ?? profile?.id ?? '';
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const currentDate = parseISO(date);
@@ -246,22 +246,22 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
       if (onceTaskIds.length === 0) return [];
       const { data, error } = await supabase
         .from('daily_checks')
-        .select('campaign_id, task_id, status')
+        .select('*')
         .in('task_id', onceTaskIds)
         .eq('status', '완료');
       if (error) throw error;
-      return (data ?? []) as { campaign_id: string | null; task_id: string; status: string }[];
+      return (data ?? []) as DailyCheck[];
     },
     enabled: onceTaskIds.length > 0,
   });
 
-  // Set of "campaign:task" keys for once-tasks that are already completed
-  const onceCompletedSet = useMemo(() => {
-    const set = new Set<string>();
+  // Map of "campaign:task" -> check for once-tasks already completed (any month)
+  const onceCompletedMap = useMemo(() => {
+    const map = new Map<string, DailyCheck>();
     for (const c of onceCompletedChecks) {
-      if (c.campaign_id) set.add(`${c.campaign_id}:${c.task_id}`);
+      if (c.campaign_id) map.set(`${c.campaign_id}:${c.task_id}`, c);
     }
-    return set;
+    return map;
   }, [onceCompletedChecks]);
 
   // ─── Derived Data ───
@@ -310,6 +310,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     campaign: Campaign;
     check: DailyCheck | null;
     assigneeName: string | null;
+    onceCompleted: boolean; // true if once-task already completed (read-only)
   };
 
   const groupedData = useMemo(() => {
@@ -325,24 +326,24 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         const applicable = config ? config.is_applicable : task.is_applicable_default;
         if (!applicable) continue;
 
-        // Skip "once" tasks that are already completed (in any month)
-        if (task.frequency === 'once' && onceCompletedSet.has(`${campaign.id}:${task.id}`)) {
-          continue;
-        }
+        const key = `${campaign.id}:${task.id}`;
+        const onceCheck = task.frequency === 'once' ? onceCompletedMap.get(key) : undefined;
+        const isOnceCompleted = !!onceCheck;
 
-        const check = checkMap.get(`${campaign.id}:${task.id}`) ?? null;
+        // For once-completed: use the historical check; otherwise use current month check
+        const check = isOnceCompleted ? onceCheck! : (checkMap.get(key) ?? null);
         const assigneeName = getAssigneeName(task, config ?? undefined);
-        rows.push({ task, campaign, check, assigneeName });
+        rows.push({ task, campaign, check, assigneeName, onceCompleted: isOnceCompleted });
       }
 
       if (rows.length > 0) {
-        const completedCount = rows.filter((r) => r.check?.status === '완료').length;
+        const completedCount = rows.filter((r) => r.check?.status === '완료' || r.onceCompleted).length;
         groups.push({ task, rows, completedCount });
       }
     }
 
     return groups;
-  }, [periodicTasks, campaigns, campaignId, configMap, checkMap, getAssigneeName, onceCompletedSet]);
+  }, [periodicTasks, campaigns, campaignId, configMap, checkMap, getAssigneeName, onceCompletedMap]);
 
   const totalItems = groupedData.reduce((s, g) => s + g.rows.length, 0);
   const completedItems = groupedData.reduce((s, g) => s + g.completedCount, 0);
@@ -494,12 +495,22 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             key={`${row.campaign.id}:${row.task.id}`}
                             className={cn(
                               'border-b border-border/30 hover:bg-accent/10 transition-colors',
-                              row.check?.status === '완료' && 'bg-emerald-50/20 dark:bg-emerald-950/5'
+                              (row.check?.status === '완료' || row.onceCompleted) && 'bg-emerald-50/20 dark:bg-emerald-950/5',
+                              row.onceCompleted && 'opacity-60'
                             )}
                           >
                             <td className="px-3 py-1.5"></td>
                             <td className="px-3 py-1.5">
-                              <span className="text-[11px] text-foreground/80 pl-4">{row.campaign.campaign_name}</span>
+                              <div className="flex items-center gap-1.5 pl-4">
+                                <span className={cn('text-[11px]', row.onceCompleted ? 'text-muted-foreground line-through' : 'text-foreground/80')}>
+                                  {row.campaign.campaign_name}
+                                </span>
+                                {row.onceCompleted && (
+                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                                    완료됨
+                                  </Badge>
+                                )}
+                              </div>
                             </td>
                             <td className="px-3 py-1.5">
                               {row.assigneeName ? (
@@ -513,23 +524,40 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             </td>
                             <td className="px-3 py-1.5 text-center">
                               <div className="flex items-center justify-center">
-                                <PeriodicStatusButton
-                                  check={row.check}
-                                  campaignId={row.campaign.id}
-                                  taskId={row.task.id}
-                                  date={date}
-                                  assigneeId={effectiveUserId}
-                                />
+                                {row.onceCompleted ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
+                                        <CheckCircle2 className="size-4" />
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top"><p className="text-xs">1회성 완료 (변경 불가)</p></TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <PeriodicStatusButton
+                                    check={row.check}
+                                    campaignId={row.campaign.id}
+                                    taskId={row.task.id}
+                                    date={date}
+                                    assigneeId={effectiveUserId}
+                                  />
+                                )}
                               </div>
                             </td>
                             <td className="px-3 py-1.5">
-                              <CompletionDateCell
-                                check={row.check}
-                                campaignId={row.campaign.id}
-                                taskId={row.task.id}
-                                currentDate={date}
-                                assigneeId={effectiveUserId}
-                              />
+                              {row.onceCompleted ? (
+                                <span className="text-[11px] text-emerald-600 font-medium tabular-nums px-1">
+                                  {row.check?.check_date ?? '-'}
+                                </span>
+                              ) : (
+                                <CompletionDateCell
+                                  check={row.check}
+                                  campaignId={row.campaign.id}
+                                  taskId={row.task.id}
+                                  currentDate={date}
+                                  assigneeId={effectiveUserId}
+                                />
+                              )}
                             </td>
                           </tr>
                         ))}
