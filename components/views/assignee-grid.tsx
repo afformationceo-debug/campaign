@@ -340,38 +340,49 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     <div className="space-y-6">
     {/* Global Tasks Section (table layout) */}
     {globalTasks.length > 0 && (
-      <div className="rounded-lg border bg-background overflow-hidden">
-        <div className="px-3 py-2 border-b bg-violet-50 dark:bg-violet-950/20">
-          <h3 className="text-xs font-semibold text-violet-700 dark:text-violet-300">
-            전역 업무 (캠페인 무관)
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="px-3 py-1.5 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
+          <div className="w-1.5 h-4 rounded-full bg-violet-400" />
+          <h3 className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">
+            전역 업무
           </h3>
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+            {globalTasks.length}건
+          </Badge>
         </div>
         <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '30%' }}>업무</th>
-              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>담당자</th>
-              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>도구</th>
-              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
-              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '38%' }}>결과값</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '24%' }}>업무</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '9%' }}>카테고리</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
+              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
             {globalTasks.map((task) => {
               const check = checkMap.get(`null:${task.id}`) ?? null;
               const assignees = task.default_assignees?.join(', ') || null;
+              const catColor = CATEGORY_COLORS[task.category];
               return (
-                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors h-8">
-                  <td className="px-2 py-0.5 truncate">
+                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors h-7">
+                  <td className="px-2 py-0 truncate">
                     <span className="text-[11px] font-medium truncate block">{task.task_name}</span>
                   </td>
-                  <td className="px-2 py-0.5">
+                  <td className="px-2 py-0">
+                    <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                      {task.category}
+                    </Badge>
+                  </td>
+                  <td className="px-2 py-0">
                     <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
                   </td>
-                  <td className="px-2 py-0.5">
+                  <td className="px-2 py-0">
                     <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
                   </td>
-                  <td className="px-2 py-0.5">
+                  <td className="px-2 py-0">
                     <div className="flex items-center justify-center">
                       <StatusCell
                         check={check}
@@ -382,7 +393,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-0.5">
+                  <td className="px-2 py-0">
                     <ResultValueInput
                       check={check}
                       taskId={task.id}
@@ -401,7 +412,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     {/* Campaign-scope Tasks Grid */}
     {filteredCampaigns.length > 0 && campaignScopeTasks.length > 0 && (
     <TooltipProvider>
-    <div className="relative overflow-auto rounded-lg border bg-background max-h-[calc(100vh-220px)]">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
+        <div className="w-1.5 h-4 rounded-full bg-blue-400" />
+        <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+          일일 캠페인별 업무
+        </h3>
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+          {filteredCampaigns.length}개 캠페인
+        </Badge>
+      </div>
+    <div className="relative overflow-auto max-h-[calc(100vh-260px)]">
       <table className="w-max min-w-full border-collapse">
         {/* Header Row: Campaign Names (sticky top) */}
         <thead>
@@ -410,8 +431,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             <th
               className={cn(
                 'sticky left-0 top-0 z-30 min-w-[180px] max-w-[220px]',
-                'bg-background border-b border-r px-3 py-2',
-                'text-left text-xs font-semibold text-muted-foreground'
+                'bg-background border-b border-r px-3 py-1',
+                'text-left text-[11px] font-semibold text-muted-foreground'
               )}
             >
               업무
@@ -425,18 +446,18 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                   key={campaign.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-1.5',
+                    'bg-background border-b px-0.5 py-1',
                     'text-center min-w-[36px] max-w-[40px]'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-0.5 cursor-help">
-                        <span className="text-[9px] font-semibold text-foreground leading-none">
+                      <div className="flex flex-col items-center gap-0 cursor-help">
+                        <span className="text-[9px] font-semibold text-foreground leading-tight">
                           {campaign.client_name.slice(0, 2)}
                         </span>
                         {countryShort && (
-                          <span className="text-[8px] text-muted-foreground/70 leading-none">
+                          <span className="text-[7px] text-muted-foreground/70 leading-tight">
                             {countryShort}
                           </span>
                         )}
@@ -459,9 +480,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             <th
               className={cn(
                 'sticky top-0 right-0 z-20',
-                'bg-background border-b border-l px-2 py-2',
+                'bg-background border-b border-l px-2 py-1',
                 'text-center text-[10px] font-semibold text-muted-foreground',
-                'min-w-[60px]'
+                'min-w-[56px]'
               )}
             >
               완료율
@@ -480,7 +501,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                     colSpan={filteredCampaigns.length + 2}
                     className={cn(
                       'sticky left-0 z-10',
-                      'px-3 py-1.5 text-xs font-semibold',
+                      'px-3 py-0.5 text-[11px] font-semibold',
                       catColors.bg,
                       catColors.darkBg,
                       catColors.text,
@@ -506,8 +527,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       <td
                         className={cn(
                           'sticky left-0 z-10',
-                          'bg-background border-b border-r px-3 py-1.5',
-                          'text-xs font-medium text-foreground',
+                          'bg-background border-b border-r px-3 py-0.5',
+                          'text-[11px] font-medium text-foreground',
                           'min-w-[180px] max-w-[220px]'
                         )}
                         title={`${task.task_name}${task.default_assignees?.length ? `\n담당: ${task.default_assignees.join(', ')}` : ''}`}
@@ -544,7 +565,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                         return (
                           <td
                             key={campaign.id}
-                            className="border-b px-1 py-1 text-center"
+                            className="border-b px-0.5 py-0 text-center"
                           >
                             <div className="flex items-center justify-center">
                               <StatusCell
@@ -564,7 +585,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       <td
                         className={cn(
                           'sticky right-0 z-10',
-                          'bg-background border-b border-l px-2 py-1.5',
+                          'bg-background border-b border-l px-2 py-0.5',
                           'text-center'
                         )}
                       >
@@ -597,8 +618,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             <td
               className={cn(
                 'sticky left-0 z-10',
-                'bg-muted/50 border-t-2 px-3 py-2',
-                'text-xs font-semibold text-foreground'
+                'bg-muted/50 border-t-2 px-3 py-1',
+                'text-[11px] font-semibold text-foreground'
               )}
             >
               캠페인 완료율
@@ -613,7 +634,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               return (
                 <td
                   key={campaign.id}
-                  className="bg-muted/50 border-t-2 px-1 py-2 text-center"
+                  className="bg-muted/50 border-t-2 px-1 py-1 text-center"
                 >
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] font-medium text-muted-foreground">
@@ -637,7 +658,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             <td
               className={cn(
                 'sticky right-0 z-10',
-                'bg-muted/50 border-t-2 border-l px-2 py-2 text-center'
+                'bg-muted/50 border-t-2 border-l px-2 py-1 text-center'
               )}
             >
               {(() => {
@@ -667,6 +688,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
           </tr>
         </tbody>
       </table>
+    </div>
     </div>
     </TooltipProvider>
     )}

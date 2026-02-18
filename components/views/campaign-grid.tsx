@@ -218,7 +218,17 @@ export function CampaignGrid({
 
   return (
     <TooltipProvider>
-    <div className="relative overflow-auto rounded-lg border bg-background max-h-[calc(100vh-220px)]">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
+        <div className="w-1.5 h-4 rounded-full bg-blue-400" />
+        <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+          일일 캠페인별 업무
+        </h3>
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+          {filteredCampaigns.length}개 캠페인
+        </Badge>
+      </div>
+    <div className="relative overflow-auto max-h-[calc(100vh-260px)]">
       <table className="w-max min-w-full border-collapse">
         {/* Header Row: Task Names (sticky top) */}
         <thead>
@@ -227,8 +237,8 @@ export function CampaignGrid({
             <th
               className={cn(
                 'sticky left-0 top-0 z-30 min-w-[200px] max-w-[260px]',
-                'bg-background border-b border-r px-3 py-2',
-                'text-left text-xs font-semibold text-muted-foreground'
+                'bg-background border-b border-r px-3 py-1',
+                'text-left text-[11px] font-semibold text-muted-foreground'
               )}
             >
               캠페인
@@ -242,7 +252,7 @@ export function CampaignGrid({
                   key={task.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-1.5',
+                    'bg-background border-b px-0.5 py-1',
                     'text-center min-w-[36px] max-w-[40px]',
                     taskIdx === 0 && 'border-l',
                     taskIdx === 0 && catColors.border
@@ -290,9 +300,9 @@ export function CampaignGrid({
             <th
               className={cn(
                 'sticky top-0 right-0 z-20',
-                'bg-background border-b border-l px-2 py-2',
+                'bg-background border-b border-l px-2 py-1',
                 'text-center text-[10px] font-semibold text-muted-foreground',
-                'min-w-[70px]'
+                'min-w-[56px]'
               )}
             >
               완료율
@@ -323,40 +333,24 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky left-0 z-10',
-                    'bg-background border-b border-r px-3 py-1.5',
-                    'text-xs font-medium text-foreground',
+                    'bg-background border-b border-r px-3 py-0.5',
+                    'text-[11px] font-medium text-foreground',
                     'min-w-[200px] max-w-[260px]'
                   )}
                 >
-                  <div className="truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
-                    <span className="font-semibold">{campaign.client_name}</span>
-                    <span className="text-muted-foreground ml-1">
+                  <div className="flex items-center gap-1.5 truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
+                    <span className="font-semibold truncate">{campaign.client_name}</span>
+                    <span className="text-muted-foreground truncate text-[10px]">
                       {campaign.campaign_name}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
                     {campaign.target_country && (
                       <Badge
                         variant="secondary"
-                        className="text-[9px] px-1 py-0"
+                        className="text-[8px] px-1 py-0 shrink-0"
                       >
-                        {campaign.target_country}
+                        {campaign.target_country.slice(0, 2)}
                       </Badge>
                     )}
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'text-[9px] px-1 py-0',
-                        campaign.status === 'active' &&
-                          'border-emerald-300 text-emerald-600',
-                        campaign.status === 'paused' &&
-                          'border-amber-300 text-amber-600',
-                        campaign.status === 'completed' &&
-                          'border-gray-300 text-gray-500'
-                      )}
-                    >
-                      {campaign.status}
-                    </Badge>
                   </div>
                 </td>
 
@@ -371,7 +365,7 @@ export function CampaignGrid({
                       <td
                         key={task.id}
                         className={cn(
-                          'border-b px-0.5 py-1 text-center',
+                          'border-b px-0.5 py-0 text-center',
                           taskIdx === 0 && 'border-l',
                           taskIdx === 0 &&
                             CATEGORY_COLORS[group.category].border
@@ -397,7 +391,7 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky right-0 z-10',
-                    'bg-background border-b border-l px-2 py-1.5',
+                    'bg-background border-b border-l px-2 py-0.5',
                     'text-center'
                   )}
                   onClick={(e) => e.stopPropagation()}
@@ -427,6 +421,7 @@ export function CampaignGrid({
           })}
         </tbody>
       </table>
+    </div>
     </div>
     </TooltipProvider>
   );
