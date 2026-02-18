@@ -401,14 +401,15 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         {expanded && (
           <div className="border-t">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left table-fixed">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[30px]"></th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">업무 / 캠페인</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[90px]">담당자</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground text-center w-[90px]">진행율 / 상태</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[120px]">완료일</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20px' }}></th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '35%' }}>업무 / 캠페인</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>담당자</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '18%' }}>진행율 / 상태</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20%' }}>완료일</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -435,84 +436,70 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         {/* Group Header Row */}
                         <tr
                           className={cn(
-                            'border-b border-border/60 cursor-pointer hover:bg-accent/20 transition-colors',
+                            'border-b border-border/60 cursor-pointer hover:bg-accent/20 transition-colors h-8',
                             allDone && 'bg-emerald-50/30 dark:bg-emerald-950/10'
                           )}
                           onClick={() => toggleGroup(group.task.id)}
                         >
+                          {/* Toggle icon */}
+                          <td className="px-2 py-0.5">
+                            {isCollapsed
+                              ? <ChevronRight className="size-3 text-muted-foreground/60" />
+                              : <ChevronDown className="size-3 text-muted-foreground/60" />
+                            }
+                          </td>
                           {/* Task Name + Badges */}
-                          <td className="px-3 py-2.5" colSpan={2}>
-                            <div className="flex items-center gap-2">
-                              {isCollapsed
-                                ? <ChevronRight className="size-3.5 text-muted-foreground/60 shrink-0" />
-                                : <ChevronDown className="size-3.5 text-muted-foreground/60 shrink-0" />
-                              }
-                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 shrink-0', freqCfg.color, freqCfg.bg)}>
+                          <td className="px-2 py-0.5">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', freqCfg.color, freqCfg.bg)}>
                                 {freqCfg.label}
                               </Badge>
-                              <span className="text-[12px] font-semibold">{group.task.task_name}</span>
-                              <Badge variant="outline" className={cn('text-[9px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                              <span className="text-[11px] font-semibold truncate">{group.task.task_name}</span>
+                              <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {group.task.category}
                               </Badge>
                             </div>
                           </td>
+                          {/* Tool */}
+                          <td className="px-2 py-0.5">
+                            <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{group.task.tool || '-'}</span>
+                          </td>
                           {/* Assignee */}
-                          <td className="px-3 py-2.5">
-                            {groupAssignees ? (
-                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <User className="size-3 shrink-0" />
-                                <span className="truncate max-w-[70px]">{groupAssignees}</span>
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground/30">-</span>
-                            )}
+                          <td className="px-2 py-0.5">
+                            <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{groupAssignees || '-'}</span>
                           </td>
                           {/* Progress */}
-                          <td className="px-3 py-2.5">
-                            <div className="flex flex-col items-center gap-1">
-                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <td className="px-2 py-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                                 <div
                                   className={cn(
-                                    'h-full rounded-full transition-all duration-500',
-                                    allDone
-                                      ? 'bg-emerald-500'
-                                      : progressPct > 0
-                                        ? 'bg-amber-400'
-                                        : 'bg-transparent'
+                                    'h-full rounded-full transition-all',
+                                    allDone ? 'bg-emerald-500' : progressPct > 0 ? 'bg-amber-400' : 'bg-transparent'
                                   )}
                                   style={{ width: `${progressPct}%` }}
                                 />
                               </div>
-                              <span className={cn(
-                                'text-[10px] font-medium tabular-nums',
-                                allDone ? 'text-emerald-600' : 'text-muted-foreground'
-                              )}>
-                                {progressPct}%
-                                <span className="text-muted-foreground/60 ml-0.5">
-                                  ({group.completedCount}/{group.rows.length})
-                                </span>
+                              <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', allDone ? 'text-emerald-600' : 'text-muted-foreground')}>
+                                {progressPct}% ({group.completedCount}/{group.rows.length})
                               </span>
                             </div>
                           </td>
                           {/* Latest Date + Bulk Complete */}
-                          <td className="px-3 py-2.5">
-                            <div className="flex items-center gap-1.5">
-                              {latestDate ? (
-                                <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
-                                  {latestDate}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/30">-</span>
-                              )}
+                          <td className="px-2 py-0.5">
+                            <div className="flex items-center gap-1">
+                              <span className={cn('text-[10px] tabular-nums whitespace-nowrap', latestDate ? 'text-emerald-600 font-medium' : 'text-muted-foreground/30')}>
+                                {latestDate || '-'}
+                              </span>
                               {!allDone && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); handleBulkComplete(group); }}
-                                      className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 transition-colors"
+                                      className="ml-auto shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 transition-colors"
                                     >
-                                      <ListChecks className="size-3" />
+                                      <ListChecks className="size-2.5" />
                                       일괄완료
                                     </button>
                                   </TooltipTrigger>
@@ -528,41 +515,35 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                           <tr
                             key={`${row.campaign.id}:${row.task.id}`}
                             className={cn(
-                              'border-b border-border/30 hover:bg-accent/10 transition-colors',
+                              'border-b border-border/30 hover:bg-accent/10 transition-colors h-7',
                               (row.check?.status === '완료' || row.onceCompleted) && 'bg-emerald-50/20 dark:bg-emerald-950/5',
                               row.onceCompleted && 'opacity-60'
                             )}
                           >
-                            <td className="px-3 py-1.5"></td>
-                            <td className="px-3 py-1.5">
-                              <div className="flex items-center gap-1.5 pl-4">
-                                <span className={cn('text-[11px]', row.onceCompleted ? 'text-muted-foreground line-through' : 'text-foreground/80')}>
+                            <td className="px-2 py-0.5"></td>
+                            <td className="px-2 py-0.5">
+                              <div className="flex items-center gap-1 pl-4 min-w-0">
+                                <span className={cn('text-[10px] truncate', row.onceCompleted ? 'text-muted-foreground line-through' : 'text-foreground/80')}>
                                   {row.campaign.campaign_name}
                                 </span>
                                 {row.onceCompleted && (
-                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                                  <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
                                     완료됨
                                   </Badge>
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-1.5">
-                              {row.assigneeName ? (
-                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                  <User className="size-3 shrink-0" />
-                                  <span className="truncate max-w-[60px]">{row.assigneeName}</span>
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/30">-</span>
-                              )}
+                            <td className="px-2 py-0.5"></td>
+                            <td className="px-2 py-0.5">
+                              <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{row.assigneeName || '-'}</span>
                             </td>
-                            <td className="px-3 py-1.5 text-center">
+                            <td className="px-2 py-0.5 text-center">
                               <div className="flex items-center justify-center">
                                 {row.onceCompleted ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
-                                        <CheckCircle2 className="size-4" />
+                                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
+                                        <CheckCircle2 className="size-3.5" />
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent side="top"><p className="text-xs">1회성 완료 (변경 불가)</p></TooltipContent>
@@ -578,9 +559,9 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-0.5">
                               {row.onceCompleted ? (
-                                <span className="text-[11px] text-emerald-600 font-medium tabular-nums px-1">
+                                <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
                                   {row.check?.check_date ?? '-'}
                                 </span>
                               ) : (

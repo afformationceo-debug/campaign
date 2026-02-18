@@ -94,6 +94,11 @@ export function useUpdateCheckStatus() {
           queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, data.assigned_user_id), exact: true });
         }
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
+        // Invalidate results queries
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDate(data.check_date), exact: true });
+        if (data.assigned_user_id) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDateAndUser(data.check_date, data.assigned_user_id), exact: true });
+        }
       }
     },
   });
@@ -154,6 +159,11 @@ export function useCreateCheck() {
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, data.assigned_user_id), exact: true });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
+      // Invalidate results queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDate(data.check_date), exact: true });
+      if (data.assigned_user_id) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDateAndUser(data.check_date, data.assigned_user_id), exact: true });
+      }
       logActivity({
         userId: data.assigned_user_id,
         actionType: 'insert',

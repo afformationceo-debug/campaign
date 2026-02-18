@@ -8,14 +8,12 @@ import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
-import { useAuth } from '@/hooks/use-auth';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
 import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
 import type { User, TaskCategory } from '@/lib/types/database';
 
 export default function AssigneeViewPage() {
-  const { profile, isLoading: authLoading } = useAuth();
   const supabase = createClient();
 
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -23,13 +21,6 @@ export default function AssigneeViewPage() {
   const [selectedCategories, setSelectedCategories] = useState<TaskCategory[]>(
     () => [...CATEGORY_ORDER]
   );
-
-  // Set default assignee to current user once loaded
-  const [defaultSet, setDefaultSet] = useState(false);
-  if (!defaultSet && profile && !authLoading) {
-    setAssigneeId(profile.id);
-    setDefaultSet(true);
-  }
 
   // Fetch active users
   const { data: users = [] } = useQuery({

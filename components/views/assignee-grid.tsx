@@ -346,13 +346,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             전역 업무 (캠페인 무관)
           </h3>
         </div>
-        <table className="w-full text-left">
+        <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">업무</th>
-              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground w-[90px]">담당자</th>
-              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground text-center w-[50px]">상태</th>
-              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground w-[200px]">결과값</th>
+              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '30%' }}>업무</th>
+              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>담당자</th>
+              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>도구</th>
+              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
+              <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '38%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -360,18 +361,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               const check = checkMap.get(`null:${task.id}`) ?? null;
               const assignees = task.default_assignees?.join(', ') || null;
               return (
-                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-1">
-                    <span className="text-[12px] font-medium">{task.task_name}</span>
+                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors h-8">
+                  <td className="px-2 py-0.5 truncate">
+                    <span className="text-[11px] font-medium truncate block">{task.task_name}</span>
                   </td>
-                  <td className="px-3 py-1">
-                    {assignees ? (
-                      <span className="text-[10px] text-muted-foreground">{assignees}</span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground/30">-</span>
-                    )}
+                  <td className="px-2 py-0.5">
+                    <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
                   </td>
-                  <td className="px-3 py-1">
+                  <td className="px-2 py-0.5">
+                    <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                  </td>
+                  <td className="px-2 py-0.5">
                     <div className="flex items-center justify-center">
                       <StatusCell
                         check={check}
@@ -382,7 +382,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       />
                     </div>
                   </td>
-                  <td className="px-3 py-1">
+                  <td className="px-2 py-0.5">
                     <ResultValueInput
                       check={check}
                       taskId={task.id}
