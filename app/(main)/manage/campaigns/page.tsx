@@ -37,6 +37,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   Campaign,
   CampaignStatus,
@@ -66,6 +71,16 @@ const INTERPRETER_OPTIONS: { value: InterpreterStatus; label: string; className:
 ];
 
 const INTERPRETER_MAP = new Map(INTERPRETER_OPTIONS.map((o) => [o.value, o]));
+
+// ─── Helpers ────────────────────────────────────────────
+function formatCompactNumber(n: number): string {
+  if (n === 0) return '0';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 100_000_000) return `${sign}${(abs / 100_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}억`;
+  if (abs >= 10_000) return `${sign}${(abs / 10_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}만`;
+  return `${sign}${abs.toLocaleString()}`;
+}
 
 // ─── Inline Editable Cells ──────────────────────────────
 
@@ -102,20 +117,35 @@ function InlineTextCell({
   }, [isEditing, value]);
 
   if (!isEditing) {
-    return (
+    const isNum = type === 'number' && value;
+    const displayValue = isNum
+      ? formatCompactNumber(Number(value))
+      : value || placeholder || '-';
+    const exactValue = isNum ? `${Number(value).toLocaleString()}원` : null;
+
+    const cell = (
       <div
         onClick={onStartEdit}
         className={cn(
-          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center',
+          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center whitespace-nowrap',
           !value && 'text-muted-foreground/40',
+          isNum && 'tabular-nums text-[11px]',
           className
         )}
       >
-        {type === 'number' && value
-          ? Number(value).toLocaleString() + '원'
-          : value || placeholder || '-'}
+        {displayValue}
       </div>
     );
+
+    if (exactValue) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{cell}</TooltipTrigger>
+          <TooltipContent side="top"><p className="text-xs tabular-nums">{exactValue}</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+    return cell;
   }
 
   return (
