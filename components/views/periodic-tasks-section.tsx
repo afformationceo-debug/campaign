@@ -405,11 +405,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20px' }}></th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '35%' }}>업무 / 캠페인</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '26%' }}>업무 / 캠페인</th>
                     <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '12%' }}>담당자</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '18%' }}>진행율 / 상태</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20%' }}>완료일</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '14%' }}>담당자</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '22%' }}>진행율 / 상태</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '22%' }}>완료일</th>
                   </tr>
                 </thead>
                 <tbody>
