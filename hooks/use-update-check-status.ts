@@ -73,8 +73,6 @@ export function useUpdateCheckStatus() {
       }
     },
     onSettled: (data) => {
-      // Targeted invalidation: only refetch the exact queries affected
-      // Avoids cascade of ALL check queries → ERR_INSUFFICIENT_RESOURCES
       if (data) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.checks.byDate(data.check_date),
@@ -86,6 +84,13 @@ export function useUpdateCheckStatus() {
             exact: true,
           });
         }
+        // Also invalidate monthly/periodic queries
+        const ym = data.check_date.slice(0, 7); // 'yyyy-MM'
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonth(ym), exact: true });
+        if (data.assigned_user_id) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, data.assigned_user_id), exact: true });
+        }
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
       }
     },
   });
@@ -127,7 +132,7 @@ export function useCreateCheck() {
           [...(old || []), data]
         );
       }
-      // Targeted invalidation instead of broad ['checks']
+      // Targeted invalidation
       queryClient.invalidateQueries({
         queryKey: queryKeys.checks.byDate(data.check_date),
         exact: true,
@@ -138,6 +143,13 @@ export function useCreateCheck() {
           exact: true,
         });
       }
+      // Also invalidate monthly/periodic queries
+      const ym = data.check_date.slice(0, 7);
+      queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonth(ym), exact: true });
+      if (data.assigned_user_id) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, data.assigned_user_id), exact: true });
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
       logActivity({
         userId: data.assigned_user_id,
         actionType: 'insert',

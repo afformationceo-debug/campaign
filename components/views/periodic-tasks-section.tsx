@@ -77,8 +77,8 @@ function CompletionDateCell({
         .update({ check_date: newDate, status: '완료' })
         .eq('id', check.id);
       if (!error) {
-        // Invalidate monthly checks queries to refetch
         queryClient.invalidateQueries({ queryKey: ['checks', 'month'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
       }
     }
   }, [check, campaignId, taskId, assigneeId, createCheck, supabase, queryClient]);
@@ -215,8 +215,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     queryFn: () => fetchAll<CampaignTaskConfig>(supabase, 'campaign_task_config'),
   });
 
+  // When userId is explicitly passed (assignee view), filter by user.
+  // When not passed (campaign view), fetch ALL checks for the month.
+  const filterByUser = !!userId;
+
   const { data: monthlyChecks = [] } = useQuery({
-    queryKey: effectiveUserId
+    queryKey: filterByUser
       ? queryKeys.checks.byMonthAndUser(yearMonth, effectiveUserId)
       : queryKeys.checks.byMonth(yearMonth),
     queryFn: async () => {
@@ -225,14 +229,13 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         .select('*')
         .gte('check_date', monthStart)
         .lte('check_date', monthEnd);
-      if (effectiveUserId) {
+      if (filterByUser && effectiveUserId) {
         query = query.eq('assigned_user_id', effectiveUserId);
       }
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
-    enabled: !!effectiveUserId,
   });
 
   // Fetch ALL completed checks for "once" frequency tasks (no date filter)
