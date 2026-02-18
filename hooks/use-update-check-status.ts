@@ -10,6 +10,7 @@ interface UpdateParams {
   id: string;
   status: CheckStatus;
   note?: string;
+  result_value?: string;
 }
 
 interface CreateParams {
@@ -19,6 +20,7 @@ interface CreateParams {
   assigned_user_id: string;
   status: CheckStatus;
   note?: string;
+  result_value?: string;
 }
 
 export function useUpdateCheckStatus() {
@@ -29,6 +31,7 @@ export function useUpdateCheckStatus() {
     mutationFn: async (params: UpdateParams) => {
       const updateData: Record<string, unknown> = { status: params.status };
       if (params.note !== undefined) updateData.note = params.note;
+      if (params.result_value !== undefined) updateData.result_value = params.result_value;
 
       const { data, error } = await supabase
         .from('daily_checks')
@@ -49,7 +52,7 @@ export function useUpdateCheckStatus() {
         newValue: { status: data.status, campaign_id: data.campaign_id, task_id: data.task_id },
       });
     },
-    onMutate: async ({ id, status, note }) => {
+    onMutate: async ({ id, status, note, result_value }) => {
       // Cancel and optimistically update ALL checks queries (byDate & byDateAndUser)
       await queryClient.cancelQueries({ queryKey: ['checks'] });
       const allQueries = queryClient.getQueriesData<DailyCheck[]>({ queryKey: ['checks'] });
@@ -58,7 +61,7 @@ export function useUpdateCheckStatus() {
         queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
           (old || []).map((item) =>
             item.id === id
-              ? { ...item, status, ...(note !== undefined && { note }) }
+              ? { ...item, status, ...(note !== undefined && { note }), ...(result_value !== undefined && { result_value }) }
               : item
           )
         );
@@ -110,6 +113,7 @@ export function useCreateCheck() {
         status: params.status,
       };
       if (params.note !== undefined) insertData.note = params.note;
+      if (params.result_value !== undefined) insertData.result_value = params.result_value;
 
       const { data, error } = await supabase
         .from('daily_checks')

@@ -71,6 +71,7 @@ export interface DailyCheck {
   status: CheckStatus;
   assigned_user_id: string | null;
   note: string | null;
+  result_value: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;

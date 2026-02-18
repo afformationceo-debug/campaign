@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Target,
+  FileText,
   Building2,
   ListChecks,
   Settings2,
@@ -32,6 +33,7 @@ const mainNav = [
 const viewNav = [
   { href: '/view/assignee', label: '담당자별', icon: Users },
   { href: '/view/campaign', label: '캠페인별', icon: Target },
+  { href: '/view/results', label: '일일 결과값', icon: FileText },
 ];
 
 const manageNav = [

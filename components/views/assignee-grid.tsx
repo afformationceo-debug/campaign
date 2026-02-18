@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,79 @@ import type {
   CampaignTaskConfig,
   TaskCategory,
 } from '@/lib/types/database';
+
+// ─── Inline Result Value Input ───────────────────────
+function ResultValueInput({
+  check,
+  taskId,
+  date,
+  assigneeId,
+  campaignId,
+}: {
+  check: DailyCheck | null;
+  taskId: string;
+  date: string;
+  assigneeId: string;
+  campaignId?: string;
+}) {
+  const { mutate: updateStatus } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartEdit = () => {
+    setValue(check?.result_value ?? '');
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleSave = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (!check) {
+      if (!trimmed) return;
+      createCheck({
+        campaign_id: campaignId ?? null,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: '진행중',
+        result_value: trimmed,
+      });
+    } else {
+      if (trimmed === (check.result_value ?? '')) return;
+      updateStatus({ id: check.id, status: check.status, result_value: trimmed });
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+        className="w-full text-[11px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+        placeholder="결과값 입력..."
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleStartEdit}
+      className={cn(
+        'w-full text-left text-[11px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[18px]',
+        check?.result_value ? 'text-foreground' : 'text-muted-foreground/30'
+      )}
+    >
+      {check?.result_value || '-'}
+    </button>
+  );
+}
 
 interface AssigneeGridProps {
   date: string;
@@ -268,17 +341,18 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     {/* Global Tasks Section (table layout) */}
     {globalTasks.length > 0 && (
       <div className="rounded-lg border bg-background overflow-hidden">
-        <div className="px-4 py-3 border-b bg-violet-50 dark:bg-violet-950/20">
-          <h3 className="text-sm font-semibold text-violet-700 dark:text-violet-300">
+        <div className="px-3 py-2 border-b bg-violet-50 dark:bg-violet-950/20">
+          <h3 className="text-xs font-semibold text-violet-700 dark:text-violet-300">
             전역 업무 (캠페인 무관)
           </h3>
         </div>
         <table className="w-full text-left">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground">업무</th>
-              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground w-[120px]">담당자</th>
-              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground text-center w-[80px]">상태</th>
+              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">업무</th>
+              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground w-[90px]">담당자</th>
+              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground text-center w-[50px]">상태</th>
+              <th className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground w-[200px]">결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -287,17 +361,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               const assignees = task.default_assignees?.join(', ') || null;
               return (
                 <tr key={task.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-2.5">
-                    <span className="text-sm font-medium">{task.task_name}</span>
+                  <td className="px-3 py-1">
+                    <span className="text-[12px] font-medium">{task.task_name}</span>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-3 py-1">
                     {assignees ? (
-                      <span className="text-[11px] text-muted-foreground">{assignees}</span>
+                      <span className="text-[10px] text-muted-foreground">{assignees}</span>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground/30">-</span>
+                      <span className="text-[10px] text-muted-foreground/30">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-3 py-1">
                     <div className="flex items-center justify-center">
                       <StatusCell
                         check={check}
@@ -307,6 +381,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                         assigneeId={effectiveUserId || undefined}
                       />
                     </div>
+                  </td>
+                  <td className="px-3 py-1">
+                    <ResultValueInput
+                      check={check}
+                      taskId={task.id}
+                      date={date}
+                      assigneeId={effectiveUserId}
+                    />
                   </td>
                 </tr>
               );
