@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { CheckCircle2, Clock, Circle, CalendarDays, ChevronDown, ChevronRight, User } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, CalendarDays, ChevronDown, ChevronRight, User, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -176,6 +176,8 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   const effectiveUserId = userId ?? profile?.id ?? '';
   const [expanded, setExpanded] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
+  const { mutate: bulkCreateCheck } = useCreateCheck();
 
   const currentDate = parseISO(date);
   const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -215,24 +217,16 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     queryFn: () => fetchAll<CampaignTaskConfig>(supabase, 'campaign_task_config'),
   });
 
-  // When userId is explicitly passed (assignee view), filter by user.
-  // When not passed (campaign view), fetch ALL checks for the month.
-  const filterByUser = !!userId;
-
+  // Always fetch ALL monthly checks (no user filter) so periodic task data
+  // is visible in both campaign view and assignee view.
   const { data: monthlyChecks = [] } = useQuery({
-    queryKey: filterByUser
-      ? queryKeys.checks.byMonthAndUser(yearMonth, effectiveUserId)
-      : queryKeys.checks.byMonth(yearMonth),
+    queryKey: queryKeys.checks.byMonth(yearMonth),
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('daily_checks')
         .select('*')
         .gte('check_date', monthStart)
         .lte('check_date', monthEnd);
-      if (filterByUser && effectiveUserId) {
-        query = query.eq('assigned_user_id', effectiveUserId);
-      }
-      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
@@ -359,6 +353,26 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     });
   };
 
+  // Bulk complete: mark all uncompleted rows in a group as '완료'
+  const handleBulkComplete = useCallback((group: { task: Task; rows: RowData[] }) => {
+    for (const row of group.rows) {
+      if (row.onceCompleted) continue;
+      if (row.check?.status === '완료') continue;
+
+      if (!row.check) {
+        bulkCreateCheck({
+          campaign_id: row.campaign.id,
+          task_id: row.task.id,
+          check_date: date,
+          assigned_user_id: effectiveUserId,
+          status: '완료',
+        });
+      } else {
+        bulkUpdateStatus({ id: row.check.id, status: '완료' });
+      }
+    }
+  }, [date, effectiveUserId, bulkCreateCheck, bulkUpdateStatus]);
+
   if (groupedData.length === 0) return null;
 
   return (
@@ -480,15 +494,32 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               </span>
                             </div>
                           </td>
-                          {/* Latest Date */}
+                          {/* Latest Date + Bulk Complete */}
                           <td className="px-3 py-2.5">
-                            {latestDate ? (
-                              <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
-                                {latestDate}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground/30">-</span>
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {latestDate ? (
+                                <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
+                                  {latestDate}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/30">-</span>
+                              )}
+                              {!allDone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); handleBulkComplete(group); }}
+                                      className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 transition-colors"
+                                    >
+                                      <ListChecks className="size-3" />
+                                      일괄완료
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top"><p className="text-xs">미완료 항목을 모두 완료 처리</p></TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                           </td>
                         </tr>
 
