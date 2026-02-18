@@ -808,7 +808,7 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full table-fixed text-[12px]">
+          <table className="w-full table-fixed text-[12px] min-w-[860px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="w-[20px] px-1 py-1.5"></th>
@@ -851,7 +851,7 @@ export default function RoadmapPage() {
                       onDrop={handleProjectDrop}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        'border-b hover:bg-accent/30 transition-colors group/row',
+                        'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
                         isExpanded && 'bg-accent/10',
                         isSelected && 'bg-primary/5',
                         dragItem?.type === 'project' && dragItem.id === project.id && 'opacity-40',
@@ -965,7 +965,7 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Memo */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-1 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <InlineMemoCell
                           value={project.memo}
                           isEditing={isEditing(project.id, 'memo')}
@@ -1005,7 +1005,7 @@ export default function RoadmapPage() {
                           onDrop={() => handleTaskDrop(project.id)}
                           onDragEnd={handleDragEnd}
                           className={cn(
-                            'border-b border-border/30 hover:bg-accent/20 transition-colors group/task',
+                            'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap',
                             'bg-muted/5',
                             isTaskSelected && 'bg-primary/5',
                             dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
@@ -1092,7 +1092,7 @@ export default function RoadmapPage() {
                             />
                           </td>
                           {/* Memo */}
-                          <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                             <InlineMemoCell
                               value={task.memo}
                               isEditing={isEditing(task.id, 'memo')}
