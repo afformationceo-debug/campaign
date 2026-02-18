@@ -265,41 +265,54 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
 
   return (
     <div className="space-y-6">
-    {/* Global Tasks Section (simple checklist) */}
+    {/* Global Tasks Section (table layout) */}
     {globalTasks.length > 0 && (
-      <div className="rounded-lg border bg-background">
+      <div className="rounded-lg border bg-background overflow-hidden">
         <div className="px-4 py-3 border-b bg-violet-50 dark:bg-violet-950/20">
           <h3 className="text-sm font-semibold text-violet-700 dark:text-violet-300">
             전역 업무 (캠페인 무관)
           </h3>
         </div>
-        <div className="divide-y">
-          {globalTasks.map((task) => {
-            // For global tasks, check lookup uses null campaign_id
-            const check = checkMap.get(`null:${task.id}`) ?? null;
-            return (
-              <div key={task.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{task.task_name}</span>
-                  {!assigneeName && task.default_assignees && task.default_assignees.length > 0 && (
-                    <span className="text-[9px] text-muted-foreground/70 ml-2">
-                      {task.default_assignees.join(', ')}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-center ml-3">
-                  <StatusCell
-                    check={check}
-                    isApplicable={true}
-                    taskId={task.id}
-                    date={date}
-                    assigneeId={effectiveUserId || undefined}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b bg-muted/30">
+              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground">업무</th>
+              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground w-[120px]">담당자</th>
+              <th className="px-4 py-2 text-[11px] font-semibold text-muted-foreground text-center w-[80px]">상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            {globalTasks.map((task) => {
+              const check = checkMap.get(`null:${task.id}`) ?? null;
+              const assignees = task.default_assignees?.join(', ') || null;
+              return (
+                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <span className="text-sm font-medium">{task.task_name}</span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {assignees ? (
+                      <span className="text-[11px] text-muted-foreground">{assignees}</span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/30">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center justify-center">
+                      <StatusCell
+                        check={check}
+                        isApplicable={true}
+                        taskId={task.id}
+                        date={date}
+                        assigneeId={effectiveUserId || undefined}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     )}
 
