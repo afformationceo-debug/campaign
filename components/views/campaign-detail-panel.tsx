@@ -196,6 +196,7 @@ function NoteEditor({
         check_date: date,
         assigned_user_id: assigneeId,
         status: '진행중',
+        note: noteValue,
       });
     }
     setOpen(false);
@@ -319,6 +320,8 @@ export function CampaignDetailPanel({
     },
   });
 
+  const currentUserId = profile?.id ?? '';
+
   // Build lookups
   const configMap = useMemo(() => {
     const map = new Map<string, CampaignTaskConfig>();
@@ -330,10 +333,10 @@ export function CampaignDetailPanel({
     const map = new Map<string, DailyCheck>();
     if (!campaignId) return map;
     checks
-      .filter((c) => c.campaign_id === campaignId)
+      .filter((c) => c.campaign_id === campaignId && c.assigned_user_id === currentUserId)
       .forEach((check) => map.set(check.task_id, check));
     return map;
-  }, [checks, campaignId]);
+  }, [checks, campaignId, currentUserId]);
 
   const userMap = useMemo(() => {
     const map = new Map<string, UserType>();
@@ -373,8 +376,6 @@ export function CampaignDetailPanel({
     stats.applicable > 0
       ? Math.round((stats.completed / stats.applicable) * 100)
       : 0;
-
-  const currentUserId = profile?.id ?? '';
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>

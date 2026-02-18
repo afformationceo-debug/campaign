@@ -18,6 +18,7 @@ interface CreateParams {
   check_date: string;
   assigned_user_id: string;
   status: CheckStatus;
+  note?: string;
 }
 
 export function useUpdateCheckStatus() {
@@ -48,7 +49,7 @@ export function useUpdateCheckStatus() {
         newValue: { status: data.status, campaign_id: data.campaign_id, task_id: data.task_id },
       });
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status, note }) => {
       // Cancel and optimistically update ALL checks queries (byDate & byDateAndUser)
       await queryClient.cancelQueries({ queryKey: ['checks'] });
       const allQueries = queryClient.getQueriesData<DailyCheck[]>({ queryKey: ['checks'] });
@@ -56,7 +57,9 @@ export function useUpdateCheckStatus() {
       allQueries.forEach(([key]) => {
         queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
           (old || []).map((item) =>
-            item.id === id ? { ...item, status } : item
+            item.id === id
+              ? { ...item, status, ...(note !== undefined && { note }) }
+              : item
           )
         );
       });
@@ -94,15 +97,18 @@ export function useCreateCheck() {
 
   return useMutation({
     mutationFn: async (params: CreateParams) => {
+      const insertData: Record<string, unknown> = {
+        campaign_id: params.campaign_id,
+        task_id: params.task_id,
+        check_date: params.check_date,
+        assigned_user_id: params.assigned_user_id,
+        status: params.status,
+      };
+      if (params.note !== undefined) insertData.note = params.note;
+
       const { data, error } = await supabase
         .from('daily_checks')
-        .insert({
-          campaign_id: params.campaign_id,
-          task_id: params.task_id,
-          check_date: params.check_date,
-          assigned_user_id: params.assigned_user_id,
-          status: params.status,
-        })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
