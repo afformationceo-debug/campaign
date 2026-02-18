@@ -34,7 +34,9 @@ import {
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
+  useCreateProjectTask,
   useUpdateProjectTask,
+  useDeleteProjectTask,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -396,6 +398,8 @@ export default function RoadmapPage() {
   const { mutate: updateProject, isPending: updating } = useUpdateProject();
   const { mutate: deleteProject } = useDeleteProject();
   const { mutate: updateTask } = useUpdateProjectTask();
+  const { mutate: createTask } = useCreateProjectTask();
+  const { mutate: deleteTask } = useDeleteProjectTask();
 
   // Fetch projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -941,16 +945,42 @@ export default function RoadmapPage() {
                               onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)}
                             />
                           </td>
-                          {/* Spacer */}
-                          <td className="px-1 py-0.5"></td>
+                          {/* Delete */}
+                          <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="size-5 flex items-center justify-center rounded hover:bg-destructive/10 opacity-0 group-hover/task:opacity-100 transition-opacity"
+                              onClick={() => deleteTask({ id: task.id, project_id: project.id })}
+                            >
+                              <Trash2 className="size-3 text-muted-foreground/50 hover:text-destructive" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
-                    {isExpanded && tasks.length === 0 && (
-                      <tr className="border-b border-border/50">
+                    {/* Add sub-task row */}
+                    {isExpanded && (
+                      <tr className="border-b border-border/30">
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td colSpan={7} className="px-2 py-1.5 pl-8 text-[10px] text-muted-foreground/40 italic">하위 업무가 없습니다.</td>
+                        <td className="px-2 py-0.5 pl-8" colSpan={7}>
+                          <div className="flex items-center gap-1.5">
+                            <Plus className="size-3 text-muted-foreground/30 shrink-0" />
+                            <input
+                              className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
+                              placeholder="새 하위업무 추가..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const input = e.currentTarget;
+                                  const title = input.value.trim();
+                                  if (title) {
+                                    createTask({ project_id: project.id, title, state: '진행전' as ProjectState, sort_order: tasks.length });
+                                    input.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </td>
                       </tr>
                     )}
                   </React.Fragment>
@@ -1030,6 +1060,26 @@ export default function RoadmapPage() {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Bulk Delete */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (window.confirm(`${totalSelected}개 항목을 삭제하시겠습니까?`)) {
+                    selectedProjects.forEach((id) => deleteProject(id));
+                    selectedTasks.forEach((taskId) => {
+                      const task = allTasks.find((t) => t.id === taskId);
+                      if (task) deleteTask({ id: taskId, project_id: task.project_id });
+                    });
+                    clearSelection();
+                  }
+                }}
+              >
+                <Trash2 className="size-3.5" />
+                삭제
+              </Button>
 
               <div className="pl-2 border-l">
                 <Button variant="ghost" size="icon" className="size-7" onClick={clearSelection}>
