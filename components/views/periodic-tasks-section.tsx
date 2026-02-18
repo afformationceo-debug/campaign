@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState, useCallback } from 'react';
+import { Fragment, useMemo, useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { CheckCircle2, Clock, Circle, CalendarDays, ChevronDown, ChevronRight, User, ListChecks } from 'lucide-react';
@@ -95,6 +95,90 @@ function CompletionDateCell({
         check?.status === '완료' ? 'text-emerald-600 font-medium' : 'text-muted-foreground/40'
       )}
     />
+  );
+}
+
+// ─── Result Value Input ──────────────────────────────
+function ResultValueInput({
+  check,
+  campaignId,
+  taskId,
+  date,
+  assigneeId,
+}: {
+  check: DailyCheck | null;
+  campaignId: string;
+  taskId: string;
+  date: string;
+  assigneeId: string;
+}) {
+  const { mutate: updateCheck } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
+  const [localValue, setLocalValue] = useState(check?.result_value ?? '');
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) {
+      setLocalValue(check?.result_value ?? '');
+    }
+  }, [check?.result_value, editing]);
+
+  const handleSave = useCallback(() => {
+    setEditing(false);
+    const trimmed = localValue.trim();
+    if (trimmed === (check?.result_value ?? '')) return;
+
+    if (!check) {
+      if (!trimmed) return;
+      createCheck({
+        campaign_id: campaignId,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: '진행중',
+        result_value: trimmed,
+      });
+    } else {
+      updateCheck({
+        id: check.id,
+        status: check.status,
+        result_value: trimmed || undefined,
+      });
+    }
+  }, [localValue, check, campaignId, taskId, date, assigneeId, createCheck, updateCheck]);
+
+  // Detect if it looks like a URL
+  const isUrl = check?.result_value && /^https?:\/\//.test(check.result_value);
+
+  return (
+    <div className="flex items-center gap-1 w-full">
+      <input
+        type="text"
+        value={localValue}
+        onChange={(e) => { setLocalValue(e.target.value); setEditing(true); }}
+        onBlur={handleSave}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        placeholder="결과값 입력 (URL, 수치 등)..."
+        className={cn(
+          'flex-1 min-w-0 bg-transparent text-[11px] outline-none',
+          'border border-transparent rounded px-1.5 py-0.5',
+          'hover:border-border focus:border-primary/50 transition-colors',
+          'placeholder:text-muted-foreground/30',
+          check?.result_value ? 'text-foreground' : ''
+        )}
+      />
+      {isUrl && (
+        <a
+          href={check!.result_value!}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-[9px] text-blue-500 hover:text-blue-700 shrink-0"
+        >
+          열기
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -405,11 +489,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20px' }}></th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '26%' }}>업무 / 캠페인</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '14%' }}>담당자</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '22%' }}>진행율 / 상태</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '22%' }}>완료일</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20%' }}>업무 / 캠페인</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '14%' }}>진행율 / 상태</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
+                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '14%' }}>완료일</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -460,10 +544,6 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               </Badge>
                             </div>
                           </td>
-                          {/* Tool */}
-                          <td className="px-2 py-0.5">
-                            <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{group.task.tool || '-'}</span>
-                          </td>
                           {/* Assignee */}
                           <td className="px-2 py-0.5">
                             <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{groupAssignees || '-'}</span>
@@ -484,6 +564,19 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 {progressPct}% ({group.completedCount}/{group.rows.length})
                               </span>
                             </div>
+                          </td>
+                          {/* Result Value Summary */}
+                          <td className="px-2 py-0.5">
+                            {(() => {
+                              const filledCount = group.rows.filter((r) => r.check?.result_value).length;
+                              return filledCount > 0 ? (
+                                <span className="text-[9px] text-muted-foreground">
+                                  {filledCount}/{group.rows.length} 입력됨
+                                </span>
+                              ) : (
+                                <span className="text-[9px] text-muted-foreground/30">-</span>
+                              );
+                            })()}
                           </td>
                           {/* Latest Date + Bulk Complete */}
                           <td className="px-2 py-0.5">
@@ -533,7 +626,6 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 )}
                               </div>
                             </td>
-                            <td className="px-2 py-0.5"></td>
                             <td className="px-2 py-0.5">
                               <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{row.assigneeName || '-'}</span>
                             </td>
@@ -558,6 +650,22 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                   />
                                 )}
                               </div>
+                            </td>
+                            {/* Result Value Input */}
+                            <td className="px-2 py-0.5">
+                              {row.onceCompleted ? (
+                                <span className="text-[10px] text-muted-foreground truncate block">
+                                  {row.check?.result_value || '-'}
+                                </span>
+                              ) : (
+                                <ResultValueInput
+                                  check={row.check}
+                                  campaignId={row.campaign.id}
+                                  taskId={row.task.id}
+                                  date={date}
+                                  assigneeId={effectiveUserId}
+                                />
+                              )}
                             </td>
                             <td className="px-2 py-0.5">
                               {row.onceCompleted ? (
