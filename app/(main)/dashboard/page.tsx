@@ -382,47 +382,65 @@ export default function DashboardPage() {
   }, [campaignChartData]);
 
   // ─── Assignee Combined Metrics (checks + projects) ──
+  // Uses task.default_assignees (actual assignees) instead of check.assigned_user_id (login user)
   const assigneeCombined = useMemo(() => {
-    const userMap = new Map<string, {
+    // Build name→userId map for resolving task.default_assignees names to user IDs
+    const nameToUserId = new Map<string, string>();
+    for (const u of users) nameToUserId.set(u.name, u.id);
+
+    // Build taskId→Task map
+    const taskById = new Map<string, Task>();
+    for (const t of tasks) taskById.set(t.id, t);
+
+    const statsMap = new Map<string, {
       checkCompleted: number; checkInProgress: number; checkPending: number;
       projAssigned: number; projCompleted: number; taskAssigned: number; taskCompleted: number;
     }>();
+    const emptyStats = () => ({ checkCompleted: 0, checkInProgress: 0, checkPending: 0, projAssigned: 0, projCompleted: 0, taskAssigned: 0, taskCompleted: 0 });
 
-    // Daily checks
+    // Daily checks → resolve via task.default_assignees
     for (const check of checks) {
-      if (check.status === '해당없음' || !check.assigned_user_id) continue;
-      const e = userMap.get(check.assigned_user_id) || { checkCompleted: 0, checkInProgress: 0, checkPending: 0, projAssigned: 0, projCompleted: 0, taskAssigned: 0, taskCompleted: 0 };
-      if (check.status === '완료') e.checkCompleted += 1;
-      else if (check.status === '진행중') e.checkInProgress += 1;
-      else if (check.status === '미완료') e.checkPending += 1;
-      userMap.set(check.assigned_user_id, e);
+      if (check.status === '해당없음') continue;
+      const task = taskById.get(check.task_id);
+      const assigneeNames = task?.default_assignees;
+      if (!assigneeNames || assigneeNames.length === 0) continue;
+
+      for (const name of assigneeNames) {
+        const userId = nameToUserId.get(name);
+        if (!userId) continue;
+        const e = statsMap.get(userId) || emptyStats();
+        if (check.status === '완료') e.checkCompleted += 1;
+        else if (check.status === '진행중') e.checkInProgress += 1;
+        else if (check.status === '미완료') e.checkPending += 1;
+        statsMap.set(userId, e);
+      }
     }
 
     // Projects
     for (const p of projects) {
       if (!p.assignee_id) continue;
-      const e = userMap.get(p.assignee_id) || { checkCompleted: 0, checkInProgress: 0, checkPending: 0, projAssigned: 0, projCompleted: 0, taskAssigned: 0, taskCompleted: 0 };
+      const e = statsMap.get(p.assignee_id) || emptyStats();
       e.projAssigned += 1;
       if (p.state === '완료') e.projCompleted += 1;
-      userMap.set(p.assignee_id, e);
+      statsMap.set(p.assignee_id, e);
     }
 
     // Project tasks
     for (const t of projectTasks) {
       if (!t.assignee_id) continue;
-      const e = userMap.get(t.assignee_id) || { checkCompleted: 0, checkInProgress: 0, checkPending: 0, projAssigned: 0, projCompleted: 0, taskAssigned: 0, taskCompleted: 0 };
+      const e = statsMap.get(t.assignee_id) || emptyStats();
       e.taskAssigned += 1;
       if (t.state === '완료') e.taskCompleted += 1;
-      userMap.set(t.assignee_id, e);
+      statsMap.set(t.assignee_id, e);
     }
 
-    return Array.from(userMap.entries()).map(([userId, stats]) => {
+    return Array.from(statsMap.entries()).map(([userId, stats]) => {
       const user = users.find((u) => u.id === userId);
       const checkTotal = stats.checkCompleted + stats.checkInProgress + stats.checkPending;
       const checkRate = checkTotal > 0 ? Math.round((stats.checkCompleted / checkTotal) * 100) : 0;
       return { userId, name: user?.name ?? '알 수 없음', avatar: user?.avatar_url, ...stats, checkTotal, checkRate };
     }).sort((a, b) => b.checkRate - a.checkRate);
-  }, [checks, projects, projectTasks, users]);
+  }, [checks, projects, projectTasks, users, tasks]);
 
   // ─── Category Donut ──────────────────────────────────
   const categoryData = useMemo(() => {
@@ -442,10 +460,10 @@ export default function DashboardPage() {
     return checks.filter((c) => c.status === '미완료').map((check) => {
       const campaign = campaigns.find((c) => c.id === check.campaign_id);
       const task = tasks.find((t) => t.id === check.task_id);
-      const user = check.assigned_user_id ? users.find((u) => u.id === check.assigned_user_id) : null;
-      return { id: check.id, campaignName: campaign?.campaign_name ?? '-', taskName: task?.task_name ?? '-', assignee: user?.name ?? '미배정', category: task?.category ?? '보고' as TaskCategory };
+      const assignee = task?.default_assignees?.join(', ') ?? '미배정';
+      return { id: check.id, campaignName: campaign?.campaign_name ?? '-', taskName: task?.task_name ?? '-', assignee, category: task?.category ?? '보고' as TaskCategory };
     }).slice(0, 20);
-  }, [checks, campaigns, tasks, users]);
+  }, [checks, campaigns, tasks]);
 
   // ─── Overdue Projects/Tasks ──────────────────────────
   const overdueItems = useMemo(() => {

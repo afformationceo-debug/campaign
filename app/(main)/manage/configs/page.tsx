@@ -164,6 +164,30 @@ export default function ConfigsPage() {
     },
   });
 
+  // Fetch ALL configs for counts in dropdown
+  const { data: allCampaignConfigs = [] } = useQuery({
+    queryKey: queryKeys.configs.all,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaign_configs')
+        .select('campaign_id, status');
+      if (error) throw error;
+      return data as { campaign_id: string; status: string }[];
+    },
+  });
+
+  // Config counts per campaign for dropdown display
+  const configCountMap = useMemo(() => {
+    const map = new Map<string, { total: number; done: number }>();
+    for (const cfg of allCampaignConfigs) {
+      const entry = map.get(cfg.campaign_id) || { total: 0, done: 0 };
+      entry.total += 1;
+      if (cfg.status !== '미완료') entry.done += 1;
+      map.set(cfg.campaign_id, entry);
+    }
+    return map;
+  }, [allCampaignConfigs]);
+
   // Auto-select first campaign when loaded
   useEffect(() => {
     if (!selectedCampaignId && campaigns.length > 0) {
@@ -836,11 +860,35 @@ export default function ConfigsPage() {
             <SelectValue placeholder="캠페인을 선택하세요" />
           </SelectTrigger>
           <SelectContent>
-            {campaigns.map((campaign) => (
-              <SelectItem key={campaign.id} value={campaign.id}>
-                {campaign.campaign_name} ({campaign.client_name})
-              </SelectItem>
-            ))}
+            {campaigns.map((campaign) => {
+              const counts = configCountMap.get(campaign.id);
+              return (
+                <SelectItem key={campaign.id} value={campaign.id}>
+                  <div className="flex items-center gap-2">
+                    <span>{campaign.campaign_name} ({campaign.client_name})</span>
+                    {counts ? (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[9px] px-1.5 py-0 shrink-0',
+                          counts.done === counts.total
+                            ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30'
+                            : counts.done > 0
+                            ? 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/30'
+                            : 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-950/30'
+                        )}
+                      >
+                        {counts.done}/{counts.total} 설정됨
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 text-muted-foreground">
+                        미설정
+                      </Badge>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         {selectedCampaignId && (
