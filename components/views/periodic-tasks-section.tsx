@@ -174,8 +174,8 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   const supabase = createClient();
   const { profile } = useAuth();
   const effectiveUserId = userId ?? profile?.id ?? '';
-  const [expanded, setExpanded] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const currentDate = parseISO(date);
   const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -349,7 +349,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   const completedItems = groupedData.reduce((s, g) => s + g.completedCount, 0);
 
   const toggleGroup = (taskId: string) => {
-    setCollapsedGroups((prev) => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId); else next.add(taskId);
       return next;
@@ -398,7 +398,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                   {groupedData.map((group) => {
                     const freqCfg = FREQ_LABELS[group.task.frequency] ?? FREQ_LABELS.monthly;
                     const catColor = CATEGORY_COLORS[group.task.category as TaskCategory];
-                    const isCollapsed = collapsedGroups.has(group.task.id);
+                    const isCollapsed = !expandedGroups.has(group.task.id);
                     const allDone = group.completedCount === group.rows.length;
                     const progressPct = group.rows.length > 0
                       ? Math.round((group.completedCount / group.rows.length) * 100)
