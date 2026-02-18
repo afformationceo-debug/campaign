@@ -41,6 +41,7 @@ import type {
   Campaign,
   CampaignStatus,
   CampaignPhase,
+  InterpreterStatus,
 } from '@/lib/types/database';
 
 // ─── Config ─────────────────────────────────────────────
@@ -55,6 +56,16 @@ const PHASE_CONFIG: Record<CampaignPhase, { label: string; className: string }> 
   running: { label: 'Running', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30' },
   scaling: { label: 'Scaling', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
 };
+
+const INTERPRETER_OPTIONS: { value: InterpreterStatus; label: string; className: string }[] = [
+  { value: '통역 필요 없음', label: '필요 없음', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400' },
+  { value: '돈받고 지원 (상시)', label: '유료(상시)', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  { value: '돈받고 지원 (요청시)', label: '유료(요청)', className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
+  { value: '무료로 지원(요청시)', label: '무료(요청)', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  { value: '무료로 지원(상시)', label: '무료(상시)', className: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+];
+
+const INTERPRETER_MAP = new Map(INTERPRETER_OPTIONS.map((o) => [o.value, o]));
 
 // ─── Inline Editable Cells ──────────────────────────────
 
@@ -199,6 +210,7 @@ interface CampaignFormData {
   monthly_fixed_cost: string;
   cost_per_influencer: string;
   influencer_fee_budget: string;
+  interpreter_status: InterpreterStatus;
   start_date: string;
   homepage_url: string;
 }
@@ -213,6 +225,7 @@ const defaultFormData: CampaignFormData = {
   monthly_fixed_cost: '',
   cost_per_influencer: '',
   influencer_fee_budget: '',
+  interpreter_status: '통역 필요 없음',
   start_date: '',
   homepage_url: '',
 };
@@ -295,6 +308,7 @@ export default function CampaignsPage() {
         monthly_fixed_cost: data.monthly_fixed_cost ? Number(data.monthly_fixed_cost) : null,
         cost_per_influencer: data.cost_per_influencer ? Number(data.cost_per_influencer) : null,
         influencer_fee_budget: data.influencer_fee_budget ? Number(data.influencer_fee_budget) : null,
+        interpreter_status: data.interpreter_status,
         start_date: data.start_date || null,
         homepage_url: data.homepage_url || null,
       });
@@ -430,6 +444,7 @@ export default function CampaignsPage() {
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">월 고정비용</th>
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">섭외당 비용</th>
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">원고료 예산</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">통역사배치</th>
                   <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">홈페이지</th>
                   <th className="py-2.5 px-2 w-10" />
                 </tr>
@@ -586,6 +601,35 @@ export default function CampaignsPage() {
                       />
                     </td>
 
+                    {/* 통역사배치여부 */}
+                    <td className="py-1 px-2 min-w-[120px]">
+                      <Select
+                        value={campaign.interpreter_status ?? '통역 필요 없음'}
+                        onValueChange={(v) => handleInlineUpdate(campaign.id, 'interpreter_status', v)}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[120px]">
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              'text-[10px] px-1.5 py-0',
+                              INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.className
+                            )}
+                          >
+                            {INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.label ?? '필요 없음'}
+                          </Badge>
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          {INTERPRETER_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <Badge variant="secondary" className={cn('text-[10px]', opt.className)}>
+                                {opt.label}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
                     {/* 홈페이지 */}
                     <td className="py-1 px-2 min-w-[120px]">
                       {isEditingCell(campaign.id, 'homepage_url') ? (
@@ -649,7 +693,7 @@ export default function CampaignsPage() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="py-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={13} className="py-8 text-center text-muted-foreground text-sm">
                       {search ? '검색 결과가 없습니다.' : '캠페인이 없습니다. 새 캠페인을 추가해주세요.'}
                     </td>
                   </tr>
@@ -737,6 +781,21 @@ export default function CampaignsPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, influencer_fee_budget: e.target.value }))}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>통역사배치여부</Label>
+              <Select
+                value={formData.interpreter_status}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, interpreter_status: v as InterpreterStatus }))}
+              >
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INTERPRETER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.value}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

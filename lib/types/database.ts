@@ -6,6 +6,7 @@ export type UserRole = 'admin' | 'member';
 export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-인플' | 'CS-고객' | 'CRM' | '컨텐츠' | '회계';
 export type TaskScope = 'campaign' | 'global';
 export type ProjectState = '진행전' | '진행중' | '완료';
+export type InterpreterStatus = '통역 필요 없음' | '돈받고 지원 (상시)' | '돈받고 지원 (요청시)' | '무료로 지원(요청시)' | '무료로 지원(상시)';
 
 export interface Campaign {
   id: string;
@@ -18,6 +19,7 @@ export interface Campaign {
   monthly_fixed_cost: number | null;
   cost_per_influencer: number | null;
   influencer_fee_budget: number | null;
+  interpreter_status: InterpreterStatus | null;
   start_date: string | null;
   homepage_url: string | null;
   created_at: string;

@@ -41,10 +41,12 @@ CREATE INDEX IF NOT EXISTS idx_project_tasks_state ON project_tasks(state);
 CREATE INDEX IF NOT EXISTS idx_project_tasks_assignee ON project_tasks(assignee_id);
 
 -- Triggers: auto-update updated_at
+DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
 CREATE TRIGGER trg_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
 
+DROP TRIGGER IF EXISTS trg_project_tasks_updated_at ON project_tasks;
 CREATE TRIGGER trg_project_tasks_updated_at
   BEFORE UPDATE ON project_tasks
   FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
@@ -54,18 +56,22 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_tasks ENABLE ROW LEVEL SECURITY;
 
 -- Read: all authenticated users
-CREATE POLICY projects_select ON projects FOR SELECT USING (true);
-CREATE POLICY project_tasks_select ON project_tasks FOR SELECT USING (true);
+DO $$ BEGIN
+  CREATE POLICY projects_select ON projects FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY project_tasks_select ON project_tasks FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Write: admin only
-CREATE POLICY projects_insert ON projects FOR INSERT WITH CHECK (is_admin());
-CREATE POLICY projects_update ON projects FOR UPDATE USING (is_admin());
-CREATE POLICY projects_delete ON projects FOR DELETE USING (is_admin());
+DO $$ BEGIN CREATE POLICY projects_insert ON projects FOR INSERT WITH CHECK (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY projects_update ON projects FOR UPDATE USING (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY projects_delete ON projects FOR DELETE USING (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY project_tasks_insert ON project_tasks FOR INSERT WITH CHECK (is_admin());
-CREATE POLICY project_tasks_update ON project_tasks FOR UPDATE USING (is_admin());
-CREATE POLICY project_tasks_delete ON project_tasks FOR DELETE USING (is_admin());
+DO $$ BEGIN CREATE POLICY project_tasks_insert ON project_tasks FOR INSERT WITH CHECK (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY project_tasks_update ON project_tasks FOR UPDATE USING (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY project_tasks_delete ON project_tasks FOR DELETE USING (is_admin()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE projects;
-ALTER PUBLICATION supabase_realtime ADD TABLE project_tasks;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE projects; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE project_tasks; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
