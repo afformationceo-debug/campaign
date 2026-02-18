@@ -137,6 +137,7 @@ export default function ConfigsPage() {
     affectedCount: number;
   } | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const renameSubmittingRef = useRef(false);
 
   // New config dialog state
   const [isNewConfigDialogOpen, setIsNewConfigDialogOpen] = useState(false);
@@ -355,16 +356,19 @@ export default function ConfigsPage() {
       newKey: string;
       configType: string;
     }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('campaign_configs')
         .update({ config_key: newKey, updated_at: new Date().toISOString() })
         .eq('config_key', oldKey)
-        .eq('config_type', configType);
+        .eq('config_type', configType)
+        .select('id');
       if (error) throw error;
+      return data;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       // Invalidate ALL config queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['configs'] });
+      renameSubmittingRef.current = false;
       setRenamingConfigId(null);
       setRenameKeyValue('');
       setRenameConfirmOpen(false);
@@ -375,13 +379,18 @@ export default function ConfigsPage() {
         targetTable: 'campaign_configs',
         targetId: null,
         oldValue: { config_key: variables.oldKey },
-        newValue: { config_key: variables.newKey, config_type: variables.configType },
+        newValue: { config_key: variables.newKey, config_type: variables.configType, updatedRows: data?.length ?? 0 },
       });
+    },
+    onError: (err) => {
+      renameSubmittingRef.current = false;
+      alert(`항목명 변경 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     },
   });
 
   // Start renaming a config key
   const startRenameKey = (config: CampaignConfig) => {
+    if (renameSubmittingRef.current) return;
     setRenamingConfigId(config.id);
     setRenameKeyValue(config.config_key);
     setTimeout(() => renameInputRef.current?.select(), 0);
@@ -389,12 +398,17 @@ export default function ConfigsPage() {
 
   // Check how many campaigns would be affected and show confirmation
   const handleRenameKeySubmit = async (config: CampaignConfig) => {
+    // Guard against double-submission from Enter + onBlur race
+    if (renameSubmittingRef.current || renameConfirmOpen) return;
+
     const newKey = renameKeyValue.trim();
     if (!newKey || newKey === config.config_key) {
       setRenamingConfigId(null);
       setRenameKeyValue('');
       return;
     }
+
+    renameSubmittingRef.current = true;
 
     // Count affected rows across all campaigns
     const { count, error } = await supabase
@@ -405,6 +419,8 @@ export default function ConfigsPage() {
 
     if (error) {
       console.error('Count error:', error);
+      renameSubmittingRef.current = false;
+      alert(`조회 실패: ${error.message}`);
       return;
     }
 
@@ -412,6 +428,7 @@ export default function ConfigsPage() {
 
     if (affectedCount > 1) {
       // Multiple campaigns affected - show confirmation dialog
+      renameSubmittingRef.current = false;
       setPendingRename({
         oldKey: config.config_key,
         newKey,
@@ -420,7 +437,7 @@ export default function ConfigsPage() {
       });
       setRenameConfirmOpen(true);
     } else {
-      // Only this campaign - apply directly
+      // Only this campaign or no match - apply directly
       renameConfigKeyMutation.mutate({
         oldKey: config.config_key,
         newKey,
@@ -431,6 +448,7 @@ export default function ConfigsPage() {
 
   const confirmRename = () => {
     if (!pendingRename) return;
+    renameSubmittingRef.current = true;
     renameConfigKeyMutation.mutate({
       oldKey: pendingRename.oldKey,
       newKey: pendingRename.newKey,
@@ -1233,7 +1251,9 @@ export default function ConfigsPage() {
                               className="h-6 text-[11px] font-medium"
                               autoFocus
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRenameKeySubmit(config);
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
                                 if (e.key === 'Escape') { setRenamingConfigId(null); setRenameKeyValue(''); }
                               }}
                               onBlur={() => handleRenameKeySubmit(config)}
