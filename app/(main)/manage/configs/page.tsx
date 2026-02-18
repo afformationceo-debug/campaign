@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Pencil, Save, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload } from 'lucide-react';
+import { Check, X, Pencil, Save, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -125,6 +125,18 @@ export default function ConfigsPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+
+  // Config key renaming state (global across campaigns)
+  const [renamingConfigId, setRenamingConfigId] = useState<string | null>(null);
+  const [renameKeyValue, setRenameKeyValue] = useState('');
+  const [renameConfirmOpen, setRenameConfirmOpen] = useState(false);
+  const [pendingRename, setPendingRename] = useState<{
+    oldKey: string;
+    newKey: string;
+    configType: string;
+    affectedCount: number;
+  } | null>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   // New config dialog state
   const [isNewConfigDialogOpen, setIsNewConfigDialogOpen] = useState(false);
@@ -331,6 +343,100 @@ export default function ConfigsPage() {
       });
     },
   });
+
+  // Rename config_key globally across ALL campaigns
+  const renameConfigKeyMutation = useMutation({
+    mutationFn: async ({
+      oldKey,
+      newKey,
+      configType,
+    }: {
+      oldKey: string;
+      newKey: string;
+      configType: string;
+    }) => {
+      const { error } = await supabase
+        .from('campaign_configs')
+        .update({ config_key: newKey, updated_at: new Date().toISOString() })
+        .eq('config_key', oldKey)
+        .eq('config_type', configType);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate ALL config queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['configs'] });
+      setRenamingConfigId(null);
+      setRenameKeyValue('');
+      setRenameConfirmOpen(false);
+      setPendingRename(null);
+      logActivity({
+        userId: profile?.id,
+        actionType: 'rename_config_key',
+        targetTable: 'campaign_configs',
+        targetId: null,
+        oldValue: { config_key: variables.oldKey },
+        newValue: { config_key: variables.newKey, config_type: variables.configType },
+      });
+    },
+  });
+
+  // Start renaming a config key
+  const startRenameKey = (config: CampaignConfig) => {
+    setRenamingConfigId(config.id);
+    setRenameKeyValue(config.config_key);
+    setTimeout(() => renameInputRef.current?.select(), 0);
+  };
+
+  // Check how many campaigns would be affected and show confirmation
+  const handleRenameKeySubmit = async (config: CampaignConfig) => {
+    const newKey = renameKeyValue.trim();
+    if (!newKey || newKey === config.config_key) {
+      setRenamingConfigId(null);
+      setRenameKeyValue('');
+      return;
+    }
+
+    // Count affected rows across all campaigns
+    const { count, error } = await supabase
+      .from('campaign_configs')
+      .select('*', { count: 'exact', head: true })
+      .eq('config_key', config.config_key)
+      .eq('config_type', config.config_type);
+
+    if (error) {
+      console.error('Count error:', error);
+      return;
+    }
+
+    const affectedCount = count ?? 0;
+
+    if (affectedCount > 1) {
+      // Multiple campaigns affected - show confirmation dialog
+      setPendingRename({
+        oldKey: config.config_key,
+        newKey,
+        configType: config.config_type,
+        affectedCount,
+      });
+      setRenameConfirmOpen(true);
+    } else {
+      // Only this campaign - apply directly
+      renameConfigKeyMutation.mutate({
+        oldKey: config.config_key,
+        newKey,
+        configType: config.config_type,
+      });
+    }
+  };
+
+  const confirmRename = () => {
+    if (!pendingRename) return;
+    renameConfigKeyMutation.mutate({
+      oldKey: pendingRename.oldKey,
+      newKey: pendingRename.newKey,
+      configType: pendingRename.configType,
+    });
+  };
 
   // Group by config_type
   const groupedConfigs = useMemo(() => {
@@ -1001,6 +1107,66 @@ export default function ConfigsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Rename Confirmation Dialog */}
+      <Dialog open={renameConfirmOpen} onOpenChange={(open) => {
+        if (!open) {
+          setRenameConfirmOpen(false);
+          setPendingRename(null);
+          setRenamingConfigId(null);
+          setRenameKeyValue('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              항목명 일괄 변경 확인
+            </DialogTitle>
+            <DialogDescription>
+              이 변경은 모든 캠페인에 동시에 적용됩니다.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingRename && (
+            <div className="space-y-3 py-2">
+              <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground shrink-0">변경 전:</span>
+                  <span className="font-medium line-through text-red-500">{pendingRename.oldKey}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground shrink-0">변경 후:</span>
+                  <span className="font-medium text-emerald-600">{pendingRename.newKey}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground shrink-0">설정 유형:</span>
+                  <Badge variant="secondary" className="text-[10px]">{pendingRename.configType}</Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span><strong>{pendingRename.affectedCount}개 캠페인</strong>의 해당 항목명이 일괄 변경됩니다.</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setRenameConfirmOpen(false);
+              setPendingRename(null);
+              setRenamingConfigId(null);
+              setRenameKeyValue('');
+            }}>
+              취소
+            </Button>
+            <Button
+              onClick={confirmRename}
+              disabled={renameConfigKeyMutation.isPending}
+            >
+              {renameConfigKeyMutation.isPending ? '변경 중...' : '일괄 변경'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Config entries */}
       {!selectedCampaignId ? (
         <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border rounded-lg gap-2">
@@ -1057,8 +1223,31 @@ export default function ConfigsPage() {
                 <tbody>
                   {items.map((config) => (
                     <tr key={config.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-1 text-[11px] font-medium truncate">
-                        {config.config_key}
+                      <td className="px-3 py-1">
+                        {renamingConfigId === config.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              ref={renameInputRef}
+                              value={renameKeyValue}
+                              onChange={(e) => setRenameKeyValue(e.target.value)}
+                              className="h-6 text-[11px] font-medium"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameKeySubmit(config);
+                                if (e.key === 'Escape') { setRenamingConfigId(null); setRenameKeyValue(''); }
+                              }}
+                              onBlur={() => handleRenameKeySubmit(config)}
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            className="text-[11px] font-medium truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]"
+                            onClick={() => startRenameKey(config)}
+                            title="클릭하여 항목명 수정 (전체 캠페인 일괄 반영)"
+                          >
+                            {config.config_key}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-1">
                         {editingConfigId === config.id ? (

@@ -68,6 +68,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
 
 type ViewMode = 'cards' | 'kanban' | 'table';
@@ -214,7 +215,7 @@ function InlineMemoCell({
   if (!isEditing) {
     return (
       <span
-        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs max-w-[200px] truncate block min-h-[20px]"
+        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs truncate block min-h-[20px]"
         onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
         title={value ?? ''}
       >
@@ -807,26 +808,26 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full text-[12px]">
+          <table className="w-full table-fixed text-[12px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="w-[20px] px-1 py-1.5"></th>
-                <th className="w-[36px] px-2 py-1.5">
+                <th className="w-[32px] px-2 py-1.5">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={(checked) => { if (checked) selectAll(); else clearSelection(); }}
                     className="size-3.5"
                   />
                 </th>
-                <th className="w-[28px] px-1 py-1.5"></th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground min-w-[180px]">프로젝트</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[80px]">상태</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[80px]">담당자</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[70px]">진행률</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[90px]">시작일</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[90px]">마감일</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground min-w-[120px]">메모</th>
-                <th className="w-[36px] px-1 py-1.5"></th>
+                <th className="w-[24px] px-1 py-1.5"></th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">프로젝트</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[76px]">상태</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[76px]">담당자</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[68px]">진행률</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">시작일</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">마감일</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[120px]">메모</th>
+                <th className="w-[32px] px-1 py-1.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -879,15 +880,24 @@ export default function RoadmapPage() {
                         </button>
                       </td>
                       {/* Name */}
-                      <td className="px-2 py-1">
-                        <div className="flex items-center gap-1.5">
-                          <InlineTextCell
-                            value={project.project_name}
-                            isEditing={isEditing(project.id, 'project_name')}
-                            onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
-                            onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                            className="font-semibold text-[12px]"
-                          />
+                      <td className="px-2 py-1 max-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="min-w-0 flex-1">
+                                <InlineTextCell
+                                  value={project.project_name}
+                                  isEditing={isEditing(project.id, 'project_name')}
+                                  onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
+                                  onSave={(v) => saveProjectField(project.id, 'project_name', v)}
+                                  className="font-semibold text-[12px]"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-[300px]">
+                              <p className="text-xs font-medium">{project.project_name}</p>
+                            </TooltipContent>
+                          </Tooltip>
                           {tasks.length > 0 && (
                             <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
                           )}
@@ -1017,17 +1027,26 @@ export default function RoadmapPage() {
                           {/* Spacer */}
                           <td className="px-1 py-0.5"></td>
                           {/* Title */}
-                          <td className="px-2 py-0.5 pl-8">
-                            <div className="flex items-center gap-1.5">
+                          <td className="px-2 py-0.5 pl-8 max-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-[9px] text-muted-foreground/40 w-3.5 shrink-0 text-right">{idx + 1}</span>
                               <div className="w-px h-3 bg-border/60 shrink-0" />
-                              <InlineTextCell
-                                value={task.title}
-                                isEditing={isEditing(task.id, 'title')}
-                                onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
-                                onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                className={cn('text-[11px]', task.state === '완료' && 'line-through text-muted-foreground/60')}
-                              />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="min-w-0 flex-1">
+                                    <InlineTextCell
+                                      value={task.title}
+                                      isEditing={isEditing(task.id, 'title')}
+                                      onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
+                                      onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
+                                      className={cn('text-[11px]', task.state === '완료' && 'line-through text-muted-foreground/60')}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-[300px]">
+                                  <p className="text-xs">{task.title}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </td>
                           {/* State */}
