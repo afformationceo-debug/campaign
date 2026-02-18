@@ -338,20 +338,28 @@ export function CampaignGrid({
                     'min-w-[200px] max-w-[260px]'
                   )}
                 >
-                  <div className="flex items-center gap-1.5 truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
-                    <span className="font-semibold truncate">{campaign.client_name}</span>
-                    <span className="text-muted-foreground truncate text-[10px]">
-                      {campaign.campaign_name}
-                    </span>
-                    {campaign.target_country && (
-                      <Badge
-                        variant="secondary"
-                        className="text-[8px] px-1 py-0 shrink-0"
-                      >
-                        {campaign.target_country.slice(0, 2)}
-                      </Badge>
-                    )}
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 truncate cursor-default">
+                        <span className="font-semibold truncate">{campaign.client_name}</span>
+                        <span className="text-muted-foreground truncate text-[10px]">
+                          {campaign.campaign_name}
+                        </span>
+                        {campaign.target_country && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[8px] px-1 py-0 shrink-0"
+                          >
+                            {campaign.target_country.slice(0, 2)}
+                          </Badge>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[280px]">
+                      <p className="text-xs font-medium">{campaign.client_name} - {campaign.campaign_name}</p>
+                      {campaign.target_country && <p className="text-[10px] text-muted-foreground">{campaign.target_country}</p>}
+                    </TooltipContent>
+                  </Tooltip>
                 </td>
 
                 {/* Status Cells */}

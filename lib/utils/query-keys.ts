@@ -43,6 +43,11 @@ export const queryKeys = {
   projectTasks: {
     byProject: (projectId: string) => ['projectTasks', projectId] as const,
   },
+  qa: {
+    all: ['qa'] as const,
+    byCampaign: (campaignId: string) => ['qa', 'campaign', campaignId] as const,
+    byStatus: (status: string) => ['qa', 'status', status] as const,
+  },
   dashboard: {
     kpi: (date: string) => ['dashboard', 'kpi', date] as const,
     charts: (date: string) => ['dashboard', 'charts', date] as const,

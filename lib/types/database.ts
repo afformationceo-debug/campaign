@@ -133,6 +133,28 @@ export interface ProjectWithAssignee extends Project {
   users: User | null;
 }
 
+export type QaType = '요청사항' | '불만사항' | '개선사항' | '버그' | '기타';
+export type QaStatus = '미해결' | '진행중' | '해결완료';
+export type QaPriority = '긴급' | '높음' | '보통' | '낮음';
+
+export interface CampaignQa {
+  id: string;
+  campaign_id: string;
+  qa_type: QaType;
+  content: string;
+  due_date: string | null;
+  status: QaStatus;
+  resolution: string | null;
+  priority: QaPriority;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignQaWithCampaign extends CampaignQa {
+  campaigns: Campaign;
+}
+
 // Join 타입
 export interface DailyCheckWithRelations extends DailyCheck {
   campaigns: Campaign;

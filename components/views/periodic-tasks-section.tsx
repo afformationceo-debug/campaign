@@ -538,7 +538,17 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', freqCfg.color, freqCfg.bg)}>
                                 {freqCfg.label}
                               </Badge>
-                              <span className="text-[11px] font-semibold truncate">{group.task.task_name}</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-[11px] font-semibold truncate cursor-default">{group.task.task_name}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[300px]">
+                                  <p className="text-xs font-medium">{group.task.task_name}</p>
+                                  {group.task.description && (
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">{group.task.description}</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {group.task.category}
                               </Badge>

@@ -169,14 +169,14 @@ function TaskConfigMatrix({
                   <th
                     key={task.id}
                     className={cn(
-                      'p-0.5 border-r min-w-[36px] max-w-[36px] bg-muted/30',
+                      'p-0.5 border-r min-w-[48px] max-w-[48px] bg-muted/30',
                       idx === catTasks.length - 1 && 'border-r-2'
                     )}
                   >
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className="h-[70px] flex items-end justify-center cursor-pointer text-[10px] leading-tight overflow-hidden px-0.5"
+                          className="h-[90px] flex items-end justify-center cursor-pointer text-[9px] leading-[1.3] overflow-hidden px-0.5"
                           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                           onClick={() => {
                             const allOn = campaigns.every(
@@ -188,8 +188,11 @@ function TaskConfigMatrix({
                           {task.task_name}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p className="font-medium">{task.task_name}</p>
+                      <TooltipContent side="bottom" className="max-w-[200px]">
+                        <p className="font-medium text-xs">{task.task_name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {task.category} · {FREQUENCY_LABEL[task.frequency]}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">클릭하여 전체 토글</p>
                       </TooltipContent>
                     </Tooltip>

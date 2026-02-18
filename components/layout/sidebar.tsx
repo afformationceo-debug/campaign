@@ -15,6 +15,7 @@ import {
   Wrench,
   History,
   Map,
+  MessageSquareWarning,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ const viewNav = [
 
 const manageNav = [
   { href: '/manage/campaigns', label: '캠페인 관리', icon: Building2 },
+  { href: '/manage/qa', label: 'QA 관리', icon: MessageSquareWarning },
   { href: '/manage/tasks', label: '행위 관리', icon: ListChecks },
   { href: '/manage/task-config', label: 'Task 적용설정', icon: Settings2 },
   { href: '/manage/users', label: '담당자 관리', icon: UserCog },
