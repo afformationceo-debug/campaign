@@ -396,6 +396,7 @@ export default function RoadmapPage() {
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [bulkAssigneeOpen, setBulkAssigneeOpen] = useState(false);
   const [bulkDateOpen, setBulkDateOpen] = useState(false);
+  const [bulkStartDateOpen, setBulkStartDateOpen] = useState(false);
 
   const { mutate: createProject, isPending: creating } = useCreateProject();
   const { mutate: updateProject, isPending: updating } = useUpdateProject();
@@ -527,7 +528,15 @@ export default function RoadmapPage() {
   const toggleProjectSelection = (id: string) => {
     setSelectedProjects((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      const isAdding = !next.has(id);
+      if (isAdding) next.add(id); else next.delete(id);
+      // Cascade to sub-tasks
+      const tasks = tasksByProject.get(id) || [];
+      setSelectedTasks((prevTasks) => {
+        const nextTasks = new Set(prevTasks);
+        tasks.forEach((t) => { if (isAdding) nextTasks.add(t.id); else nextTasks.delete(t.id); });
+        return nextTasks;
+      });
       return next;
     });
   };
@@ -582,6 +591,15 @@ export default function RoadmapPage() {
     });
     clearSelection();
     setBulkDateOpen(false);
+  };
+
+  const bulkUpdateStartDate = (date: string | null) => {
+    selectedProjects.forEach((id) => {
+      updateProject({ id, start_date: date } as Parameters<typeof updateProject>[0]);
+    });
+    // Note: project_tasks don't have start_date field, only projects do
+    clearSelection();
+    setBulkStartDateOpen(false);
   };
 
   const bulkUpdateState = (state: ProjectState) => {
@@ -1164,7 +1182,7 @@ export default function RoadmapPage() {
 
               {/* Bulk Assignee */}
               <div className="relative">
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => { setBulkAssigneeOpen(!bulkAssigneeOpen); setBulkDateOpen(false); }}>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => { setBulkAssigneeOpen(!bulkAssigneeOpen); setBulkDateOpen(false); setBulkStartDateOpen(false); }}>
                   <Users className="size-3.5" />
                   담당자 변경
                 </Button>
@@ -1178,9 +1196,26 @@ export default function RoadmapPage() {
                 )}
               </div>
 
+              {/* Bulk Start Date */}
+              <div className="relative">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => { setBulkStartDateOpen(!bulkStartDateOpen); setBulkDateOpen(false); setBulkAssigneeOpen(false); }}>
+                  <Calendar className="size-3.5" />
+                  시작일 변경
+                </Button>
+                {bulkStartDateOpen && (
+                  <div className="absolute bottom-full mb-2 left-0 w-[180px] rounded-lg border bg-popover shadow-lg p-2">
+                    <input
+                      type="date"
+                      className="w-full border rounded px-2 py-1.5 text-xs bg-background"
+                      onChange={(e) => bulkUpdateStartDate(e.target.value || null)}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Bulk Due Date */}
               <div className="relative">
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => { setBulkDateOpen(!bulkDateOpen); setBulkAssigneeOpen(false); }}>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => { setBulkDateOpen(!bulkDateOpen); setBulkStartDateOpen(false); setBulkAssigneeOpen(false); }}>
                   <CalendarDays className="size-3.5" />
                   마감일 변경
                 </Button>
