@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Pencil, Save, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -1217,7 +1217,7 @@ export default function ConfigsPage() {
                     <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[25%]">항목</th>
                     <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground">값</th>
                     <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[80px] text-center">상태</th>
-                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[60px]" />
+                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[36px]" />
                   </tr>
                 </thead>
                 <tbody>
@@ -1251,39 +1251,24 @@ export default function ConfigsPage() {
                       </td>
                       <td className="px-3 py-1">
                         {editingConfigId === config.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              className="h-6 text-[11px]"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEdit(config.id);
-                                if (e.key === 'Escape') cancelEditing();
-                              }}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={() => saveEdit(config.id)}
-                              disabled={updateValueMutation.isPending}
-                            >
-                              <Save className="h-3 w-3 text-emerald-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={cancelEditing}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-6 text-[11px]"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEdit(config.id);
+                              if (e.key === 'Escape') cancelEditing();
+                            }}
+                            onBlur={() => saveEdit(config.id)}
+                          />
                         ) : (
                           <span
                             className={cn(
-                              'text-[11px] truncate block',
+                              'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
                               !config.config_value && 'text-muted-foreground/50 italic'
                             )}
+                            onClick={() => startEditing(config)}
                           >
                             {config.config_value || '(비어있음)'}
                           </span>
@@ -1314,25 +1299,14 @@ export default function ConfigsPage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-1">
-                        <div className="flex items-center gap-0.5">
-                          {editingConfigId !== config.id && (
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={() => startEditing(config)}
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => handleDeleteConfig(config.id)}
-                            disabled={deleteConfigMutation.isPending}
-                          >
-                            <Trash2 className="h-3 w-3 text-red-500" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleDeleteConfig(config.id)}
+                          disabled={deleteConfigMutation.isPending}
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
