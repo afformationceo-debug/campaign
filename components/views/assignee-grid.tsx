@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -9,6 +10,7 @@ import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { useRealtimeChecks } from '@/hooks/use-realtime-checks';
 import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
+import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-status';
 import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +42,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
   // When "전체 담당자" (assigneeId=null), use current user's profile ID
   // to avoid checkMap collision from multiple users' checks
   const effectiveUserId = assigneeId ?? profile?.id ?? '';
+
+  const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
+  const { mutate: bulkCreateCheck } = useCreateCheck();
 
   // Subscribe to realtime updates
   useRealtimeChecks(date);
@@ -212,6 +217,27 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     });
     return summary;
   }, [filteredCampaigns, campaignScopeTasks, checkMap, configMap]);
+
+  // Bulk complete: mark all applicable campaigns for a task as '완료'
+  const handleBulkComplete = useCallback((task: Task) => {
+    filteredCampaigns.forEach((campaign) => {
+      if (!isApplicable(campaign.id, task.id)) return;
+      const check = checkMap.get(`${campaign.id}:${task.id}`);
+      if (check?.status === '완료' || check?.status === '해당없음') return;
+
+      if (!check) {
+        bulkCreateCheck({
+          campaign_id: campaign.id,
+          task_id: task.id,
+          check_date: date,
+          assigned_user_id: effectiveUserId,
+          status: '완료',
+        });
+      } else {
+        bulkUpdateStatus({ id: check.id, status: '완료' });
+      }
+    });
+  }, [filteredCampaigns, checkMap, date, effectiveUserId, bulkCreateCheck, bulkUpdateStatus]);
 
   const isLoading = checksLoading || tasksLoading || campaignsLoading || configsLoading;
 
@@ -391,7 +417,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                         )}
                         title={`${task.task_name}${task.default_assignees?.length ? `\n담당: ${task.default_assignees.join(', ')}` : ''}`}
                       >
-                        <span className="truncate block">{task.task_name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate">{task.task_name}</span>
+                          {summary && summary.completed < summary.total && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => handleBulkComplete(task)}
+                                  className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 transition-colors"
+                                >
+                                  <ListChecks className="size-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="right"><p className="text-xs">캠페인 전체 완료</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                         {!assigneeName && task.default_assignees && task.default_assignees.length > 0 && (
                           <span className="text-[9px] text-muted-foreground/70 truncate block">
                             {task.default_assignees.join(', ')}
