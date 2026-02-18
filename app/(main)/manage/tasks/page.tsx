@@ -3,16 +3,23 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, ChevronsUpDown, X } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { cn } from '@/lib/utils';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DataTable, type ColumnDef } from '@/components/manage/data-table';
-import type { Task, TaskCategory, TaskFrequency, TaskScope } from '@/lib/types/database';
+import type { Task, TaskCategory, TaskFrequency, TaskScope, User } from '@/lib/types/database';
 
 const FREQUENCY_CONFIG: Record<TaskFrequency, { label: string; className: string }> = {
   daily: { label: '매일', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' },
@@ -46,7 +53,7 @@ interface TaskFormData {
   category: TaskCategory;
   frequency: TaskFrequency;
   loop_order: string;
-  default_assignees: string;
+  default_assignees: string[];
   scope: TaskScope;
 }
 
@@ -64,8 +71,23 @@ export default function TasksPage() {
     category: '보고',
     frequency: 'daily',
     loop_order: '',
-    default_assignees: '',
+    default_assignees: [],
     scope: 'campaign',
+  });
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+
+  // Fetch active users for assignee selection
+  const { data: activeUsers = [] } = useQuery({
+    queryKey: queryKeys.users.active,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as User[];
+    },
   });
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -82,9 +104,7 @@ export default function TasksPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
-      const assigneesArr = data.default_assignees
-        ? data.default_assignees.split(',').map((s) => s.trim()).filter(Boolean)
-        : null;
+      const assigneesArr = data.default_assignees.length > 0 ? data.default_assignees : null;
       const { error } = await supabase.from('tasks').insert({
         task_name: data.task_name,
         description: data.description || null,
@@ -106,9 +126,7 @@ export default function TasksPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: TaskFormData }) => {
-      const assigneesArr = data.default_assignees
-        ? data.default_assignees.split(',').map((s) => s.trim()).filter(Boolean)
-        : null;
+      const assigneesArr = data.default_assignees.length > 0 ? data.default_assignees : null;
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -152,7 +170,7 @@ export default function TasksPage() {
       category: '보고',
       frequency: 'daily',
       loop_order: String((tasks.length > 0 ? Math.max(...tasks.map((t) => t.loop_order)) : 0) + 1),
-      default_assignees: '',
+      default_assignees: [],
       scope: 'campaign',
     });
     setIsDialogOpen(true);
@@ -167,7 +185,7 @@ export default function TasksPage() {
       category: task.category,
       frequency: task.frequency,
       loop_order: String(task.loop_order),
-      default_assignees: task.default_assignees?.join(', ') ?? '',
+      default_assignees: task.default_assignees ?? [],
       scope: task.scope ?? 'campaign',
     });
     setIsDialogOpen(true);
@@ -473,18 +491,84 @@ export default function TasksPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="default_assignees">기본 담당자 (쉼표 구분)</Label>
-                <Input
-                  id="default_assignees"
-                  value={formData.default_assignees}
-                  placeholder="홍길동, 김철수"
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      default_assignees: e.target.value,
-                    }))
-                  }
-                />
+                <Label>기본 담당자</Label>
+                <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        'w-full justify-between font-normal h-9',
+                        formData.default_assignees.length === 0 && 'text-muted-foreground'
+                      )}
+                    >
+                      <span className="truncate">
+                        {formData.default_assignees.length > 0
+                          ? formData.default_assignees.join(', ')
+                          : '담당자 선택...'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[240px] p-2" align="start">
+                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                      {activeUsers.map((user) => {
+                        const isSelected = formData.default_assignees.includes(user.name);
+                        return (
+                          <label
+                            key={user.id}
+                            className={cn(
+                              'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-accent transition-colors text-sm',
+                              isSelected && 'bg-accent'
+                            )}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  default_assignees: checked
+                                    ? [...prev.default_assignees, user.name]
+                                    : prev.default_assignees.filter((n) => n !== user.name),
+                                }));
+                              }}
+                            />
+                            <span>{user.name}</span>
+                            {user.position && (
+                              <span className="text-[10px] text-muted-foreground ml-auto">{user.position}</span>
+                            )}
+                          </label>
+                        );
+                      })}
+                      {activeUsers.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">등록된 담당자가 없습니다</p>
+                      )}
+                    </div>
+                    {formData.default_assignees.length > 0 && (
+                      <div className="border-t mt-2 pt-2">
+                        <div className="flex flex-wrap gap-1">
+                          {formData.default_assignees.map((name) => (
+                            <Badge key={name} variant="secondary" className="text-[10px] gap-1 pr-1">
+                              {name}
+                              <button
+                                type="button"
+                                className="hover:text-destructive transition-colors"
+                                onClick={() =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    default_assignees: prev.default_assignees.filter((n) => n !== name),
+                                  }))
+                                }
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

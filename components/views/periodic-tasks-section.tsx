@@ -235,6 +235,35 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     enabled: !!effectiveUserId,
   });
 
+  // Fetch ALL completed checks for "once" frequency tasks (no date filter)
+  const onceTaskIds = useMemo(() => {
+    return tasks.filter((t) => t.frequency === 'once').map((t) => t.id);
+  }, [tasks]);
+
+  const { data: onceCompletedChecks = [] } = useQuery({
+    queryKey: queryKeys.checks.onceCompleted,
+    queryFn: async () => {
+      if (onceTaskIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('daily_checks')
+        .select('campaign_id, task_id, status')
+        .in('task_id', onceTaskIds)
+        .eq('status', '완료');
+      if (error) throw error;
+      return (data ?? []) as { campaign_id: string | null; task_id: string; status: string }[];
+    },
+    enabled: onceTaskIds.length > 0,
+  });
+
+  // Set of "campaign:task" keys for once-tasks that are already completed
+  const onceCompletedSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of onceCompletedChecks) {
+      if (c.campaign_id) set.add(`${c.campaign_id}:${c.task_id}`);
+    }
+    return set;
+  }, [onceCompletedChecks]);
+
   // ─── Derived Data ───
   const periodicTasks = useMemo(() => {
     return tasks.filter((t) => t.frequency === 'monthly' || t.frequency === 'once' || t.frequency === 'as_needed');
@@ -296,6 +325,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         const applicable = config ? config.is_applicable : task.is_applicable_default;
         if (!applicable) continue;
 
+        // Skip "once" tasks that are already completed (in any month)
+        if (task.frequency === 'once' && onceCompletedSet.has(`${campaign.id}:${task.id}`)) {
+          continue;
+        }
+
         const check = checkMap.get(`${campaign.id}:${task.id}`) ?? null;
         const assigneeName = getAssigneeName(task, config ?? undefined);
         rows.push({ task, campaign, check, assigneeName });
@@ -308,7 +342,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     }
 
     return groups;
-  }, [periodicTasks, campaigns, campaignId, configMap, checkMap, getAssigneeName]);
+  }, [periodicTasks, campaigns, campaignId, configMap, checkMap, getAssigneeName, onceCompletedSet]);
 
   const totalItems = groupedData.reduce((s, g) => s + g.rows.length, 0);
   const completedItems = groupedData.reduce((s, g) => s + g.completedCount, 0);

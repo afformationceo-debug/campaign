@@ -17,6 +17,7 @@ export const queryKeys = {
     byDateAndUser: (date: string, userId: string) => ['checks', date, userId] as const,
     byMonth: (yearMonth: string) => ['checks', 'month', yearMonth] as const,
     byMonthAndUser: (yearMonth: string, userId: string) => ['checks', 'month', yearMonth, userId] as const,
+    onceCompleted: ['checks', 'once-completed'] as const,
   },
   taskConfig: {
     all: ['taskConfig'] as const,
