@@ -461,18 +461,18 @@ export default function CampaignsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/50 border-b">
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">캠페인명</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">클라이언트</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">대상 국가</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">상태</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">단계</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">시작일</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">월 고정비용</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">섭외당 비용</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">원고료 예산</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">통역사배치</th>
-                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">홈페이지</th>
-                  <th className="py-2.5 px-2 w-10" />
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">캠페인명</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">클라이언트</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">대상 국가</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">상태</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">단계</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">시작일</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">월 고정비용</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">섭외당 비용</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">원고료 예산</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">통역사배치</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">홈페이지</th>
+                  <th className="py-1.5 px-2 w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -482,7 +482,7 @@ export default function CampaignsPage() {
                     className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
                   >
                     {/* 캠페인명 */}
-                    <td className="py-1 px-2 min-w-[140px]">
+                    <td className="py-0.5 px-2 min-w-[140px]">
                       <InlineTextCell
                         value={campaign.campaign_name}
                         isEditing={isEditingCell(campaign.id, 'campaign_name')}
@@ -493,7 +493,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 클라이언트 */}
-                    <td className="py-1 px-2 min-w-[100px]">
+                    <td className="py-0.5 px-2 min-w-[100px]">
                       <InlineTextCell
                         value={campaign.client_name}
                         isEditing={isEditingCell(campaign.id, 'client_name')}
@@ -503,7 +503,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 대상 국가 */}
-                    <td className="py-1 px-2 min-w-[80px]">
+                    <td className="py-0.5 px-2 min-w-[80px]">
                       <InlineTextCell
                         value={campaign.target_country ?? ''}
                         isEditing={isEditingCell(campaign.id, 'target_country')}
@@ -514,7 +514,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 상태 - inline Select */}
-                    <td className="py-1 px-2 min-w-[100px]">
+                    <td className="py-0.5 px-2 min-w-[100px]">
                       <Select
                         value={campaign.status}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'status', v)}
@@ -540,7 +540,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 단계 - inline Select */}
-                    <td className="py-1 px-2 min-w-[110px]">
+                    <td className="py-0.5 px-2 min-w-[110px]">
                       <Select
                         value={campaign.phase}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'phase', v)}
@@ -566,7 +566,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 시작일 */}
-                    <td className="py-1 px-2 min-w-[110px]">
+                    <td className="py-0.5 px-2 min-w-[110px]">
                       <InlineDateCell
                         value={campaign.start_date ?? ''}
                         isEditing={isEditingCell(campaign.id, 'start_date')}
@@ -576,7 +576,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 월 고정비용 */}
-                    <td className="py-1 px-2 min-w-[100px]">
+                    <td className="py-0.5 px-2 min-w-[100px]">
                       <InlineTextCell
                         value={campaign.monthly_fixed_cost?.toString() ?? ''}
                         isEditing={isEditingCell(campaign.id, 'monthly_fixed_cost')}
@@ -589,7 +589,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 섭외당 비용 */}
-                    <td className="py-1 px-2 min-w-[100px]">
+                    <td className="py-0.5 px-2 min-w-[100px]">
                       <InlineTextCell
                         value={campaign.cost_per_influencer?.toString() ?? ''}
                         isEditing={isEditingCell(campaign.id, 'cost_per_influencer')}
@@ -602,7 +602,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 원고료 예산 */}
-                    <td className="py-1 px-2 min-w-[100px]">
+                    <td className="py-0.5 px-2 min-w-[100px]">
                       <InlineTextCell
                         value={campaign.influencer_fee_budget?.toString() ?? ''}
                         isEditing={isEditingCell(campaign.id, 'influencer_fee_budget')}
@@ -615,7 +615,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 통역사배치여부 */}
-                    <td className="py-1 px-2 min-w-[120px]">
+                    <td className="py-0.5 px-2 min-w-[120px]">
                       <Select
                         value={campaign.interpreter_status ?? '통역 필요 없음'}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'interpreter_status', v)}
@@ -644,7 +644,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* 홈페이지 */}
-                    <td className="py-1 px-2 min-w-[120px]">
+                    <td className="py-0.5 px-2 min-w-[120px]">
                       {isEditingCell(campaign.id, 'homepage_url') ? (
                         <InlineTextCell
                           value={campaign.homepage_url ?? ''}
@@ -680,7 +680,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-1 px-2">
+                    <td className="py-0.5 px-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -706,7 +706,7 @@ export default function CampaignsPage() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="py-8 text-center text-muted-foreground text-sm">
+                    <td colSpan={13} className="py-6 text-center text-muted-foreground text-sm">
                       {search ? '검색 결과가 없습니다.' : '캠페인이 없습니다. 새 캠페인을 추가해주세요.'}
                     </td>
                   </tr>

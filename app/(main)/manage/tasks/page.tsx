@@ -338,7 +338,7 @@ export default function TasksPage() {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="space-y-6"
+      className="space-y-4"
     >
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>

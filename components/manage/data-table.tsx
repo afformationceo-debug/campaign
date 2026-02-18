@@ -113,7 +113,7 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {(searchKey || searchFn) && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -127,13 +127,14 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       <div className="rounded-lg border">
-        <Table>
+        <Table className="text-xs">
           <TableHeader>
             <TableRow>
               {columns.map((col) => (
                 <TableHead
                   key={col.key}
                   className={cn(
+                    'h-8 px-2 text-[11px]',
                     col.sortable && 'cursor-pointer select-none hover:bg-muted/50',
                     col.className
                   )}
@@ -161,7 +162,7 @@ export function DataTable<T extends Record<string, any>>({
               filteredAndSortedData.map((row, idx) => (
                 <TableRow key={(row as Record<string, unknown>).id as string ?? idx}>
                   {columns.map((col) => (
-                    <TableCell key={col.key} className={col.className}>
+                    <TableCell key={col.key} className={cn('py-1 px-2', col.className)}>
                       {col.cell(row)}
                     </TableCell>
                   ))}
