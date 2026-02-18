@@ -28,6 +28,14 @@ export const queryKeys = {
     all: ['logs'] as const,
     filtered: (filters: object) => ['logs', filters] as const,
   },
+  projects: {
+    all: ['projects'] as const,
+    detail: (id: string) => ['projects', id] as const,
+    withTasks: (id: string) => ['projects', id, 'tasks'] as const,
+  },
+  projectTasks: {
+    byProject: (projectId: string) => ['projectTasks', projectId] as const,
+  },
   dashboard: {
     kpi: (date: string) => ['dashboard', 'kpi', date] as const,
     charts: (date: string) => ['dashboard', 'charts', date] as const,

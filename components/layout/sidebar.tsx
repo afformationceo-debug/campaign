@@ -13,6 +13,7 @@ import {
   UserCog,
   Wrench,
   History,
+  Map,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -39,6 +40,10 @@ const manageNav = [
   { href: '/manage/task-config', label: 'Task 적용설정', icon: Settings2 },
   { href: '/manage/users', label: '담당자 관리', icon: UserCog },
   { href: '/manage/configs', label: '캠페인 세팅', icon: Wrench },
+];
+
+const projectNav = [
+  { href: '/roadmap', label: '프로젝트 로드맵', icon: Map },
 ];
 
 const logNav = [
@@ -146,6 +151,7 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5 scrollbar-thin">
         <NavGroup items={mainNav} isCollapsed={isCollapsed} />
         <NavGroup title="일일 업무" items={viewNav} isCollapsed={isCollapsed} />
+        <NavGroup title="프로젝트" items={projectNav} isCollapsed={isCollapsed} />
         {isAdmin && (
           <NavGroup title="관리" items={manageNav} isCollapsed={isCollapsed} />
         )}

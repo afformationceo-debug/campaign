@@ -5,6 +5,7 @@ export type CheckStatus = '완료' | '진행중' | '미완료' | '해당없음';
 export type UserRole = 'admin' | 'member';
 export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-인플' | 'CS-고객' | 'CRM' | '컨텐츠' | '회계';
 export type TaskScope = 'campaign' | 'global';
+export type ProjectState = '진행전' | '진행중' | '완료';
 
 export interface Campaign {
   id: string;
@@ -90,6 +91,41 @@ export interface ActivityLog {
   old_value: Record<string, unknown> | null;
   new_value: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface Project {
+  id: string;
+  project_name: string;
+  url: string | null;
+  assignee_id: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  state: ProjectState;
+  memo: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTask {
+  id: string;
+  project_id: string;
+  title: string;
+  state: ProjectState;
+  assignee_id: string | null;
+  due_date: string | null;
+  sort_order: number;
+  memo: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectWithTasks extends Project {
+  project_tasks: ProjectTask[];
+}
+
+export interface ProjectWithAssignee extends Project {
+  users: User | null;
 }
 
 // Join 타입
