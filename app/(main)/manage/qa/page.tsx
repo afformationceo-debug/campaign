@@ -578,19 +578,19 @@ export default function CampaignQaPage() {
                 </div>
 
                 {/* QA Items Table */}
-                <div className="overflow-hidden">
-                  <table className="w-full table-fixed text-left">
+                <div className="overflow-x-auto">
+                  <table className="w-full table-fixed text-left min-w-[800px]">
                     <thead>
                       <tr className="border-b bg-muted/10">
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">유형</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[22%]">내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[18%]">해결 상세내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">작성자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">유형</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">우선순위</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[25%]">내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[19%]">해결 상세내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">작성자</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">기한</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">상태</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">등록일</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[9%] text-right">작업</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%] text-right">작업</th>
                       </tr>
                     </thead>
                     <tbody>
