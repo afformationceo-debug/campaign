@@ -372,7 +372,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
             <span className="text-sm font-semibold">월간/주기별 업무</span>
           </div>
           <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
-            {completedItems}/{totalItems} 완료
+            {totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0}% ({completedItems}/{totalItems})
           </Badge>
           <span className="text-[10px] text-muted-foreground ml-auto">
             {format(currentDate, 'yyyy년 MM월')} 기준
@@ -387,9 +387,9 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[30px]"></th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">캠페인</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[80px]">담당자</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground text-center w-[50px]">상태</th>
+                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">업무 / 캠페인</th>
+                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[90px]">담당자</th>
+                    <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground text-center w-[90px]">진행율 / 상태</th>
                     <th className="px-3 py-2 text-[11px] font-semibold text-muted-foreground w-[120px]">완료일</th>
                   </tr>
                 </thead>
@@ -399,6 +399,18 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                     const catColor = CATEGORY_COLORS[group.task.category as TaskCategory];
                     const isCollapsed = collapsedGroups.has(group.task.id);
                     const allDone = group.completedCount === group.rows.length;
+                    const progressPct = group.rows.length > 0
+                      ? Math.round((group.completedCount / group.rows.length) * 100)
+                      : 0;
+
+                    // Group-level assignee (from task default_assignees)
+                    const groupAssignees = group.task.default_assignees?.join(', ') ?? null;
+
+                    // Latest completion date among completed rows
+                    const latestDate = group.rows
+                      .filter((r) => r.check?.status === '완료')
+                      .map((r) => r.check!.check_date)
+                      .sort((a, b) => b.localeCompare(a))[0] ?? null;
 
                     return (
                       <Fragment key={group.task.id}>
@@ -406,11 +418,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         <tr
                           className={cn(
                             'border-b border-border/60 cursor-pointer hover:bg-accent/20 transition-colors',
-                            allDone && 'bg-emerald-50/20 dark:bg-emerald-950/5'
+                            allDone && 'bg-emerald-50/30 dark:bg-emerald-950/10'
                           )}
                           onClick={() => toggleGroup(group.task.id)}
                         >
-                          <td className="px-3 py-2" colSpan={5}>
+                          {/* Task Name + Badges */}
+                          <td className="px-3 py-2.5" colSpan={2}>
                             <div className="flex items-center gap-2">
                               {isCollapsed
                                 ? <ChevronRight className="size-3.5 text-muted-foreground/60 shrink-0" />
@@ -423,14 +436,55 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               <Badge variant="outline" className={cn('text-[9px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {group.task.category}
                               </Badge>
+                            </div>
+                          </td>
+                          {/* Assignee */}
+                          <td className="px-3 py-2.5">
+                            {groupAssignees ? (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <User className="size-3 shrink-0" />
+                                <span className="truncate max-w-[70px]">{groupAssignees}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground/30">-</span>
+                            )}
+                          </td>
+                          {/* Progress */}
+                          <td className="px-3 py-2.5">
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all duration-500',
+                                    allDone
+                                      ? 'bg-emerald-500'
+                                      : progressPct > 0
+                                        ? 'bg-amber-400'
+                                        : 'bg-transparent'
+                                  )}
+                                  style={{ width: `${progressPct}%` }}
+                                />
+                              </div>
                               <span className={cn(
-                                'text-[10px] font-medium ml-auto tabular-nums',
+                                'text-[10px] font-medium tabular-nums',
                                 allDone ? 'text-emerald-600' : 'text-muted-foreground'
                               )}>
-                                {group.completedCount}/{group.rows.length}
+                                {progressPct}%
+                                <span className="text-muted-foreground/60 ml-0.5">
+                                  ({group.completedCount}/{group.rows.length})
+                                </span>
                               </span>
-                              {allDone && <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />}
                             </div>
+                          </td>
+                          {/* Latest Date */}
+                          <td className="px-3 py-2.5">
+                            {latestDate ? (
+                              <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
+                                {latestDate}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground/30">-</span>
+                            )}
                           </td>
                         </tr>
 
@@ -445,7 +499,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                           >
                             <td className="px-3 py-1.5"></td>
                             <td className="px-3 py-1.5">
-                              <span className="text-[11px] text-foreground/80">{row.campaign.campaign_name}</span>
+                              <span className="text-[11px] text-foreground/80 pl-4">{row.campaign.campaign_name}</span>
                             </td>
                             <td className="px-3 py-1.5">
                               {row.assigneeName ? (
