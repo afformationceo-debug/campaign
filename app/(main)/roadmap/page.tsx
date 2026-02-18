@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   Clock,
   CircleDashed,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -28,6 +30,7 @@ import {
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
+  useUpdateProjectTask,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -309,7 +312,8 @@ export default function RoadmapPage() {
   const { profile } = useAuth();
   useRealtimeProjects();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [searchText, setSearchText] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('');
@@ -322,6 +326,7 @@ export default function RoadmapPage() {
   const { mutate: createProject, isPending: creating } = useCreateProject();
   const { mutate: updateProject, isPending: updating } = useUpdateProject();
   const { mutate: deleteProject } = useDeleteProject();
+  const { mutate: updateTask } = useUpdateProjectTask();
 
   // Fetch projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -432,6 +437,30 @@ export default function RoadmapPage() {
     }
     setDeleteDialogOpen(false);
     setDeletingId(null);
+  };
+
+  const toggleExpand = (projectId: string) => {
+    setExpandedProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedProjects(new Set(filteredProjects.map((p) => p.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedProjects(new Set());
+  };
+
+  const handleTaskStateChange = (taskId: string, projectId: string, newState: ProjectState) => {
+    updateTask({ id: taskId, project_id: projectId, state: newState });
   };
 
   const isLoading = projectsLoading || tasksLoading;
@@ -596,9 +625,18 @@ export default function RoadmapPage() {
       ) : (
         /* Table View */
         <div className="rounded-xl border bg-card overflow-auto">
+          <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20">
+            <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={expandAll}>
+              전체 펼치기
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={collapseAll}>
+              전체 접기
+            </Button>
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/30">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[40px]"></th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">프로젝트</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">담당자</th>
@@ -616,72 +654,145 @@ export default function RoadmapPage() {
                 const assignee = users.find((u) => u.id === project.assignee_id);
                 const config = STATE_CONFIG[project.state];
                 const StateIcon = config.icon;
+                const isExpanded = expandedProjects.has(project.id);
 
                 return (
-                  <tr
-                    key={project.id}
-                    className="border-b last:border-b-0 hover:bg-muted/20 transition-colors cursor-pointer"
-                    onClick={() => window.location.href = `/roadmap/${project.id}`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{project.project_name}</span>
-                        {project.url && (
-                          <a
-                            href={project.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-muted-foreground/40 hover:text-primary"
-                          >
-                            <ExternalLink className="size-3" />
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary" className={cn('text-[10px]', config.color, config.bg)}>
-                        <StateIcon className="size-3 mr-0.5" />
-                        {config.label}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{assignee?.name ?? '-'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={cn(
-                              'h-full rounded-full',
-                              pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-blue-500' : 'bg-gray-300'
-                            )}
-                            style={{ width: `${pct}%` }}
-                          />
+                  <React.Fragment key={project.id}>
+                    <tr
+                      className={cn(
+                        'border-b hover:bg-muted/20 transition-colors cursor-pointer',
+                        isExpanded && 'bg-muted/10'
+                      )}
+                      onClick={() => toggleExpand(project.id)}
+                    >
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="icon" className="size-6" onClick={(e) => { e.stopPropagation(); toggleExpand(project.id); }}>
+                          {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                        </Button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{project.project_name}</span>
+                          {tasks.length > 0 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+                              {tasks.length}
+                            </Badge>
+                          )}
+                          {project.url && (
+                            <a
+                              href={project.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-muted-foreground/40 hover:text-primary"
+                            >
+                              <ExternalLink className="size-3" />
+                            </a>
+                          )}
                         </div>
-                        <span className="text-[11px] text-muted-foreground">{completed}/{tasks.length}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{project.due_date ?? '-'}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px] truncate">{project.memo ?? '-'}</td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-7">
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(project)}>
-                            <Pencil className="size-3.5 mr-2" />
-                            수정
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive">
-                            <Trash2 className="size-3.5 mr-2" />
-                            삭제
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="secondary" className={cn('text-[10px]', config.color, config.bg)}>
+                          <StateIcon className="size-3 mr-0.5" />
+                          {config.label}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{assignee?.name ?? '-'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                'h-full rounded-full',
+                                pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-blue-500' : 'bg-gray-300'
+                              )}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground">{completed}/{tasks.length}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{project.due_date ?? '-'}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px] truncate">{project.memo ?? '-'}</td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-7">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(project)}>
+                              <Pencil className="size-3.5 mr-2" />
+                              수정
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive">
+                              <Trash2 className="size-3.5 mr-2" />
+                              삭제
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                    {isExpanded && tasks.length > 0 && tasks.map((task, idx) => {
+                      const taskConfig = STATE_CONFIG[task.state];
+                      const TaskIcon = taskConfig.icon;
+                      const taskAssignee = users.find((u) => u.id === task.assignee_id);
+                      return (
+                        <tr key={task.id} className="border-b last:border-b-0 bg-muted/5 hover:bg-muted/15 transition-colors">
+                          <td className="px-4 py-2"></td>
+                          <td className="px-4 py-2 pl-10">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-muted-foreground/50 w-4 shrink-0">{idx + 1}</span>
+                              <span className={cn('text-[13px]', task.state === '완료' && 'line-through text-muted-foreground')}>
+                                {task.title}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={task.state}
+                              onValueChange={(v) => handleTaskStateChange(task.id, project.id, v as ProjectState)}
+                            >
+                              <SelectTrigger className={cn('w-[85px] h-7 text-[11px] border-0 bg-transparent px-1.5', taskConfig.color)}>
+                                <div className="flex items-center gap-1">
+                                  <TaskIcon className="size-3" />
+                                  <span>{taskConfig.label}</span>
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent position="popper" className="min-w-[100px]">
+                                {KANBAN_COLUMNS.map((s) => {
+                                  const sc = STATE_CONFIG[s];
+                                  const SI = sc.icon;
+                                  return (
+                                    <SelectItem key={s} value={s}>
+                                      <div className="flex items-center gap-1.5">
+                                        <SI className={cn('size-3', sc.color)} />
+                                        {sc.label}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-4 py-2 text-muted-foreground text-xs">{taskAssignee?.name ?? '-'}</td>
+                          <td className="px-4 py-2"></td>
+                          <td className="px-4 py-2 text-muted-foreground text-xs">{task.due_date ?? '-'}</td>
+                          <td className="px-4 py-2 text-muted-foreground text-xs max-w-[200px] truncate">{task.memo ?? '-'}</td>
+                          <td className="px-4 py-2"></td>
+                        </tr>
+                      );
+                    })}
+                    {isExpanded && tasks.length === 0 && (
+                      <tr className="border-b bg-muted/5">
+                        <td className="px-4 py-2"></td>
+                        <td colSpan={7} className="px-4 py-3 pl-10 text-xs text-muted-foreground/50">
+                          하위 업무가 없습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
