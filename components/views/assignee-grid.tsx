@@ -12,6 +12,12 @@ import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
 import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   Task,
   Campaign,
@@ -272,7 +278,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
 
     {/* Campaign-scope Tasks Grid */}
     {filteredCampaigns.length > 0 && campaignScopeTasks.length > 0 && (
-    <div className="relative overflow-auto rounded-lg border bg-background">
+    <TooltipProvider>
+    <div className="relative overflow-auto rounded-lg border bg-background max-h-[calc(100vh-220px)]">
       <table className="w-max min-w-full border-collapse">
         {/* Header Row: Campaign Names (sticky top) */}
         <thead>
@@ -287,38 +294,45 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             >
               업무
             </th>
-            {filteredCampaigns.map((campaign) => (
-              <th
-                key={campaign.id}
-                className={cn(
-                  'sticky top-0 z-20',
-                  'bg-background border-b px-0.5 py-1',
-                  'text-center min-w-[44px] max-w-[52px]'
-                )}
-              >
-                <div
-                  className="flex flex-col items-center gap-0.5"
-                  title={`${campaign.client_name} - ${campaign.campaign_name}`}
-                >
-                  <span
-                    className={cn(
-                      'text-[10px] font-semibold text-foreground',
-                      'whitespace-nowrap leading-tight'
-                    )}
-                    style={{
-                      writingMode: 'vertical-lr',
-                    }}
-                  >
-                    {campaign.client_name}
-                  </span>
-                  {campaign.target_country && (
-                    <span className="text-[8px] text-muted-foreground/70 leading-tight flex-shrink-0">
-                      {campaign.target_country}
-                    </span>
+            {filteredCampaigns.map((campaign) => {
+              const countryShort = campaign.target_country
+                ? campaign.target_country.replace('중화권(홍,말,싱)', '중화').slice(0, 2)
+                : '';
+              return (
+                <th
+                  key={campaign.id}
+                  className={cn(
+                    'sticky top-0 z-20',
+                    'bg-background border-b px-0.5 py-1.5',
+                    'text-center min-w-[36px] max-w-[40px]'
                   )}
-                </div>
-              </th>
-            ))}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-0.5 cursor-help">
+                        <span className="text-[9px] font-semibold text-foreground leading-none">
+                          {campaign.client_name.slice(0, 2)}
+                        </span>
+                        {countryShort && (
+                          <span className="text-[8px] text-muted-foreground/70 leading-none">
+                            {countryShort}
+                          </span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[220px]">
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-xs">{campaign.client_name}</div>
+                        <div className="text-[10px] opacity-80">{campaign.campaign_name}</div>
+                        {campaign.target_country && (
+                          <div className="text-[10px] opacity-70">{campaign.target_country}</div>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+              );
+            })}
             {/* Summary column header */}
             <th
               className={cn(
@@ -516,6 +530,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
         </tbody>
       </table>
     </div>
+    </TooltipProvider>
     )}
     </div>
   );

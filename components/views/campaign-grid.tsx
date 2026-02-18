@@ -12,6 +12,12 @@ import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
 import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   Task,
   Campaign,
@@ -211,7 +217,8 @@ export function CampaignGrid({
   }
 
   return (
-    <div className="relative overflow-auto rounded-lg border bg-background">
+    <TooltipProvider>
+    <div className="relative overflow-auto rounded-lg border bg-background max-h-[calc(100vh-220px)]">
       <table className="w-max min-w-full border-collapse">
         {/* Header Row: Task Names (sticky top) */}
         <thead>
@@ -235,39 +242,46 @@ export function CampaignGrid({
                   key={task.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-1',
-                    'text-center min-w-[44px] max-w-[52px]',
+                    'bg-background border-b px-0.5 py-1.5',
+                    'text-center min-w-[36px] max-w-[40px]',
                     taskIdx === 0 && 'border-l',
                     taskIdx === 0 && catColors.border
                   )}
                 >
-                  <div
-                    className="flex flex-col items-center gap-0.5"
-                    title={`[${group.category}] ${task.task_name}${task.default_assignees?.length ? `\n담당: ${task.default_assignees.join(', ')}` : ''}`}
-                  >
-                    <span
-                      className={cn(
-                        'inline-block w-1.5 h-1.5 rounded-full flex-shrink-0',
-                        catColors.text.replace('text-', 'bg-')
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        'text-[10px] font-medium text-muted-foreground',
-                        'whitespace-nowrap leading-tight'
-                      )}
-                      style={{
-                        writingMode: 'vertical-lr',
-                      }}
-                    >
-                      {task.task_name}
-                    </span>
-                    {task.default_assignees && task.default_assignees.length > 0 && (
-                      <span className="text-[8px] text-muted-foreground/70 leading-tight text-center max-w-[44px] truncate flex-shrink-0">
-                        {task.default_assignees.map(n => n.charAt(0)).join('')}
-                      </span>
-                    )}
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-1 cursor-help">
+                        <span
+                          className={cn(
+                            'inline-block w-2 h-2 rounded-full flex-shrink-0',
+                            catColors.text.replace('text-', 'bg-')
+                          )}
+                        />
+                        <span className="text-[9px] font-semibold text-muted-foreground leading-none">
+                          {task.task_name.slice(0, 2)}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">
+                      <div className="space-y-1">
+                        <div className="font-semibold text-xs">{task.task_name}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'inline-block w-1.5 h-1.5 rounded-full',
+                              catColors.text.replace('text-', 'bg-')
+                            )}
+                          />
+                          <span className="text-[10px] opacity-80">{group.category}</span>
+                        </div>
+                        {task.default_assignees && task.default_assignees.length > 0 && (
+                          <div className="text-[10px] opacity-80">
+                            담당: {task.default_assignees.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </th>
               ));
             })}
@@ -414,5 +428,6 @@ export function CampaignGrid({
         </tbody>
       </table>
     </div>
+    </TooltipProvider>
   );
 }
