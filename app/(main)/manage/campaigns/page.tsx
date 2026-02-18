@@ -236,7 +236,6 @@ interface CampaignFormData {
   target_country: string;
   status: CampaignStatus;
   phase: CampaignPhase;
-  budget: string;
   monthly_fixed_cost: string;
   cost_per_influencer: string;
   influencer_fee_budget: string;
@@ -251,7 +250,6 @@ const defaultFormData: CampaignFormData = {
   target_country: '',
   status: 'active',
   phase: 'onboarding',
-  budget: '',
   monthly_fixed_cost: '',
   cost_per_influencer: '',
   influencer_fee_budget: '',
@@ -334,7 +332,6 @@ export default function CampaignsPage() {
         target_country: data.target_country || null,
         status: data.status,
         phase: data.phase,
-        budget: data.budget ? Number(data.budget) : null,
         monthly_fixed_cost: data.monthly_fixed_cost ? Number(data.monthly_fixed_cost) : null,
         cost_per_influencer: data.cost_per_influencer ? Number(data.cost_per_influencer) : null,
         influencer_fee_budget: data.influencer_fee_budget ? Number(data.influencer_fee_budget) : null,
@@ -470,7 +467,6 @@ export default function CampaignsPage() {
                   <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">상태</th>
                   <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">단계</th>
                   <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">시작일</th>
-                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">예산</th>
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">월 고정비용</th>
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">섭외당 비용</th>
                   <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">원고료 예산</th>
@@ -576,19 +572,6 @@ export default function CampaignsPage() {
                         isEditing={isEditingCell(campaign.id, 'start_date')}
                         onStartEdit={() => startEdit(campaign.id, 'start_date')}
                         onSave={(v) => handleInlineUpdate(campaign.id, 'start_date', v || null)}
-                      />
-                    </td>
-
-                    {/* 예산 */}
-                    <td className="py-1 px-2 min-w-[100px]">
-                      <InlineTextCell
-                        value={campaign.budget?.toString() ?? ''}
-                        isEditing={isEditingCell(campaign.id, 'budget')}
-                        onStartEdit={() => startEdit(campaign.id, 'budget')}
-                        onSave={(v) => handleInlineUpdate(campaign.id, 'budget', v ? Number(v) : null)}
-                        type="number"
-                        placeholder="-"
-                        className="text-right"
                       />
                     </td>
 
@@ -770,15 +753,6 @@ export default function CampaignsPage() {
                   id="target_country"
                   value={formData.target_country}
                   onChange={(e) => setFormData((prev) => ({ ...prev, target_country: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget">예산</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  value={formData.budget}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, budget: e.target.value }))}
                 />
               </div>
             </div>

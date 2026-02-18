@@ -252,7 +252,7 @@ export default function ResultsViewPage() {
       taskCategory: task?.category ?? '',
       frequency: task?.frequency ?? '',
       loopOrder: task?.loop_order ?? 999,
-      assignee: (c.assigned_user_id ? userMap.get(c.assigned_user_id) : null) ?? c.assigned_user_id ?? '-',
+      assignee: task?.default_assignees?.join(', ') ?? '-',
       campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
       resultValue: c.result_value!,
     };
