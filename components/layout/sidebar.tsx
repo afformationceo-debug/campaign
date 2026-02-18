@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -166,6 +167,12 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
 
 export function Sidebar() {
   const { isCollapsed, toggle, isMobileOpen, setMobileOpen } = useSidebarStore();
+  const pathname = usePathname();
+
+  // Auto-close mobile Sheet on navigation so sidebar doesn't block content
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
 
   return (
     <>

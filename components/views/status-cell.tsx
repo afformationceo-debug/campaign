@@ -5,7 +5,6 @@ import { CheckCircle2, Clock, Circle, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { STATUS_COLORS, getNextStatus } from '@/lib/utils/status-colors';
 import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-status';
-import { useAuth } from '@/hooks/use-auth';
 import {
   Tooltip,
   TooltipTrigger,
@@ -47,15 +46,11 @@ const STATUS_LABELS: Record<CheckStatus, string> = {
 export function StatusCell({ check, isApplicable, campaignId, taskId, date, assigneeId }: StatusCellProps) {
   const { mutate: updateStatus } = useUpdateCheckStatus();
   const { mutate: createCheck } = useCreateCheck();
-  const { profile } = useAuth();
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteValue, setNoteValue] = useState('');
   const [pulse, setPulse] = useState(false);
   const prevStatusRef = useRef<CheckStatus | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Use provided assigneeId or fall back to current user
-  const effectiveAssigneeId = assigneeId ?? profile?.id;
 
   // Detect realtime updates and trigger pulse animation
   useEffect(() => {
@@ -80,12 +75,12 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
     if (!isApplicable) return;
     // If no check record exists yet, create one with '진행중'
     if (!check) {
-      if (taskId && date && effectiveAssigneeId) {
+      if (taskId && date && assigneeId) {
         createCheck({
           campaign_id: campaignId ?? null,
           task_id: taskId,
           check_date: date,
-          assigned_user_id: effectiveAssigneeId,
+          assigned_user_id: assigneeId,
           status: '진행중',
         });
       }
@@ -93,7 +88,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
     }
     const nextStatus = getNextStatus(check.status);
     updateStatus({ id: check.id, status: nextStatus });
-  }, [check, isApplicable, updateStatus, createCheck, campaignId, taskId, date, effectiveAssigneeId]);
+  }, [check, isApplicable, updateStatus, createCheck, campaignId, taskId, date, assigneeId]);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {

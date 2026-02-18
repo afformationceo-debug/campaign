@@ -9,6 +9,7 @@ import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { useRealtimeChecks } from '@/hooks/use-realtime-checks';
 import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
+import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
 import type {
@@ -28,30 +29,29 @@ interface AssigneeGridProps {
 
 export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: AssigneeGridProps) {
   const supabase = createClient();
+  const { profile } = useAuth();
+
+  // When "전체 담당자" (assigneeId=null), use current user's profile ID
+  // to avoid checkMap collision from multiple users' checks
+  const effectiveUserId = assigneeId ?? profile?.id ?? '';
 
   // Subscribe to realtime updates
   useRealtimeChecks(date);
   useRealtimeTaskConfig();
 
-  // Fetch daily checks for the selected date
+  // Fetch daily checks for the selected date, always filtered by user
   const { data: checks = [], isLoading: checksLoading } = useQuery({
-    queryKey: assigneeId
-      ? queryKeys.checks.byDateAndUser(date, assigneeId)
-      : queryKeys.checks.byDate(date),
+    queryKey: queryKeys.checks.byDateAndUser(date, effectiveUserId),
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('daily_checks')
         .select('*')
-        .eq('check_date', date);
-
-      if (assigneeId) {
-        query = query.eq('assigned_user_id', assigneeId);
-      }
-
-      const { data, error } = await query;
+        .eq('check_date', date)
+        .eq('assigned_user_id', effectiveUserId);
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
+    enabled: !!effectiveUserId,
   });
 
   // Fetch all tasks
@@ -260,7 +260,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                     isApplicable={true}
                     taskId={task.id}
                     date={date}
-                    assigneeId={assigneeId ?? undefined}
+                    assigneeId={effectiveUserId || undefined}
                   />
                 </div>
               </div>
@@ -384,7 +384,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                                 campaignId={campaign.id}
                                 taskId={task.id}
                                 date={date}
-                                assigneeId={assigneeId ?? undefined}
+                                assigneeId={effectiveUserId || undefined}
                               />
                             </div>
                           </td>

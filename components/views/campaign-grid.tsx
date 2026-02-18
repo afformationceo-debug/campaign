@@ -42,17 +42,21 @@ export function CampaignGrid({
   useRealtimeChecks(date);
   useRealtimeTaskConfig();
 
-  // Fetch daily checks for the selected date
+  // Fetch daily checks for the selected date, filtered by current user
+  // to avoid checkMap collision from multiple users' checks
+  const effectiveUserId = profile?.id ?? '';
   const { data: checks = [], isLoading: checksLoading } = useQuery({
-    queryKey: queryKeys.checks.byDate(date),
+    queryKey: queryKeys.checks.byDateAndUser(date, effectiveUserId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('daily_checks')
         .select('*')
-        .eq('check_date', date);
+        .eq('check_date', date)
+        .eq('assigned_user_id', effectiveUserId);
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
+    enabled: !!effectiveUserId,
   });
 
   // Fetch all tasks

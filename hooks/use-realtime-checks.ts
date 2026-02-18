@@ -22,26 +22,42 @@ export function useRealtimeChecks(date: string) {
           filter: `check_date=eq.${date}`,
         },
         (payload) => {
-          const key = queryKeys.checks.byDate(date);
+          const record = (payload.new ?? payload.old) as DailyCheck;
+          const byDateKey = queryKeys.checks.byDate(date);
+
+          // Also update the user-specific query cache
+          const userId = record?.assigned_user_id;
+          const byUserKey = userId
+            ? queryKeys.checks.byDateAndUser(date, userId)
+            : null;
+
+          const keysToUpdate = byUserKey ? [byDateKey, byUserKey] : [byDateKey];
+
           switch (payload.eventType) {
             case 'INSERT':
-              queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
-                [...(old || []), payload.new as DailyCheck]
-              );
+              keysToUpdate.forEach((key) => {
+                queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
+                  [...(old || []), payload.new as DailyCheck]
+                );
+              });
               break;
             case 'UPDATE':
-              queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
-                (old || []).map((item) =>
-                  item.id === (payload.new as DailyCheck).id
-                    ? (payload.new as DailyCheck)
-                    : item
-                )
-              );
+              keysToUpdate.forEach((key) => {
+                queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
+                  (old || []).map((item) =>
+                    item.id === (payload.new as DailyCheck).id
+                      ? (payload.new as DailyCheck)
+                      : item
+                  )
+                );
+              });
               break;
             case 'DELETE':
-              queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
-                (old || []).filter((item) => item.id !== (payload.old as DailyCheck).id)
-              );
+              keysToUpdate.forEach((key) => {
+                queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
+                  (old || []).filter((item) => item.id !== (payload.old as DailyCheck).id)
+                );
+              });
               break;
           }
         }

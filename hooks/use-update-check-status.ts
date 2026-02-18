@@ -69,8 +69,21 @@ export function useUpdateCheckStatus() {
         });
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['checks'] });
+    onSettled: (data) => {
+      // Targeted invalidation: only refetch the exact queries affected
+      // Avoids cascade of ALL check queries → ERR_INSUFFICIENT_RESOURCES
+      if (data) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.checks.byDate(data.check_date),
+          exact: true,
+        });
+        if (data.assigned_user_id) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.checks.byDateAndUser(data.check_date, data.assigned_user_id),
+            exact: true,
+          });
+        }
+      }
     },
   });
 }
@@ -96,11 +109,29 @@ export function useCreateCheck() {
       return data as DailyCheck;
     },
     onSuccess: (data) => {
+      // Update the byDate cache
       const key = queryKeys.checks.byDate(data.check_date);
       queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
         [...(old || []), data]
       );
-      queryClient.invalidateQueries({ queryKey: ['checks'] });
+      // Also update the byDateAndUser cache if applicable
+      if (data.assigned_user_id) {
+        const userKey = queryKeys.checks.byDateAndUser(data.check_date, data.assigned_user_id);
+        queryClient.setQueryData(userKey, (old: DailyCheck[] | undefined) =>
+          [...(old || []), data]
+        );
+      }
+      // Targeted invalidation instead of broad ['checks']
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.checks.byDate(data.check_date),
+        exact: true,
+      });
+      if (data.assigned_user_id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.checks.byDateAndUser(data.check_date, data.assigned_user_id),
+          exact: true,
+        });
+      }
       logActivity({
         userId: data.assigned_user_id,
         actionType: 'insert',
