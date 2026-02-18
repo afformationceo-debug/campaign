@@ -28,15 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -782,12 +773,12 @@ export default function ConfigsPage() {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="space-y-6"
+      className="space-y-3"
     >
-      <motion.div variants={fadeUpItem} className="flex items-start justify-between flex-wrap gap-4">
+      <motion.div variants={fadeUpItem} className="flex items-start justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold tracking-tight">캠페인 세팅</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-0.5">
             캠페인별 설정 항목을 관리합니다.
           </p>
         </div>
@@ -835,7 +826,7 @@ export default function ConfigsPage() {
         </motion.div>
       )}
 
-      <Tabs defaultValue="individual" className="space-y-4">
+      <Tabs defaultValue="individual" className="space-y-2">
         <TabsList>
           <TabsTrigger value="individual" className="gap-1.5">
             <List className="h-3.5 w-3.5" />
@@ -851,7 +842,7 @@ export default function ConfigsPage() {
           <ConfigMatrix />
         </TabsContent>
 
-        <TabsContent value="individual" className="space-y-6">
+        <TabsContent value="individual" className="space-y-3">
 
       {/* Campaign selector + action buttons */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -1012,11 +1003,11 @@ export default function ConfigsPage() {
 
       {/* Config entries */}
       {!selectedCampaignId ? (
-        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border rounded-lg gap-3">
-          <Settings className="h-10 w-10 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border rounded-lg gap-2">
+          <Settings className="h-8 w-8 text-muted-foreground/50" />
           <div className="text-center">
-            <p className="font-medium">캠페인을 선택하세요</p>
-            <p className="text-sm">캠페인을 선택하면 설정 항목이 표시됩니다.</p>
+            <p className="font-medium text-sm">캠페인을 선택하세요</p>
+            <p className="text-xs">캠페인을 선택하면 설정 항목이 표시됩니다.</p>
           </div>
         </div>
       ) : isLoading ? (
@@ -1027,11 +1018,11 @@ export default function ConfigsPage() {
           </div>
         </div>
       ) : configs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 border rounded-lg gap-4">
-          <FileText className="h-12 w-12 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center h-40 border rounded-lg gap-2">
+          <FileText className="h-8 w-8 text-muted-foreground/50" />
           <div className="text-center">
-            <p className="font-medium text-muted-foreground">설정 항목이 없습니다.</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="font-medium text-sm text-muted-foreground">설정 항목이 없습니다.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
               기본 템플릿을 생성하여 빠르게 시작하거나, 개별 설정을 추가하세요.
             </p>
           </div>
@@ -1047,120 +1038,118 @@ export default function ConfigsPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {groupedConfigs.map(([configType, items]) => (
-            <Card key={configType}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{configType}</CardTitle>
-                <CardDescription>{items.length}개 항목</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">항목</TableHead>
-                      <TableHead>값</TableHead>
-                      <TableHead className="w-[100px] text-center">상태</TableHead>
-                      <TableHead className="w-[80px]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((config) => (
-                      <TableRow key={config.id}>
-                        <TableCell className="font-medium">
-                          {config.config_key}
-                        </TableCell>
-                        <TableCell>
-                          {editingConfigId === config.id ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                className="h-8"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') saveEdit(config.id);
-                                  if (e.key === 'Escape') cancelEditing();
-                                }}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                onClick={() => saveEdit(config.id)}
-                                disabled={updateValueMutation.isPending}
-                              >
-                                <Save className="h-3 w-3 text-emerald-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                onClick={cancelEditing}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span
-                              className={cn(
-                                'text-sm',
-                                !config.config_value && 'text-muted-foreground italic'
-                              )}
-                            >
-                              {config.config_value || '(비어있음)'}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              'cursor-pointer transition-colors',
-                              config.status === '완료'
-                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
-                            )}
-                            onClick={() =>
-                              toggleStatusMutation.mutate({
-                                id: config.id,
-                                status: config.status === '완료' ? '미완료' : '완료',
-                              })
-                            }
-                          >
-                            {config.status === '완료' ? (
-                              <Check className="h-3 w-3 mr-1" />
-                            ) : (
-                              <X className="h-3 w-3 mr-1" />
-                            )}
-                            {config.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {editingConfigId !== config.id && (
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                onClick={() => startEditing(config)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            )}
+            <div key={configType} className="rounded-xl border bg-card shadow-sm overflow-hidden">
+              <div className="px-3 py-1.5 border-b bg-muted/30 flex items-center gap-2">
+                <span className="text-xs font-semibold">{configType}</span>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{items.length}개</Badge>
+              </div>
+              <table className="w-full table-fixed text-left">
+                <thead>
+                  <tr className="border-b bg-muted/10">
+                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[25%]">항목</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground">값</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[80px] text-center">상태</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[60px]" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((config) => (
+                    <tr key={config.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                      <td className="px-3 py-1 text-[11px] font-medium truncate">
+                        {config.config_key}
+                      </td>
+                      <td className="px-3 py-1">
+                        {editingConfigId === config.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-6 text-[11px]"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(config.id);
+                                if (e.key === 'Escape') cancelEditing();
+                              }}
+                            />
                             <Button
                               variant="ghost"
                               size="icon-xs"
-                              onClick={() => handleDeleteConfig(config.id)}
-                              disabled={deleteConfigMutation.isPending}
+                              onClick={() => saveEdit(config.id)}
+                              disabled={updateValueMutation.isPending}
                             >
-                              <Trash2 className="h-3 w-3 text-red-500" />
+                              <Save className="h-3 w-3 text-emerald-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={cancelEditing}
+                            >
+                              <X className="h-3 w-3" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                        ) : (
+                          <span
+                            className={cn(
+                              'text-[11px] truncate block',
+                              !config.config_value && 'text-muted-foreground/50 italic'
+                            )}
+                          >
+                            {config.config_value || '(비어있음)'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-1 text-center">
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'cursor-pointer transition-colors text-[9px] px-1.5 py-0',
+                            config.status === '완료'
+                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300'
+                              : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
+                          )}
+                          onClick={() =>
+                            toggleStatusMutation.mutate({
+                              id: config.id,
+                              status: config.status === '완료' ? '미완료' : '완료',
+                            })
+                          }
+                        >
+                          {config.status === '완료' ? (
+                            <Check className="h-2.5 w-2.5 mr-0.5" />
+                          ) : (
+                            <X className="h-2.5 w-2.5 mr-0.5" />
+                          )}
+                          {config.status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-1">
+                        <div className="flex items-center gap-0.5">
+                          {editingConfigId !== config.id && (
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => startEditing(config)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => handleDeleteConfig(config.id)}
+                            disabled={deleteConfigMutation.isPending}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ))}
         </div>
       )}
