@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -161,45 +160,63 @@ function InteractiveStatusCell({
 function NoteEditor({
   check,
   taskName,
+  campaignId,
+  taskId,
+  date,
+  assigneeId,
 }: {
   check: DailyCheck | null;
   taskName: string;
+  campaignId: string;
+  taskId: string;
+  date: string;
+  assigneeId: string;
 }) {
   const { mutate: updateStatus } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
   const [open, setOpen] = useState(false);
   const [noteValue, setNoteValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open && check) {
-      setNoteValue(check.note ?? '');
+    if (open) {
+      setNoteValue(check?.note ?? '');
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open, check]);
 
   const handleSave = () => {
-    if (!check) return;
-    updateStatus({ id: check.id, status: check.status, note: noteValue });
+    if (check) {
+      updateStatus({ id: check.id, status: check.status, note: noteValue });
+    } else if (noteValue.trim()) {
+      // Create a new check with the note
+      createCheck({
+        campaign_id: campaignId,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: '진행중',
+      });
+    }
     setOpen(false);
   };
-
-  if (!check) return null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant={check?.note ? 'default' : 'outline'}
+          size="xs"
           className={cn(
-            'flex items-center justify-center w-6 h-6 rounded-md transition-all',
-            check.note
-              ? 'text-primary bg-primary/10 hover:bg-primary/20'
-              : 'text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/60'
+            'h-6 px-2 text-[10px] rounded-md gap-1',
+            check?.note
+              ? 'bg-primary/90 hover:bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           )}
-          aria-label="메모"
         >
-          <MessageSquare className="size-3" />
-        </button>
+          <FileText className="size-3" />
+          {check?.note ? '결과보기' : '결과값넣기'}
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72" side="left" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="space-y-3">
@@ -363,7 +380,7 @@ export function CampaignDetailPanel({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-lg md:max-w-xl"
+        className="w-full sm:max-w-lg md:max-w-xl overflow-hidden"
       >
         <SheetHeader className="pb-2">
           <SheetTitle className="text-base">
@@ -409,7 +426,7 @@ export function CampaignDetailPanel({
 
         <Separator />
 
-        <ScrollArea className="flex-1 -mx-4 px-4">
+        <div className="flex-1 overflow-y-auto -mx-4 px-4 min-h-0">
           <div className="space-y-4 pb-6">
             {taskGroups.map((group) => {
               const catColors = CATEGORY_COLORS[group.category];
@@ -518,9 +535,16 @@ export function CampaignDetailPanel({
                             )}
                           </div>
 
-                          {/* Note editor button */}
-                          <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <NoteEditor check={check ?? null} taskName={task.task_name} />
+                          {/* Note/Result editor button - always visible */}
+                          <div className="shrink-0">
+                            <NoteEditor
+                              check={check ?? null}
+                              taskName={task.task_name}
+                              campaignId={campaignId!}
+                              taskId={task.id}
+                              date={date}
+                              assigneeId={currentUserId}
+                            />
                           </div>
                         </div>
                       );
@@ -530,7 +554,7 @@ export function CampaignDetailPanel({
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );
