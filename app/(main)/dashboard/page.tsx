@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart,
@@ -43,6 +43,8 @@ import {
   AlertCircle,
   Layers,
   ChevronRight,
+  DollarSign,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -227,12 +229,56 @@ export default function DashboardPage() {
     },
   });
 
+  // NEW: Monthly checks for periodic tasks overview
+  const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+  const yearMonth = format(new Date(), 'yyyy-MM');
+
+  const { data: monthlyChecks = [] } = useQuery({
+    queryKey: queryKeys.checks.byMonth(yearMonth),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_checks')
+        .select('*')
+        .gte('check_date', monthStart)
+        .lte('check_date', monthEnd);
+      if (error) throw error;
+      return data as DailyCheck[];
+    },
+  });
+
   // ─── Core KPI Metrics ───────────────────────────────
   const activeCampaigns = campaigns.filter((c) => c.status === 'active');
   const applicableChecks = checks.filter((c) => c.status !== '해당없음');
   const completedChecks = applicableChecks.filter((c) => c.status === '완료');
   const pendingChecks = applicableChecks.filter((c) => c.status === '미완료');
   const completionRate = applicableChecks.length > 0 ? Math.round((completedChecks.length / applicableChecks.length) * 100) : 0;
+
+  // ─── Monthly Fixed Cost ───────────────────────────────
+  const totalMonthlyFixedCost = useMemo(() => {
+    return activeCampaigns.reduce((sum, c) => sum + (c.monthly_fixed_cost ?? 0), 0);
+  }, [activeCampaigns]);
+
+  // ─── Global Tasks Stats ───────────────────────────────
+  const globalTaskStats = useMemo(() => {
+    const globalTasks = tasks.filter((t) => t.scope === 'global');
+    const globalTaskIds = new Set(globalTasks.map((t) => t.id));
+    const globalChecks = checks.filter((c) => globalTaskIds.has(c.task_id) && c.status !== '해당없음');
+    const completed = globalChecks.filter((c) => c.status === '완료').length;
+    const total = globalChecks.length;
+    return { completed, total, rate: total > 0 ? Math.round((completed / total) * 100) : 0, taskCount: globalTasks.length };
+  }, [tasks, checks]);
+
+  // ─── Periodic Tasks Stats ─────────────────────────────
+  const periodicTaskStats = useMemo(() => {
+    const periodicTasks = tasks.filter((t) => t.scope !== 'global' && (t.frequency === 'monthly' || t.frequency === 'once' || t.frequency === 'as_needed'));
+    const periodicTaskIds = new Set(periodicTasks.map((t) => t.id));
+    const periodicMonthlyChecks = monthlyChecks.filter((c) => periodicTaskIds.has(c.task_id) && c.status !== '해당없음');
+    const completed = periodicMonthlyChecks.filter((c) => c.status === '완료').length;
+    const total = periodicMonthlyChecks.length;
+    const withResultValue = periodicMonthlyChecks.filter((c) => c.result_value).length;
+    return { completed, total, rate: total > 0 ? Math.round((completed / total) * 100) : 0, taskCount: periodicTasks.length, withResultValue };
+  }, [tasks, monthlyChecks]);
 
   const yesterdayRate = useMemo(() => {
     const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -511,7 +557,7 @@ export default function DashboardPage() {
         {activeTab === 'overview' && (
           <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-5">
             {/* KPI Cards */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
               {/* Active campaigns */}
               <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/20 shadow-sm">
                 <CardContent className="p-4">
@@ -597,6 +643,98 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-2xl font-bold tracking-tight text-cyan-700 dark:text-cyan-300">{avgConfigRate}%</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{configIncomplete}개 미완료</p>
+                </CardContent>
+              </Card>
+
+              {/* Monthly Fixed Cost */}
+              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-7 w-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <span className="text-[11px] font-medium text-muted-foreground">월 고정비용</span>
+                  </div>
+                  <div className="text-xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
+                    {totalMonthlyFixedCost > 0 ? `${(totalMonthlyFixedCost / 10000).toFixed(0)}만` : '-'}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">활성 {activeCampaigns.length}개 캠페인 합산</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Global + Periodic Tasks Overview */}
+            <div className="grid gap-3 lg:grid-cols-2">
+              {/* Global Tasks */}
+              <Card className="shadow-sm border-0 bg-gradient-to-r from-background to-muted/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 rounded-md bg-indigo-500/10 flex items-center justify-center">
+                      <Globe className="h-3.5 w-3.5 text-indigo-500" />
+                    </div>
+                    <span className="text-sm font-semibold">전역 업무</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+                      {globalTaskStats.taskCount}개 업무
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground">오늘 완료율</span>
+                        <span className={cn('text-sm font-bold',
+                          globalTaskStats.rate >= 80 ? 'text-emerald-600' : globalTaskStats.rate >= 50 ? 'text-amber-600' : 'text-red-500'
+                        )}>{globalTaskStats.rate}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all',
+                            globalTaskStats.rate >= 80 ? 'bg-emerald-500' : globalTaskStats.rate >= 50 ? 'bg-amber-400' : 'bg-red-400'
+                          )}
+                          style={{ width: `${globalTaskStats.rate}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">{globalTaskStats.completed}/{globalTaskStats.total} 완료</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Periodic Tasks */}
+              <Card className="shadow-sm border-0 bg-gradient-to-r from-background to-muted/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 rounded-md bg-purple-500/10 flex items-center justify-center">
+                      <CalendarDays className="h-3.5 w-3.5 text-purple-500" />
+                    </div>
+                    <span className="text-sm font-semibold">월간/주기별 업무</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+                      {periodicTaskStats.taskCount}개 업무
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground">{format(new Date(), 'MM월')} 완료율</span>
+                        <span className={cn('text-sm font-bold',
+                          periodicTaskStats.rate >= 80 ? 'text-emerald-600' : periodicTaskStats.rate >= 50 ? 'text-amber-600' : 'text-red-500'
+                        )}>{periodicTaskStats.rate}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all',
+                            periodicTaskStats.rate >= 80 ? 'bg-emerald-500' : periodicTaskStats.rate >= 50 ? 'bg-amber-400' : 'bg-red-400'
+                          )}
+                          style={{ width: `${periodicTaskStats.rate}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <p className="text-[10px] text-muted-foreground">{periodicTaskStats.completed}/{periodicTaskStats.total} 완료</p>
+                        {periodicTaskStats.withResultValue > 0 && (
+                          <p className="text-[10px] text-indigo-600">결과값 {periodicTaskStats.withResultValue}건</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
