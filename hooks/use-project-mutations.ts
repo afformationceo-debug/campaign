@@ -232,6 +232,74 @@ export function useUpdateProjectTask() {
   });
 }
 
+// ─── Batch Reorder ──────────────────────────────────────
+
+export function useReorderProjects() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (items: { id: string; sort_order: number }[]) => {
+      const promises = items.map(({ id, sort_order }) =>
+        supabase.from('projects').update({ sort_order }).eq('id', id)
+      );
+      await Promise.all(promises);
+    },
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects.all);
+      const orderMap = new Map(items.map((i) => [i.id, i.sort_order]));
+      queryClient.setQueryData(queryKeys.projects.all, (old: Project[] | undefined) => {
+        if (!old) return old;
+        return old
+          .map((p) => (orderMap.has(p.id) ? { ...p, sort_order: orderMap.get(p.id)! } : p))
+          .sort((a, b) => a.sort_order - b.sort_order);
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.projects.all, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+  });
+}
+
+export function useReorderTasks() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, items }: { projectId: string; items: { id: string; sort_order: number }[] }) => {
+      const promises = items.map(({ id, sort_order }) =>
+        supabase.from('project_tasks').update({ sort_order }).eq('id', id)
+      );
+      await Promise.all(promises);
+      return projectId;
+    },
+    onMutate: async ({ items }) => {
+      const allKey = ['projectTasks', 'all'] as const;
+      await queryClient.cancelQueries({ queryKey: allKey });
+      const previousAll = queryClient.getQueryData<ProjectTask[]>(allKey);
+      const orderMap = new Map(items.map((i) => [i.id, i.sort_order]));
+      queryClient.setQueryData(allKey, (old: ProjectTask[] | undefined) => {
+        if (!old) return old;
+        return old
+          .map((t) => (orderMap.has(t.id) ? { ...t, sort_order: orderMap.get(t.id)! } : t))
+          .sort((a, b) => a.sort_order - b.sort_order);
+      });
+      return { previousAll };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousAll) queryClient.setQueryData(['projectTasks', 'all'], context.previousAll);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTasks'] });
+    },
+  });
+}
+
 export function useDeleteProjectTask() {
   const queryClient = useQueryClient();
   const supabase = createClient();

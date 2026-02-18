@@ -25,6 +25,7 @@ import {
   Users,
   CalendarDays,
   Check,
+  GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -37,6 +38,8 @@ import {
   useCreateProjectTask,
   useUpdateProjectTask,
   useDeleteProjectTask,
+  useReorderProjects,
+  useReorderTasks,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -400,6 +403,12 @@ export default function RoadmapPage() {
   const { mutate: updateTask } = useUpdateProjectTask();
   const { mutate: createTask } = useCreateProjectTask();
   const { mutate: deleteTask } = useDeleteProjectTask();
+  const { mutate: reorderProjects } = useReorderProjects();
+  const { mutate: reorderTasks } = useReorderTasks();
+
+  // ─── Drag and drop state ────────────────────────────────
+  const [dragItem, setDragItem] = useState<{ type: 'project' | 'task'; id: string; projectId?: string } | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<{ type: 'project' | 'task'; id: string; projectId?: string } | null>(null);
 
   // Fetch projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -586,6 +595,79 @@ export default function RoadmapPage() {
     clearSelection();
   };
 
+  // ─── Drag handlers ──────────────────────────────────────
+  const handleProjectDragStart = useCallback((projectId: string) => {
+    setDragItem({ type: 'project', id: projectId });
+  }, []);
+
+  const handleProjectDragOver = useCallback((e: React.DragEvent, projectId: string) => {
+    e.preventDefault();
+    if (dragItem?.type === 'project' && dragItem.id !== projectId) {
+      setDragOverItem({ type: 'project', id: projectId });
+    }
+  }, [dragItem]);
+
+  const handleProjectDrop = useCallback(() => {
+    if (!dragItem || !dragOverItem || dragItem.type !== 'project' || dragOverItem.type !== 'project') {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+    const fromIdx = filteredProjects.findIndex((p) => p.id === dragItem.id);
+    const toIdx = filteredProjects.findIndex((p) => p.id === dragOverItem.id);
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+    const reordered = [...filteredProjects];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    const updates = reordered.map((p, idx) => ({ id: p.id, sort_order: idx }));
+    reorderProjects(updates);
+    setDragItem(null);
+    setDragOverItem(null);
+  }, [dragItem, dragOverItem, filteredProjects, reorderProjects]);
+
+  const handleTaskDragStart = useCallback((taskId: string, projectId: string) => {
+    setDragItem({ type: 'task', id: taskId, projectId });
+  }, []);
+
+  const handleTaskDragOver = useCallback((e: React.DragEvent, taskId: string, projectId: string) => {
+    e.preventDefault();
+    if (dragItem?.type === 'task' && dragItem.projectId === projectId && dragItem.id !== taskId) {
+      setDragOverItem({ type: 'task', id: taskId, projectId });
+    }
+  }, [dragItem]);
+
+  const handleTaskDrop = useCallback((projectId: string) => {
+    if (!dragItem || !dragOverItem || dragItem.type !== 'task' || dragOverItem.type !== 'task' || dragItem.projectId !== projectId) {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+    const tasks = tasksByProject.get(projectId) || [];
+    const fromIdx = tasks.findIndex((t) => t.id === dragItem.id);
+    const toIdx = tasks.findIndex((t) => t.id === dragOverItem.id);
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+    const reordered = [...tasks];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    const updates = reordered.map((t, idx) => ({ id: t.id, sort_order: idx }));
+    reorderTasks({ projectId, items: updates });
+    setDragItem(null);
+    setDragOverItem(null);
+  }, [dragItem, dragOverItem, tasksByProject, reorderTasks]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragItem(null);
+    setDragOverItem(null);
+  }, []);
+
   const isLoading = projectsLoading || tasksLoading;
 
   return (
@@ -710,6 +792,7 @@ export default function RoadmapPage() {
           <table className="w-full text-[12px]">
             <thead>
               <tr className="border-b bg-muted/40">
+                <th className="w-[20px] px-1 py-1.5"></th>
                 <th className="w-[36px] px-2 py-1.5">
                   <Checkbox
                     checked={isAllSelected}
@@ -743,12 +826,23 @@ export default function RoadmapPage() {
                   <React.Fragment key={project.id}>
                     {/* ── Project Row ── */}
                     <tr
+                      draggable
+                      onDragStart={() => handleProjectDragStart(project.id)}
+                      onDragOver={(e) => handleProjectDragOver(e, project.id)}
+                      onDrop={handleProjectDrop}
+                      onDragEnd={handleDragEnd}
                       className={cn(
                         'border-b hover:bg-accent/30 transition-colors group/row',
                         isExpanded && 'bg-accent/10',
                         isSelected && 'bg-primary/5',
+                        dragItem?.type === 'project' && dragItem.id === project.id && 'opacity-40',
+                        dragOverItem?.type === 'project' && dragOverItem.id === project.id && 'border-t-2 border-t-primary',
                       )}
                     >
+                      {/* Drag handle */}
+                      <td className="px-1 py-1 cursor-grab active:cursor-grabbing">
+                        <GripVertical className="size-3.5 text-muted-foreground/30 group-hover/row:text-muted-foreground/60 transition-colors" />
+                      </td>
                       {/* Checkbox */}
                       <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -877,12 +971,23 @@ export default function RoadmapPage() {
                       return (
                         <tr
                           key={task.id}
+                          draggable
+                          onDragStart={() => handleTaskDragStart(task.id, project.id)}
+                          onDragOver={(e) => handleTaskDragOver(e, task.id, project.id)}
+                          onDrop={() => handleTaskDrop(project.id)}
+                          onDragEnd={handleDragEnd}
                           className={cn(
                             'border-b border-border/30 hover:bg-accent/20 transition-colors group/task',
                             'bg-muted/5',
                             isTaskSelected && 'bg-primary/5',
+                            dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
+                            dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                           )}
                         >
+                          {/* Drag handle */}
+                          <td className="px-1 py-0.5 cursor-grab active:cursor-grabbing">
+                            <GripVertical className="size-3 text-muted-foreground/20 group-hover/task:text-muted-foreground/50 transition-colors" />
+                          </td>
                           {/* Checkbox */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
@@ -973,6 +1078,7 @@ export default function RoadmapPage() {
                     {/* Empty state for no tasks */}
                     {isExpanded && tasks.length === 0 && (
                       <tr className="border-b border-border/30 bg-muted/5">
+                        <td className="px-1 py-2"></td>
                         <td className="px-2 py-2"></td>
                         <td className="px-1 py-2"></td>
                         <td className="px-2 py-2 pl-8" colSpan={8}>
@@ -983,6 +1089,7 @@ export default function RoadmapPage() {
                     {/* Add sub-task row */}
                     {isExpanded && (
                       <tr className="border-b border-border/30 bg-muted/5">
+                        <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5 pl-8" colSpan={8}>
@@ -1011,6 +1118,7 @@ export default function RoadmapPage() {
               })}
               {/* ── Inline Add Project Row ── */}
               <tr className="border-b border-border/30 hover:bg-accent/10">
+                <td className="px-1 py-1.5"></td>
                 <td className="px-2 py-1.5"></td>
                 <td className="px-1 py-1.5">
                   <Plus className="size-3.5 text-muted-foreground/30" />
