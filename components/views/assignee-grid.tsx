@@ -340,6 +340,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     <div className="space-y-6">
     {/* Global Tasks Section (table layout) */}
     {globalTasks.length > 0 && (
+      <TooltipProvider>
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="px-3 py-1.5 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
           <div className="w-1.5 h-4 rounded-full bg-violet-400" />
@@ -368,8 +369,16 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               const catColor = CATEGORY_COLORS[task.category];
               return (
                 <tr key={task.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors h-7">
-                  <td className="px-2 py-0 truncate">
-                    <span className="text-[11px] font-medium truncate block">{task.task_name}</span>
+                  <td className="px-2 py-0 max-w-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-[11px] font-medium truncate block cursor-default">{task.task_name}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[300px]">
+                        <p className="text-xs font-medium">{task.task_name}</p>
+                        {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
+                      </TooltipContent>
+                    </Tooltip>
                   </td>
                   <td className="px-2 py-0">
                     <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
@@ -407,6 +416,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
           </tbody>
         </table>
       </div>
+      </TooltipProvider>
     )}
 
     {/* Campaign-scope Tasks Grid */}
@@ -531,10 +541,20 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                           'text-[11px] font-medium text-foreground',
                           'min-w-[180px] max-w-[220px]'
                         )}
-                        title={`${task.task_name}${task.default_assignees?.length ? `\n담당: ${task.default_assignees.join(', ')}` : ''}`}
                       >
                         <div className="flex items-center gap-1.5">
-                          <span className="truncate">{task.task_name}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate cursor-default">{task.task_name}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[300px]">
+                              <p className="text-xs font-medium">{task.task_name}</p>
+                              {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
+                              {task.default_assignees?.length ? (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">담당: {task.default_assignees.join(', ')}</p>
+                              ) : null}
+                            </TooltipContent>
+                          </Tooltip>
                           {summary && summary.completed < summary.total && (
                             <Tooltip>
                               <TooltipTrigger asChild>
