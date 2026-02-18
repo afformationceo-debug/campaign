@@ -165,7 +165,7 @@ export function useCreateProjectTask() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projectTasks.byProject(data.project_id),
+        queryKey: ['projectTasks'],
       });
       logActivity({
         userId: profile?.id,
@@ -196,21 +196,30 @@ export function useUpdateProjectTask() {
     },
     onMutate: async ({ id, project_id, ...updates }) => {
       const key = queryKeys.projectTasks.byProject(project_id);
+      const allKey = ['projectTasks', 'all'] as const;
       await queryClient.cancelQueries({ queryKey: key });
+      await queryClient.cancelQueries({ queryKey: allKey });
       const previous = queryClient.getQueryData<ProjectTask[]>(key);
+      const previousAll = queryClient.getQueryData<ProjectTask[]>(allKey);
       queryClient.setQueryData(key, (old: ProjectTask[] | undefined) =>
         (old || []).map((t) => (t.id === id ? { ...t, ...updates } : t))
       );
-      return { previous, key };
+      queryClient.setQueryData(allKey, (old: ProjectTask[] | undefined) =>
+        (old || []).map((t) => (t.id === id ? { ...t, ...updates } : t))
+      );
+      return { previous, previousAll, key };
     },
     onError: (_err, _vars, context) => {
       if (context?.previous && context.key) {
         queryClient.setQueryData(context.key, context.previous);
       }
+      if (context?.previousAll) {
+        queryClient.setQueryData(['projectTasks', 'all'], context.previousAll);
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projectTasks.byProject(data.project_id),
+        queryKey: ['projectTasks'],
       });
       logActivity({
         userId: profile?.id,
@@ -236,7 +245,7 @@ export function useDeleteProjectTask() {
     },
     onSuccess: ({ id, project_id }) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projectTasks.byProject(project_id),
+        queryKey: ['projectTasks'],
       });
       logActivity({
         userId: profile?.id,
