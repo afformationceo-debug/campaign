@@ -10,14 +10,11 @@ import {
   MessageSquareWarning,
   AlertCircle,
   CheckCircle2,
-  Clock,
   Filter,
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
   Pencil,
   Trash2,
-  X,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -42,6 +39,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -50,6 +60,7 @@ import {
 import type {
   Campaign,
   CampaignQa,
+  User,
   QaType,
   QaStatus,
   QaPriority,
@@ -152,7 +163,7 @@ export default function CampaignQaPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQa, setEditingQa] = useState<CampaignQa | null>(null);
   const [formData, setFormData] = useState<QaFormData>(defaultFormData);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
 
   // ── Data Fetching ──
 
@@ -165,6 +176,19 @@ export default function CampaignQaPage() {
         .order('campaign_name');
       if (error) throw error;
       return data as Campaign[];
+    },
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: queryKeys.users.active,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as User[];
     },
   });
 
@@ -381,14 +405,6 @@ export default function CampaignQaPage() {
     }
   }, [deleteMutation]);
 
-  const toggleRow = useCallback((id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
-
   const handleStatusCycle = useCallback((qa: CampaignQa) => {
     const cycle: QaStatus[] = ['미해결', '진행중', '해결완료'];
     const idx = cycle.indexOf(qa.status);
@@ -566,15 +582,15 @@ export default function CampaignQaPage() {
                   <table className="w-full table-fixed text-left">
                     <thead>
                       <tr className="border-b bg-muted/10">
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[4%]"></th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[8%]">유형</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[8%]">우선순위</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[32%]">내용</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[8%]">작성자</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[9%]">기한</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[10%]">상태</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[8%]">등록일</th>
-                        <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[13%] text-right">작업</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">유형</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[22%]">내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[18%]">해결 상세내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">작성자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">기한</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">상태</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">등록일</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[9%] text-right">작업</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -583,7 +599,6 @@ export default function CampaignQaPage() {
                         const statusCfg = QA_STATUS_CONFIG[qa.status];
                         const priorityCfg = QA_PRIORITY_CONFIG[qa.priority];
                         const TypeIcon = typeCfg.icon;
-                        const isExpanded = expandedRows.has(qa.id);
 
                         return (
                           <tr
@@ -593,29 +608,21 @@ export default function CampaignQaPage() {
                               qa.status === '해결완료' && 'opacity-60'
                             )}
                           >
-                            {/* Expand */}
-                            <td className="px-3 py-1.5">
-                              {qa.resolution && (
-                                <button type="button" onClick={() => toggleRow(qa.id)} className="text-muted-foreground hover:text-foreground">
-                                  {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                                </button>
-                              )}
-                            </td>
                             {/* Type */}
-                            <td className="px-3 py-1.5">
-                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5', typeCfg.color, typeCfg.bg)}>
+                            <td className="px-2 py-1.5">
+                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap', typeCfg.color, typeCfg.bg)}>
                                 <TypeIcon className="size-2.5" />
                                 {qa.qa_type}
                               </Badge>
                             </td>
                             {/* Priority */}
-                            <td className="px-3 py-1.5">
-                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0', priorityCfg.color, priorityCfg.bg)}>
+                            <td className="px-2 py-1.5">
+                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap', priorityCfg.color, priorityCfg.bg)}>
                                 {qa.priority}
                               </Badge>
                             </td>
                             {/* Content */}
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-1.5 max-w-0">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <p className="text-[11px] text-foreground truncate cursor-default">{qa.content}</p>
@@ -624,30 +631,40 @@ export default function CampaignQaPage() {
                                   <p className="text-xs whitespace-pre-wrap">{qa.content}</p>
                                 </TooltipContent>
                               </Tooltip>
-                              {isExpanded && qa.resolution && (
-                                <div className="mt-1 p-2 rounded-md bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
-                                  <p className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300 mb-0.5">해결 내용:</p>
-                                  <p className="text-[11px] text-foreground/80 whitespace-pre-wrap">{qa.resolution}</p>
-                                </div>
+                            </td>
+                            {/* Resolution */}
+                            <td className="px-2 py-1.5 max-w-0">
+                              {qa.resolution ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate cursor-default">{qa.resolution}</p>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-[400px]">
+                                    <p className="text-[10px] font-medium text-emerald-600 mb-0.5">해결 내용</p>
+                                    <p className="text-xs whitespace-pre-wrap">{qa.resolution}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/50">-</span>
                               )}
                             </td>
                             {/* Created By */}
-                            <td className="px-3 py-1.5">
-                              <span className="text-[11px] text-muted-foreground truncate block">{qa.created_by || '-'}</span>
+                            <td className="px-2 py-1.5">
+                              <span className="text-[11px] text-muted-foreground truncate block whitespace-nowrap">{qa.created_by || '-'}</span>
                             </td>
                             {/* Due Date */}
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-1.5 whitespace-nowrap">
                               <DueDateBadge dueDate={qa.due_date} status={qa.status} />
                             </td>
                             {/* Status */}
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-1.5">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
                                     onClick={() => handleStatusCycle(qa)}
                                     className={cn(
-                                      'text-[10px] font-medium px-2 py-0.5 rounded-full border cursor-pointer transition-all hover:scale-105',
+                                      'text-[10px] font-medium px-2 py-0.5 rounded-full border cursor-pointer transition-all hover:scale-105 whitespace-nowrap',
                                       statusCfg.color,
                                       statusCfg.bg,
                                       statusCfg.border
@@ -662,14 +679,14 @@ export default function CampaignQaPage() {
                               </Tooltip>
                             </td>
                             {/* Created At */}
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-1.5 whitespace-nowrap">
                               <span className="text-[10px] text-muted-foreground tabular-nums">
                                 {format(parseISO(qa.created_at), 'MM/dd')}
                               </span>
                             </td>
                             {/* Actions */}
-                            <td className="px-3 py-1.5">
-                              <div className="flex items-center justify-end gap-1">
+                            <td className="px-2 py-1.5">
+                              <div className="flex items-center justify-end gap-0.5">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -717,24 +734,51 @@ export default function CampaignQaPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              {/* Campaign Select */}
+              {/* Campaign Select (Searchable) */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">캠페인 *</label>
-                <Select
-                  value={formData.campaign_id}
-                  onValueChange={(v) => setFormData((prev) => ({ ...prev, campaign_id: v }))}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="캠페인을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {campaigns.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.client_name} - {c.campaign_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={campaignSearchOpen} onOpenChange={setCampaignSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={campaignSearchOpen}
+                      className="w-full h-9 justify-between text-sm font-normal"
+                    >
+                      {formData.campaign_id
+                        ? (() => {
+                            const c = campaignMap.get(formData.campaign_id);
+                            return c ? `${c.client_name} - ${c.campaign_name}` : '캠페인을 선택하세요';
+                          })()
+                        : '캠페인을 선택하세요'}
+                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="캠페인 검색..." className="h-9 text-sm" />
+                      <CommandList>
+                        <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                        <CommandGroup>
+                          {campaigns.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={`${c.client_name} ${c.campaign_name}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({ ...prev, campaign_id: c.id }));
+                                setCampaignSearchOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check className={cn('mr-2 h-3.5 w-3.5', formData.campaign_id === c.id ? 'opacity-100' : 'opacity-0')} />
+                              {c.client_name} - {c.campaign_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Type + Priority Row */}
@@ -814,12 +858,21 @@ export default function CampaignQaPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">작성자</label>
-                  <Input
+                  <Select
                     value={formData.created_by}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, created_by: e.target.value }))}
-                    placeholder="이름"
-                    className="h-9 text-sm"
-                  />
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, created_by: v }))}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="담당자 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>
+                          {u.name}{u.position ? ` (${u.position})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
