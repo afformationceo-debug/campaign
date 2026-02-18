@@ -236,7 +236,7 @@ export function CampaignGrid({
                   className={cn(
                     'sticky top-0 z-20',
                     'bg-background border-b px-0.5 py-1',
-                    'text-center min-w-[36px] max-w-[40px]',
+                    'text-center min-w-[44px] max-w-[52px]',
                     taskIdx === 0 && 'border-l',
                     taskIdx === 0 && catColors.border
                   )}
@@ -247,15 +247,14 @@ export function CampaignGrid({
                   >
                     <span
                       className={cn(
-                        'inline-block w-1.5 h-1.5 rounded-full',
+                        'inline-block w-1.5 h-1.5 rounded-full flex-shrink-0',
                         catColors.text.replace('text-', 'bg-')
                       )}
                     />
                     <span
                       className={cn(
-                        'text-[9px] font-medium text-muted-foreground',
-                        'whitespace-nowrap',
-                        'max-h-[60px] overflow-hidden'
+                        'text-[10px] font-medium text-muted-foreground',
+                        'whitespace-nowrap leading-tight'
                       )}
                       style={{
                         writingMode: 'vertical-lr',
@@ -264,7 +263,7 @@ export function CampaignGrid({
                       {task.task_name}
                     </span>
                     {task.default_assignees && task.default_assignees.length > 0 && (
-                      <span className="text-[7px] text-muted-foreground/70 leading-tight text-center max-w-[36px] truncate">
+                      <span className="text-[8px] text-muted-foreground/70 leading-tight text-center max-w-[44px] truncate flex-shrink-0">
                         {task.default_assignees.map(n => n.charAt(0)).join('')}
                       </span>
                     )}

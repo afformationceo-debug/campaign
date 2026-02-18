@@ -292,13 +292,30 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                 key={campaign.id}
                 className={cn(
                   'sticky top-0 z-20',
-                  'bg-background border-b px-1 py-2',
-                  'text-center text-[10px] font-medium text-muted-foreground',
-                  'min-w-[40px] max-w-[60px]'
+                  'bg-background border-b px-0.5 py-1',
+                  'text-center min-w-[44px] max-w-[52px]'
                 )}
               >
-                <div className="truncate px-0.5" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
-                  {campaign.client_name}
+                <div
+                  className="flex flex-col items-center gap-0.5"
+                  title={`${campaign.client_name} - ${campaign.campaign_name}`}
+                >
+                  <span
+                    className={cn(
+                      'text-[10px] font-semibold text-foreground',
+                      'whitespace-nowrap leading-tight'
+                    )}
+                    style={{
+                      writingMode: 'vertical-lr',
+                    }}
+                  >
+                    {campaign.client_name}
+                  </span>
+                  {campaign.target_country && (
+                    <span className="text-[8px] text-muted-foreground/70 leading-tight flex-shrink-0">
+                      {campaign.target_country}
+                    </span>
+                  )}
                 </div>
               </th>
             ))}
