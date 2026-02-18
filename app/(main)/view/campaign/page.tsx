@@ -7,6 +7,7 @@ import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { FilterBar } from '@/components/views/filter-bar';
 import { CampaignGrid } from '@/components/views/campaign-grid';
 import { CampaignDetailPanel } from '@/components/views/campaign-detail-panel';
+import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
 
 const COUNTRIES = ['일본', '대만', '중화권', '영미'];
 
@@ -60,6 +61,11 @@ export default function CampaignViewPage() {
           statusFilter={statusFilter}
           onCampaignClick={setSelectedCampaignId}
         />
+      </motion.div>
+
+      {/* Periodic Tasks (monthly/once/as_needed) */}
+      <motion.div variants={fadeUpItem}>
+        <PeriodicTasksSection date={date} />
       </motion.div>
 
       {/* Detail Panel */}

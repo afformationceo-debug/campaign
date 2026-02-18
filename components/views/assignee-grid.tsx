@@ -112,8 +112,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
   }, [checks]);
 
   // Filter tasks by selected categories AND by assignee's default_assignees
+  // Also exclude monthly/once/as_needed tasks (they go to periodic section)
   const filteredTasks = useMemo(() => {
-    let filtered = tasks;
+    let filtered = tasks.filter((t) => t.frequency === 'daily' || t.frequency === 'weekly');
 
     // Filter by categories
     if (categories.length > 0) {

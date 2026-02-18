@@ -11,6 +11,7 @@ import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
+import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
 import type { User, TaskCategory } from '@/lib/types/database';
 
 export default function AssigneeViewPage() {
@@ -92,6 +93,11 @@ export default function AssigneeViewPage() {
           assigneeName={assigneeName}
           categories={selectedCategories}
         />
+      </motion.div>
+
+      {/* Periodic Tasks (monthly/once/as_needed) */}
+      <motion.div variants={fadeUpItem}>
+        <PeriodicTasksSection date={date} userId={assigneeId ?? undefined} />
       </motion.div>
     </motion.div>
   );

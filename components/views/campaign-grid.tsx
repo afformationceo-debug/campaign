@@ -141,9 +141,9 @@ export function CampaignGrid({
     return filtered;
   }, [allCampaigns, statusFilter, countryFilter, searchText]);
 
-  // Filter out global tasks (campaign grid only shows campaign-scope tasks)
+  // Filter out global tasks AND non-daily/weekly tasks (monthly/once/as_needed go to periodic section)
   const campaignTasks = useMemo(() => {
-    return tasks.filter((t) => t.scope !== 'global');
+    return tasks.filter((t) => t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly'));
   }, [tasks]);
 
   // Group tasks by category
