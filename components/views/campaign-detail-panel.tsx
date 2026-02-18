@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { CheckCircle2, Clock, Circle, Minus, User, FileText } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Minus, User, FileText, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
-import { STATUS_COLORS } from '@/lib/utils/status-colors';
-import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { STATUS_COLORS, getNextStatus } from '@/lib/utils/status-colors';
+import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-status';
+import { useAuth } from '@/hooks/use-auth';
 import {
   Sheet,
   SheetContent,
@@ -20,6 +21,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
+import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import type {
   Campaign,
   Task,
@@ -43,6 +57,175 @@ const STATUS_ICONS: Record<CheckStatus, React.ElementType> = {
   '해당없음': Minus,
 };
 
+const STATUS_LABELS: Record<CheckStatus, string> = {
+  '완료': '완료',
+  '진행중': '진행중',
+  '미완료': '미완료',
+  '해당없음': '해당없음',
+};
+
+// ─── Interactive Status Button ──────────────────────────
+function InteractiveStatusCell({
+  check,
+  isApplicable,
+  campaignId,
+  taskId,
+  date,
+  assigneeId,
+}: {
+  check: DailyCheck | null;
+  isApplicable: boolean;
+  campaignId: string;
+  taskId: string;
+  date: string;
+  assigneeId: string;
+}) {
+  const { mutate: updateStatus } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
+
+  const handleClick = useCallback(() => {
+    if (!isApplicable) return;
+    if (!check) {
+      createCheck({
+        campaign_id: campaignId,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: '진행중',
+      });
+      return;
+    }
+    const nextStatus = getNextStatus(check.status);
+    updateStatus({ id: check.id, status: nextStatus });
+  }, [check, isApplicable, updateStatus, createCheck, campaignId, taskId, date, assigneeId]);
+
+  if (!isApplicable) {
+    return (
+      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-muted/40 cursor-not-allowed">
+        <Minus className="size-3 text-muted-foreground/30" />
+      </div>
+    );
+  }
+
+  if (!check) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={cn(
+          'flex items-center justify-center w-7 h-7 rounded-md',
+          'border border-dashed border-muted-foreground/20',
+          'text-muted-foreground/30',
+          'hover:border-primary/40 hover:text-primary/60 hover:bg-primary/5',
+          'transition-all duration-200 cursor-pointer hover:scale-110'
+        )}
+        aria-label="클릭하여 체크 시작"
+      >
+        <Circle className="size-3" />
+      </button>
+    );
+  }
+
+  const status = check.status;
+  const colors = STATUS_COLORS[status];
+  const Icon = STATUS_ICONS[status];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={handleClick}
+          className={cn(
+            'flex items-center justify-center w-7 h-7 rounded-md',
+            'transition-all duration-200 cursor-pointer',
+            'hover:scale-110 hover:shadow-md active:scale-95',
+            colors.bg, colors.darkBg, colors.text,
+            check.note && 'ring-1 ring-offset-1',
+            check.note && colors.ring
+          )}
+          aria-label={`상태: ${STATUS_LABELS[status]}`}
+        >
+          <Icon className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={4}>
+        <p className="font-medium">{STATUS_LABELS[status]}</p>
+        <p className="text-[10px] opacity-70">클릭하여 상태 변경</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// ─── Note Editor Popover ────────────────────────────────
+function NoteEditor({
+  check,
+  taskName,
+}: {
+  check: DailyCheck | null;
+  taskName: string;
+}) {
+  const { mutate: updateStatus } = useUpdateCheckStatus();
+  const [open, setOpen] = useState(false);
+  const [noteValue, setNoteValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && check) {
+      setNoteValue(check.note ?? '');
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open, check]);
+
+  const handleSave = () => {
+    if (!check) return;
+    updateStatus({ id: check.id, status: check.status, note: noteValue });
+    setOpen(false);
+  };
+
+  if (!check) return null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex items-center justify-center w-6 h-6 rounded-md transition-all',
+            check.note
+              ? 'text-primary bg-primary/10 hover:bg-primary/20'
+              : 'text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/60'
+          )}
+          aria-label="메모"
+        >
+          <MessageSquare className="size-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72" side="left" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-muted-foreground">{taskName}</p>
+          <Input
+            ref={inputRef}
+            value={noteValue}
+            onChange={(e) => setNoteValue(e.target.value)}
+            placeholder="메모 또는 결과값 입력..."
+            className="h-8 text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+            }}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="xs" onClick={() => setOpen(false)}>취소</Button>
+            <Button size="xs" onClick={handleSave}>저장</Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────
+
 export function CampaignDetailPanel({
   campaignId,
   date,
@@ -50,6 +233,7 @@ export function CampaignDetailPanel({
 }: CampaignDetailPanelProps) {
   const supabase = createClient();
   const isOpen = campaignId !== null;
+  const { profile } = useAuth();
 
   // Fetch campaign detail
   const { data: campaign } = useQuery({
@@ -112,9 +296,7 @@ export function CampaignDetailPanel({
   const { data: users = [] } = useQuery({
     queryKey: queryKeys.users.all,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*');
+      const { data, error } = await supabase.from('users').select('*');
       if (error) throw error;
       return (data ?? []) as UserType[];
     },
@@ -123,9 +305,7 @@ export function CampaignDetailPanel({
   // Build lookups
   const configMap = useMemo(() => {
     const map = new Map<string, CampaignTaskConfig>();
-    taskConfigs.forEach((config) => {
-      map.set(config.task_id, config);
-    });
+    taskConfigs.forEach((config) => map.set(config.task_id, config));
     return map;
   }, [taskConfigs]);
 
@@ -134,9 +314,7 @@ export function CampaignDetailPanel({
     if (!campaignId) return map;
     checks
       .filter((c) => c.campaign_id === campaignId)
-      .forEach((check) => {
-        map.set(check.task_id, check);
-      });
+      .forEach((check) => map.set(check.task_id, check));
     return map;
   }, [checks, campaignId]);
 
@@ -179,6 +357,8 @@ export function CampaignDetailPanel({
       ? Math.round((stats.completed / stats.applicable) * 100)
       : 0;
 
+  const currentUserId = profile?.id ?? '';
+
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
@@ -205,12 +385,9 @@ export function CampaignDetailPanel({
                 variant="outline"
                 className={cn(
                   'text-xs',
-                  campaign.status === 'active' &&
-                    'border-emerald-300 text-emerald-600',
-                  campaign.status === 'paused' &&
-                    'border-amber-300 text-amber-600',
-                  campaign.status === 'completed' &&
-                    'border-gray-300 text-gray-500'
+                  campaign.status === 'active' && 'border-emerald-300 text-emerald-600',
+                  campaign.status === 'paused' && 'border-amber-300 text-amber-600',
+                  campaign.status === 'completed' && 'border-gray-300 text-gray-500'
                 )}
               >
                 {campaign.status}
@@ -219,11 +396,8 @@ export function CampaignDetailPanel({
                 variant="secondary"
                 className={cn(
                   'text-xs font-semibold',
-                  completionPct === 100 &&
-                    'bg-emerald-100 text-emerald-700',
-                  completionPct > 0 &&
-                    completionPct < 100 &&
-                    'bg-amber-100 text-amber-700',
+                  completionPct === 100 && 'bg-emerald-100 text-emerald-700',
+                  completionPct > 0 && completionPct < 100 && 'bg-amber-100 text-amber-700',
                   completionPct === 0 && 'bg-gray-100 text-gray-500'
                 )}
               >
@@ -247,9 +421,7 @@ export function CampaignDetailPanel({
                     className={cn(
                       'sticky top-0 z-10 px-3 py-1.5 rounded-md mb-2',
                       'text-xs font-semibold',
-                      catColors.bg,
-                      catColors.darkBg,
-                      catColors.text
+                      catColors.bg, catColors.darkBg, catColors.text
                     )}
                   >
                     {group.category}
@@ -277,10 +449,7 @@ export function CampaignDetailPanel({
                             <span className="text-xs text-muted-foreground line-through">
                               {task.task_name}
                             </span>
-                            <Badge
-                              variant="secondary"
-                              className="text-[9px] px-1 py-0 ml-auto"
-                            >
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 ml-auto">
                               해당없음
                             </Badge>
                           </div>
@@ -289,27 +458,24 @@ export function CampaignDetailPanel({
 
                       const status: CheckStatus = check?.status ?? '미완료';
                       const statusColors = STATUS_COLORS[status];
-                      const Icon = STATUS_ICONS[status];
 
                       return (
                         <div
                           key={task.id}
                           className={cn(
-                            'flex items-start gap-3 px-3 py-2 rounded-md',
-                            'hover:bg-muted/40 transition-colors'
+                            'flex items-center gap-3 px-3 py-2 rounded-md',
+                            'hover:bg-muted/40 transition-colors group'
                           )}
                         >
-                          {/* Status Icon */}
-                          <div
-                            className={cn(
-                              'flex items-center justify-center size-6 rounded-md mt-0.5 shrink-0',
-                              statusColors.bg,
-                              statusColors.darkBg,
-                              statusColors.text
-                            )}
-                          >
-                            <Icon className="size-3.5" />
-                          </div>
+                          {/* Clickable Status Icon */}
+                          <InteractiveStatusCell
+                            check={check ?? null}
+                            isApplicable={isApplicable}
+                            campaignId={campaignId!}
+                            taskId={task.id}
+                            date={date}
+                            assigneeId={currentUserId}
+                          />
 
                           {/* Task Info */}
                           <div className="flex-1 min-w-0">
@@ -321,9 +487,7 @@ export function CampaignDetailPanel({
                                 variant="secondary"
                                 className={cn(
                                   'text-[9px] px-1 py-0 shrink-0',
-                                  statusColors.bg,
-                                  statusColors.darkBg,
-                                  statusColors.text
+                                  statusColors.bg, statusColors.darkBg, statusColors.text
                                 )}
                               >
                                 {status}
@@ -331,35 +495,32 @@ export function CampaignDetailPanel({
                             </div>
 
                             <div className="flex items-center gap-3 mt-1">
-                              {/* Assignee */}
                               {assignee && (
                                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                   <User className="size-2.5" />
                                   <span>{assignee.name}</span>
                                 </div>
                               )}
-
-                              {/* Completed Time */}
                               {check?.completed_at && (
                                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                   <Clock className="size-2.5" />
-                                  <span>
-                                    {format(
-                                      new Date(check.completed_at),
-                                      'HH:mm'
-                                    )}
-                                  </span>
+                                  <span>{format(new Date(check.completed_at), 'HH:mm')}</span>
                                 </div>
                               )}
                             </div>
 
-                            {/* Note */}
+                            {/* Note display */}
                             {check?.note && (
                               <div className="flex items-start gap-1 mt-1.5 text-[10px] text-muted-foreground">
                                 <FileText className="size-2.5 mt-0.5 shrink-0" />
                                 <span className="break-words">{check.note}</span>
                               </div>
                             )}
+                          </div>
+
+                          {/* Note editor button */}
+                          <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <NoteEditor check={check ?? null} taskName={task.task_name} />
                           </div>
                         </div>
                       );

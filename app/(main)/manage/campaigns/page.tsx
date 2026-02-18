@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, ExternalLink } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { useRealtimeCampaigns } from '@/hooks/use-realtime-campaigns';
+import { logActivity } from '@/lib/utils/log-activity';
+import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,13 +31,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DataTable, type ColumnDef } from '@/components/manage/data-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type {
   Campaign,
   CampaignStatus,
   CampaignPhase,
 } from '@/lib/types/database';
 
+// ─── Config ─────────────────────────────────────────────
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
   active: { label: 'Active', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
   paused: { label: 'Paused', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
@@ -48,6 +56,139 @@ const PHASE_CONFIG: Record<CampaignPhase, { label: string; className: string }> 
   scaling: { label: 'Scaling', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
 };
 
+// ─── Inline Editable Cells ──────────────────────────────
+
+interface EditingCell {
+  id: string;
+  field: string;
+}
+
+function InlineTextCell({
+  value,
+  isEditing,
+  onStartEdit,
+  onSave,
+  className,
+  placeholder,
+  type = 'text',
+}: {
+  value: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (v: string) => void;
+  className?: string;
+  placeholder?: string;
+  type?: 'text' | 'number' | 'date' | 'url';
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (isEditing) {
+      setDraft(value);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [isEditing, value]);
+
+  if (!isEditing) {
+    return (
+      <div
+        onClick={onStartEdit}
+        className={cn(
+          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center',
+          !value && 'text-muted-foreground/40',
+          className
+        )}
+      >
+        {type === 'number' && value
+          ? Number(value).toLocaleString() + '원'
+          : value || placeholder || '-'}
+      </div>
+    );
+  }
+
+  return (
+    <Input
+      ref={inputRef}
+      type={type === 'number' ? 'number' : type}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+        else onSave(value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+        if (e.key === 'Escape') {
+          setDraft(value);
+          onSave(value);
+        }
+      }}
+      className="h-7 text-xs px-2"
+      placeholder={placeholder}
+    />
+  );
+}
+
+function InlineDateCell({
+  value,
+  isEditing,
+  onStartEdit,
+  onSave,
+}: {
+  value: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (v: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    if (isEditing) {
+      setDraft(value);
+      setTimeout(() => inputRef.current?.showPicker?.(), 50);
+    }
+  }, [isEditing, value]);
+
+  if (!isEditing) {
+    return (
+      <div
+        onClick={onStartEdit}
+        className={cn(
+          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center text-xs',
+          !value && 'text-muted-foreground/40'
+        )}
+      >
+        {value || '-'}
+      </div>
+    );
+  }
+
+  return (
+    <Input
+      ref={inputRef}
+      type="date"
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        onSave(e.target.value);
+      }}
+      onBlur={() => onSave(draft)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          setDraft(value);
+          onSave(value);
+        }
+      }}
+      className="h-7 text-xs px-2"
+    />
+  );
+}
+
+// ─── Create Campaign Form Data ──────────────────────────
 interface CampaignFormData {
   campaign_name: string;
   client_name: string;
@@ -55,6 +196,9 @@ interface CampaignFormData {
   status: CampaignStatus;
   phase: CampaignPhase;
   budget: string;
+  monthly_fixed_cost: string;
+  cost_per_influencer: string;
+  influencer_fee_budget: string;
   start_date: string;
   homepage_url: string;
 }
@@ -66,20 +210,27 @@ const defaultFormData: CampaignFormData = {
   status: 'active',
   phase: 'onboarding',
   budget: '',
+  monthly_fixed_cost: '',
+  cost_per_influencer: '',
+  influencer_fee_budget: '',
   start_date: '',
   homepage_url: '',
 };
+
+// ─── Main Page ──────────────────────────────────────────
 
 export default function CampaignsPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
+  const { profile } = useAuth();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [deletingCampaign, setDeletingCampaign] = useState<Campaign | null>(null);
   const [formData, setFormData] = useState<CampaignFormData>(defaultFormData);
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [search, setSearch] = useState('');
 
   useRealtimeCampaigns();
 
@@ -95,6 +246,43 @@ export default function CampaignsPage() {
     },
   });
 
+  // Inline update mutation with optimistic updates
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Campaign> }) => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Campaign;
+    },
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.campaigns.all });
+      const previous = queryClient.getQueryData<Campaign[]>(queryKeys.campaigns.all);
+      queryClient.setQueryData(queryKeys.campaigns.all, (old: Campaign[] | undefined) =>
+        (old || []).map((c) => (c.id === id ? { ...c, ...updates } : c))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.campaigns.all, context.previous);
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all });
+      logActivity({
+        userId: profile?.id,
+        actionType: 'update',
+        targetTable: 'campaigns',
+        targetId: data.id,
+        newValue: { campaign_name: data.campaign_name, status: data.status },
+      });
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: CampaignFormData) => {
       const { error } = await supabase.from('campaigns').insert({
@@ -104,32 +292,12 @@ export default function CampaignsPage() {
         status: data.status,
         phase: data.phase,
         budget: data.budget ? Number(data.budget) : null,
+        monthly_fixed_cost: data.monthly_fixed_cost ? Number(data.monthly_fixed_cost) : null,
+        cost_per_influencer: data.cost_per_influencer ? Number(data.cost_per_influencer) : null,
+        influencer_fee_budget: data.influencer_fee_budget ? Number(data.influencer_fee_budget) : null,
         start_date: data.start_date || null,
         homepage_url: data.homepage_url || null,
       });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all });
-      closeDialog();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CampaignFormData }) => {
-      const { error } = await supabase
-        .from('campaigns')
-        .update({
-          campaign_name: data.campaign_name,
-          client_name: data.client_name,
-          target_country: data.target_country || null,
-          status: data.status,
-          phase: data.phase,
-          budget: data.budget ? Number(data.budget) : null,
-          start_date: data.start_date || null,
-          homepage_url: data.homepage_url || null,
-        })
-        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -150,128 +318,41 @@ export default function CampaignsPage() {
     },
   });
 
-  const openCreateDialog = () => {
-    setEditingCampaign(null);
-    setFormData(defaultFormData);
-    setIsDialogOpen(true);
-  };
-
-  const openEditDialog = (campaign: Campaign) => {
-    setEditingCampaign(campaign);
-    setFormData({
-      campaign_name: campaign.campaign_name,
-      client_name: campaign.client_name,
-      target_country: campaign.target_country ?? '',
-      status: campaign.status,
-      phase: campaign.phase,
-      budget: campaign.budget?.toString() ?? '',
-      start_date: campaign.start_date ?? '',
-      homepage_url: campaign.homepage_url ?? '',
-    });
-    setIsDialogOpen(true);
-  };
-
   const closeDialog = () => {
     setIsDialogOpen(false);
-    setEditingCampaign(null);
     setFormData(defaultFormData);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingCampaign) {
-      updateMutation.mutate({ id: editingCampaign.id, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+    createMutation.mutate(formData);
   };
 
-  const columns: ColumnDef<Campaign>[] = [
-    {
-      key: 'campaign_name',
-      header: '캠페인명',
-      sortable: true,
-      cell: (row) => <span className="font-medium">{row.campaign_name}</span>,
+  const handleInlineUpdate = useCallback(
+    (id: string, field: keyof Campaign, value: unknown) => {
+      setEditingCell(null);
+      const campaign = campaigns.find((c) => c.id === id);
+      if (!campaign) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((campaign as any)[field] === value) return;
+      updateMutation.mutate({ id, updates: { [field]: value } as Partial<Campaign> });
     },
-    {
-      key: 'client_name',
-      header: '클라이언트',
-      sortable: true,
-      cell: (row) => row.client_name,
-    },
-    {
-      key: 'target_country',
-      header: '대상 국가',
-      sortable: true,
-      cell: (row) => row.target_country ?? '-',
-    },
-    {
-      key: 'status',
-      header: '상태',
-      sortable: true,
-      cell: (row) => {
-        const config = STATUS_CONFIG[row.status];
-        return (
-          <Badge variant="secondary" className={config.className}>
-            {config.label}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'phase',
-      header: '단계',
-      sortable: true,
-      cell: (row) => {
-        const config = PHASE_CONFIG[row.phase];
-        return (
-          <Badge variant="secondary" className={config.className}>
-            {config.label}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'budget',
-      header: '예산',
-      sortable: true,
-      sortValue: (row) => row.budget ?? 0,
-      cell: (row) =>
-        row.budget != null
-          ? `${row.budget.toLocaleString()}원`
-          : '-',
-    },
-    {
-      key: 'actions',
-      header: '',
-      cell: (row) => (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              openEditDialog(row);
-            }}
-          >
-            <Pencil className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-destructive hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeletingCampaign(row);
-              setIsDeleteDialogOpen(true);
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+    [campaigns, updateMutation]
+  );
+
+  const isEditingCell = (id: string, field: string) =>
+    editingCell?.id === id && editingCell?.field === field;
+
+  const startEdit = (id: string, field: string) =>
+    setEditingCell({ id, field });
+
+  // Filter
+  const filtered = campaigns.filter(
+    (c) =>
+      c.campaign_name.toLowerCase().includes(search.toLowerCase()) ||
+      c.client_name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.target_country ?? '').toLowerCase().includes(search.toLowerCase())
+  );
 
   if (isAdmin === null) {
     return (
@@ -299,21 +380,33 @@ export default function CampaignsPage() {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="space-y-6"
+      className="space-y-4"
     >
+      {/* Header */}
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">캠페인 관리</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            캠페인을 추가, 수정, 삭제합니다.
+            캠페인을 추가, 수정, 삭제합니다. 셀을 클릭하여 직접 수정할 수 있습니다.
           </p>
         </div>
-        <Button onClick={openCreateDialog} className="rounded-lg">
+        <Button onClick={() => setIsDialogOpen(true)} className="rounded-lg">
           <Plus className="h-4 w-4" />
           새 캠페인
         </Button>
       </motion.div>
 
+      {/* Search */}
+      <motion.div variants={fadeUpItem}>
+        <Input
+          placeholder="캠페인명, 클라이언트, 국가로 검색..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm h-9 text-sm"
+        />
+      </motion.div>
+
+      {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <div className="flex items-center gap-3 text-muted-foreground">
@@ -322,28 +415,257 @@ export default function CampaignsPage() {
           </div>
         </div>
       ) : (
-        <motion.div variants={fadeUpItem}>
-          <DataTable
-            columns={columns}
-            data={campaigns}
-            searchKey="campaign_name"
-            searchPlaceholder="캠페인명 검색..."
-          />
+        <motion.div variants={fadeUpItem} className="border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/50 border-b">
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">캠페인명</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">클라이언트</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">대상 국가</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">상태</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">단계</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">시작일</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">예산</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">월 고정비용</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">섭외당 비용</th>
+                  <th className="text-right py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">원고료 예산</th>
+                  <th className="text-left py-2.5 px-3 font-semibold text-muted-foreground whitespace-nowrap">홈페이지</th>
+                  <th className="py-2.5 px-2 w-10" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((campaign) => (
+                  <tr
+                    key={campaign.id}
+                    className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                  >
+                    {/* 캠페인명 */}
+                    <td className="py-1 px-2 min-w-[140px]">
+                      <InlineTextCell
+                        value={campaign.campaign_name}
+                        isEditing={isEditingCell(campaign.id, 'campaign_name')}
+                        onStartEdit={() => startEdit(campaign.id, 'campaign_name')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'campaign_name', v)}
+                        className="font-medium"
+                      />
+                    </td>
+
+                    {/* 클라이언트 */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <InlineTextCell
+                        value={campaign.client_name}
+                        isEditing={isEditingCell(campaign.id, 'client_name')}
+                        onStartEdit={() => startEdit(campaign.id, 'client_name')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'client_name', v)}
+                      />
+                    </td>
+
+                    {/* 대상 국가 */}
+                    <td className="py-1 px-2 min-w-[80px]">
+                      <InlineTextCell
+                        value={campaign.target_country ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'target_country')}
+                        onStartEdit={() => startEdit(campaign.id, 'target_country')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'target_country', v || null)}
+                        placeholder="-"
+                      />
+                    </td>
+
+                    {/* 상태 - inline Select */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <Select
+                        value={campaign.status}
+                        onValueChange={(v) => handleInlineUpdate(campaign.id, 'status', v)}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
+                          <Badge
+                            variant="secondary"
+                            className={cn('text-[10px] px-1.5 py-0', STATUS_CONFIG[campaign.status].className)}
+                          >
+                            {STATUS_CONFIG[campaign.status].label}
+                          </Badge>
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          {(Object.keys(STATUS_CONFIG) as CampaignStatus[]).map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <Badge variant="secondary" className={cn('text-[10px]', STATUS_CONFIG[s].className)}>
+                                {STATUS_CONFIG[s].label}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
+                    {/* 단계 - inline Select */}
+                    <td className="py-1 px-2 min-w-[110px]">
+                      <Select
+                        value={campaign.phase}
+                        onValueChange={(v) => handleInlineUpdate(campaign.id, 'phase', v)}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[110px]">
+                          <Badge
+                            variant="secondary"
+                            className={cn('text-[10px] px-1.5 py-0', PHASE_CONFIG[campaign.phase].className)}
+                          >
+                            {PHASE_CONFIG[campaign.phase].label}
+                          </Badge>
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          {(Object.keys(PHASE_CONFIG) as CampaignPhase[]).map((p) => (
+                            <SelectItem key={p} value={p}>
+                              <Badge variant="secondary" className={cn('text-[10px]', PHASE_CONFIG[p].className)}>
+                                {PHASE_CONFIG[p].label}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+
+                    {/* 시작일 */}
+                    <td className="py-1 px-2 min-w-[110px]">
+                      <InlineDateCell
+                        value={campaign.start_date ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'start_date')}
+                        onStartEdit={() => startEdit(campaign.id, 'start_date')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'start_date', v || null)}
+                      />
+                    </td>
+
+                    {/* 예산 */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <InlineTextCell
+                        value={campaign.budget?.toString() ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'budget')}
+                        onStartEdit={() => startEdit(campaign.id, 'budget')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'budget', v ? Number(v) : null)}
+                        type="number"
+                        placeholder="-"
+                        className="text-right"
+                      />
+                    </td>
+
+                    {/* 월 고정비용 */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <InlineTextCell
+                        value={campaign.monthly_fixed_cost?.toString() ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'monthly_fixed_cost')}
+                        onStartEdit={() => startEdit(campaign.id, 'monthly_fixed_cost')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'monthly_fixed_cost', v ? Number(v) : null)}
+                        type="number"
+                        placeholder="-"
+                        className="text-right"
+                      />
+                    </td>
+
+                    {/* 섭외당 비용 */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <InlineTextCell
+                        value={campaign.cost_per_influencer?.toString() ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'cost_per_influencer')}
+                        onStartEdit={() => startEdit(campaign.id, 'cost_per_influencer')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'cost_per_influencer', v ? Number(v) : null)}
+                        type="number"
+                        placeholder="-"
+                        className="text-right"
+                      />
+                    </td>
+
+                    {/* 원고료 예산 */}
+                    <td className="py-1 px-2 min-w-[100px]">
+                      <InlineTextCell
+                        value={campaign.influencer_fee_budget?.toString() ?? ''}
+                        isEditing={isEditingCell(campaign.id, 'influencer_fee_budget')}
+                        onStartEdit={() => startEdit(campaign.id, 'influencer_fee_budget')}
+                        onSave={(v) => handleInlineUpdate(campaign.id, 'influencer_fee_budget', v ? Number(v) : null)}
+                        type="number"
+                        placeholder="-"
+                        className="text-right"
+                      />
+                    </td>
+
+                    {/* 홈페이지 */}
+                    <td className="py-1 px-2 min-w-[120px]">
+                      {isEditingCell(campaign.id, 'homepage_url') ? (
+                        <InlineTextCell
+                          value={campaign.homepage_url ?? ''}
+                          isEditing={true}
+                          onStartEdit={() => {}}
+                          onSave={(v) => handleInlineUpdate(campaign.id, 'homepage_url', v || null)}
+                          type="url"
+                          placeholder="URL 입력..."
+                        />
+                      ) : (
+                        <div
+                          onClick={() => startEdit(campaign.id, 'homepage_url')}
+                          className="cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center gap-1"
+                        >
+                          {campaign.homepage_url ? (
+                            <>
+                              <a
+                                href={campaign.homepage_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-primary hover:underline truncate max-w-[100px]"
+                              >
+                                {new URL(campaign.homepage_url).hostname}
+                              </a>
+                              <ExternalLink className="size-3 text-muted-foreground shrink-0" />
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/40">-</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-1 px-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setDeletingCampaign(campaign);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className="py-8 text-center text-muted-foreground text-sm">
+                      {search ? '검색 결과가 없습니다.' : '캠페인이 없습니다. 새 캠페인을 추가해주세요.'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       )}
 
-      {/* Create / Edit Dialog */}
+      {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editingCampaign ? '캠페인 수정' : '새 캠페인'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingCampaign
-                ? '캠페인 정보를 수정합니다.'
-                : '새로운 캠페인을 등록합니다.'}
-            </DialogDescription>
+            <DialogTitle>새 캠페인</DialogTitle>
+            <DialogDescription>새로운 캠페인을 등록합니다.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -353,9 +675,7 @@ export default function CampaignsPage() {
                   id="campaign_name"
                   required
                   value={formData.campaign_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, campaign_name: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, campaign_name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -364,9 +684,7 @@ export default function CampaignsPage() {
                   id="client_name"
                   required
                   value={formData.client_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, client_name: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, client_name: e.target.value }))}
                 />
               </div>
             </div>
@@ -377,9 +695,7 @@ export default function CampaignsPage() {
                 <Input
                   id="target_country"
                   value={formData.target_country}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, target_country: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, target_country: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -388,9 +704,37 @@ export default function CampaignsPage() {
                   id="budget"
                   type="number"
                   value={formData.budget}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, budget: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, budget: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="monthly_fixed_cost">월 고정비용</Label>
+                <Input
+                  id="monthly_fixed_cost"
+                  type="number"
+                  value={formData.monthly_fixed_cost}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, monthly_fixed_cost: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cost_per_influencer">섭외당 비용</Label>
+                <Input
+                  id="cost_per_influencer"
+                  type="number"
+                  value={formData.cost_per_influencer}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cost_per_influencer: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="influencer_fee_budget">원고료 예산</Label>
+                <Input
+                  id="influencer_fee_budget"
+                  type="number"
+                  value={formData.influencer_fee_budget}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, influencer_fee_budget: e.target.value }))}
                 />
               </div>
             </div>
@@ -400,13 +744,9 @@ export default function CampaignsPage() {
                 <Label>상태</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(v) =>
-                    setFormData((prev) => ({ ...prev, status: v as CampaignStatus }))
-                  }
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v as CampaignStatus }))}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="paused">Paused</SelectItem>
@@ -418,13 +758,9 @@ export default function CampaignsPage() {
                 <Label>단계</Label>
                 <Select
                   value={formData.phase}
-                  onValueChange={(v) =>
-                    setFormData((prev) => ({ ...prev, phase: v as CampaignPhase }))
-                  }
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, phase: v as CampaignPhase }))}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="onboarding">Onboarding</SelectItem>
                     <SelectItem value="running">Running</SelectItem>
@@ -441,9 +777,7 @@ export default function CampaignsPage() {
                   id="start_date"
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, start_date: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, start_date: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -452,33 +786,22 @@ export default function CampaignsPage() {
                   id="homepage_url"
                   type="url"
                   value={formData.homepage_url}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, homepage_url: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, homepage_url: e.target.value }))}
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                취소
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? '저장 중...'
-                  : editingCampaign
-                  ? '수정'
-                  : '등록'}
+              <Button type="button" variant="outline" onClick={closeDialog}>취소</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? '저장 중...' : '등록'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -503,9 +826,7 @@ export default function CampaignsPage() {
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => {
-                if (deletingCampaign) {
-                  deleteMutation.mutate(deletingCampaign.id);
-                }
+                if (deletingCampaign) deleteMutation.mutate(deletingCampaign.id);
               }}
             >
               {deleteMutation.isPending ? '삭제 중...' : '삭제'}

@@ -15,6 +15,9 @@ export interface Campaign {
   status: CampaignStatus;
   phase: CampaignPhase;
   budget: number | null;
+  monthly_fixed_cost: number | null;
+  cost_per_influencer: number | null;
+  influencer_fee_budget: number | null;
   start_date: string | null;
   homepage_url: string | null;
   created_at: string;
