@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isPast, isToday, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -11,7 +11,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Filter,
-  Pencil,
   Trash2,
   Check,
   ChevronsUpDown,
@@ -145,6 +144,128 @@ function DueDateBadge({ dueDate, status }: { dueDate: string | null; status: QaS
       {!isResolved && overdue && ' (지남)'}
       {!isResolved && !overdue && daysLeft <= 3 && ` (D-${daysLeft})`}
     </span>
+  );
+}
+
+/* ── Inline Edit Cells ──────────────────── */
+
+function InlineTextCell({
+  value,
+  qaId,
+  field,
+  placeholder,
+  textColor,
+  onUpdate,
+}: {
+  value: string | null;
+  qaId: string;
+  field: string;
+  placeholder?: string;
+  textColor?: string;
+  onUpdate: (id: string, field: string, val: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState('');
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const handleStart = () => {
+    setText(value || '');
+    setEditing(true);
+    setTimeout(() => ref.current?.focus(), 0);
+  };
+
+  const handleSave = () => {
+    setEditing(false);
+    const trimmed = text.trim();
+    if (trimmed !== (value || '')) {
+      onUpdate(qaId, field, trimmed || null);
+    }
+  };
+
+  if (editing) {
+    return (
+      <textarea
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setEditing(false);
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); }
+        }}
+        className="w-full text-[11px] bg-background border border-primary/40 rounded px-1.5 py-1 outline-none resize-none min-h-[32px]"
+        rows={2}
+      />
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={handleStart}
+          className={cn(
+            'w-full text-left text-[11px] truncate cursor-text rounded px-0.5 hover:bg-accent/50 transition-colors min-h-[20px]',
+            value ? (textColor || 'text-foreground') : 'text-muted-foreground/40'
+          )}
+        >
+          {value || (placeholder || '클릭하여 입력')}
+        </button>
+      </TooltipTrigger>
+      {value && (
+        <TooltipContent side="bottom" className="max-w-[400px]">
+          <p className="text-xs whitespace-pre-wrap">{value}</p>
+        </TooltipContent>
+      )}
+    </Tooltip>
+  );
+}
+
+function InlineDateCell({
+  value,
+  qaId,
+  status,
+  onUpdate,
+}: {
+  value: string | null;
+  qaId: string;
+  status: QaStatus;
+  onUpdate: (id: string, field: string, val: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+
+  const handleStart = () => {
+    setEditing(true);
+    setTimeout(() => ref.current?.showPicker?.(), 50);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    setEditing(false);
+    if (newVal !== (value || '')) {
+      onUpdate(qaId, 'due_date', newVal || null);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        type="date"
+        defaultValue={value || ''}
+        onChange={handleChange}
+        onBlur={() => setEditing(false)}
+        className="text-[10px] bg-background border border-primary/40 rounded px-1 py-0.5 outline-none w-full"
+      />
+    );
+  }
+
+  return (
+    <button type="button" onClick={handleStart} className="cursor-pointer hover:bg-accent/50 rounded px-0.5 transition-colors">
+      <DueDateBadge dueDate={value} status={status} />
+    </button>
   );
 }
 
@@ -325,6 +446,36 @@ export default function CampaignQaPage() {
     },
   });
 
+  const inlineFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase
+        .from('campaign_qa')
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, field, value }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.qa.all });
+      const previous = queryClient.getQueryData<CampaignQa[]>(queryKeys.qa.all);
+      queryClient.setQueryData(queryKeys.qa.all, (old: CampaignQa[] | undefined) =>
+        (old || []).map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.qa.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.qa.all });
+    },
+  });
+
+  const handleInlineUpdate = useCallback((id: string, field: string, value: unknown) => {
+    inlineFieldMutation.mutate({ id, field, value });
+  }, [inlineFieldMutation]);
+
   // ── Filtered data ──
 
   const filteredQa = useMemo(() => {
@@ -372,21 +523,6 @@ export default function CampaignQaPage() {
   const handleOpenCreate = useCallback(() => {
     setEditingQa(null);
     setFormData(defaultFormData);
-    setDialogOpen(true);
-  }, []);
-
-  const handleOpenEdit = useCallback((qa: CampaignQa) => {
-    setEditingQa(qa);
-    setFormData({
-      campaign_id: qa.campaign_id,
-      qa_type: qa.qa_type,
-      content: qa.content,
-      due_date: qa.due_date ?? '',
-      status: qa.status,
-      resolution: qa.resolution ?? '',
-      priority: qa.priority,
-      created_by: qa.created_by ?? '',
-    });
     setDialogOpen(true);
   }, []);
 
@@ -598,7 +734,6 @@ export default function CampaignQaPage() {
                         const typeCfg = QA_TYPE_CONFIG[qa.qa_type];
                         const statusCfg = QA_STATUS_CONFIG[qa.status];
                         const priorityCfg = QA_PRIORITY_CONFIG[qa.priority];
-                        const TypeIcon = typeCfg.icon;
 
                         return (
                           <tr
@@ -608,56 +743,92 @@ export default function CampaignQaPage() {
                               qa.status === '해결완료' && 'opacity-60'
                             )}
                           >
-                            {/* Type */}
-                            <td className="px-2 py-1.5">
-                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap', typeCfg.color, typeCfg.bg)}>
-                                <TypeIcon className="size-2.5" />
-                                {qa.qa_type}
-                              </Badge>
+                            {/* Type - inline select */}
+                            <td className="px-2 py-1">
+                              <Select
+                                value={qa.qa_type}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'qa_type', v)}
+                              >
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] font-medium hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap pointer-events-none', typeCfg.color, typeCfg.bg)}>
+                                    {qa.qa_type}
+                                  </Badge>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {QA_TYPES.map((t) => (
+                                    <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </td>
-                            {/* Priority */}
-                            <td className="px-2 py-1.5">
-                              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap', priorityCfg.color, priorityCfg.bg)}>
-                                {qa.priority}
-                              </Badge>
+                            {/* Priority - inline select */}
+                            <td className="px-2 py-1">
+                              <Select
+                                value={qa.priority}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'priority', v)}
+                              >
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap pointer-events-none', priorityCfg.color, priorityCfg.bg)}>
+                                    {qa.priority}
+                                  </Badge>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {QA_PRIORITIES.map((p) => (
+                                    <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </td>
-                            {/* Content */}
-                            <td className="px-2 py-1.5 max-w-0">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <p className="text-[11px] text-foreground truncate cursor-default">{qa.content}</p>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[400px]">
-                                  <p className="text-xs whitespace-pre-wrap">{qa.content}</p>
-                                </TooltipContent>
-                              </Tooltip>
+                            {/* Content - inline text edit */}
+                            <td className="px-2 py-1 max-w-0">
+                              <InlineTextCell
+                                value={qa.content}
+                                qaId={qa.id}
+                                field="content"
+                                placeholder="내용 입력..."
+                                onUpdate={handleInlineUpdate}
+                              />
                             </td>
-                            {/* Resolution */}
-                            <td className="px-2 py-1.5 max-w-0">
-                              {qa.resolution ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate cursor-default">{qa.resolution}</p>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-[400px]">
-                                    <p className="text-[10px] font-medium text-emerald-600 mb-0.5">해결 내용</p>
-                                    <p className="text-xs whitespace-pre-wrap">{qa.resolution}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/50">-</span>
-                              )}
+                            {/* Resolution - inline text edit */}
+                            <td className="px-2 py-1 max-w-0">
+                              <InlineTextCell
+                                value={qa.resolution}
+                                qaId={qa.id}
+                                field="resolution"
+                                placeholder="해결내용 입력..."
+                                textColor="text-emerald-700 dark:text-emerald-400"
+                                onUpdate={handleInlineUpdate}
+                              />
                             </td>
-                            {/* Created By */}
-                            <td className="px-2 py-1.5">
-                              <span className="text-[11px] text-muted-foreground truncate block whitespace-nowrap">{qa.created_by || '-'}</span>
+                            {/* Created By - inline select */}
+                            <td className="px-2 py-1">
+                              <Select
+                                value={qa.created_by || ''}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'created_by', v || null)}
+                              >
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                  <span className="text-[11px] text-muted-foreground truncate">{qa.created_by || '-'}</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {users.map((u) => (
+                                    <SelectItem key={u.id} value={u.name} className="text-xs">
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </td>
-                            {/* Due Date */}
-                            <td className="px-2 py-1.5 whitespace-nowrap">
-                              <DueDateBadge dueDate={qa.due_date} status={qa.status} />
+                            {/* Due Date - inline date edit */}
+                            <td className="px-2 py-1 whitespace-nowrap">
+                              <InlineDateCell
+                                value={qa.due_date}
+                                qaId={qa.id}
+                                status={qa.status}
+                                onUpdate={handleInlineUpdate}
+                              />
                             </td>
-                            {/* Status */}
-                            <td className="px-2 py-1.5">
+                            {/* Status - click to cycle */}
+                            <td className="px-2 py-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
@@ -679,26 +850,14 @@ export default function CampaignQaPage() {
                               </Tooltip>
                             </td>
                             {/* Created At */}
-                            <td className="px-2 py-1.5 whitespace-nowrap">
+                            <td className="px-2 py-1 whitespace-nowrap">
                               <span className="text-[10px] text-muted-foreground tabular-nums">
                                 {format(parseISO(qa.created_at), 'MM/dd')}
                               </span>
                             </td>
                             {/* Actions */}
-                            <td className="px-2 py-1.5">
+                            <td className="px-2 py-1">
                               <div className="flex items-center justify-end gap-0.5">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      onClick={() => handleOpenEdit(qa)}
-                                    >
-                                      <Pencil className="size-3" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>수정</TooltipContent>
-                                </Tooltip>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
