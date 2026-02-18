@@ -722,7 +722,8 @@ export default function RoadmapPage() {
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[80px]">상태</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[80px]">담당자</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[70px]">진행률</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[100px]">마감일</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[90px]">시작일</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[90px]">마감일</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground min-w-[120px]">메모</th>
                 <th className="w-[36px] px-1 py-1.5"></th>
               </tr>
@@ -823,6 +824,15 @@ export default function RoadmapPage() {
                           <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                         </div>
                       </td>
+                      {/* Start Date */}
+                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                        <InlineDateCell
+                          value={project.start_date}
+                          isEditing={isEditing(project.id, 'start_date')}
+                          onStartEdit={() => startEdit(project.id, 'start_date', 'project')}
+                          onSave={(v) => saveProjectField(project.id, 'start_date', v)}
+                        />
+                      </td>
                       {/* Due Date */}
                       <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
                         <InlineDateCell
@@ -868,7 +878,8 @@ export default function RoadmapPage() {
                         <tr
                           key={task.id}
                           className={cn(
-                            'border-b border-border/50 hover:bg-accent/20 transition-colors group/task',
+                            'border-b border-border/30 hover:bg-accent/20 transition-colors group/task',
+                            'bg-muted/5',
                             isTaskSelected && 'bg-primary/5',
                           )}
                         >
@@ -927,6 +938,8 @@ export default function RoadmapPage() {
                           </td>
                           {/* Progress - empty for tasks */}
                           <td className="px-2 py-0.5"></td>
+                          {/* Start Date - empty for tasks */}
+                          <td className="px-2 py-0.5"></td>
                           {/* Due Date */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                             <InlineDateCell
@@ -957,12 +970,22 @@ export default function RoadmapPage() {
                         </tr>
                       );
                     })}
+                    {/* Empty state for no tasks */}
+                    {isExpanded && tasks.length === 0 && (
+                      <tr className="border-b border-border/30 bg-muted/5">
+                        <td className="px-2 py-2"></td>
+                        <td className="px-1 py-2"></td>
+                        <td className="px-2 py-2 pl-8" colSpan={8}>
+                          <span className="text-[11px] text-muted-foreground/40 italic">하위 업무가 없습니다. 아래에서 추가해보세요.</span>
+                        </td>
+                      </tr>
+                    )}
                     {/* Add sub-task row */}
                     {isExpanded && (
-                      <tr className="border-b border-border/30">
+                      <tr className="border-b border-border/30 bg-muted/5">
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={7}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={8}>
                           <div className="flex items-center gap-1.5">
                             <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                             <input
@@ -986,6 +1009,29 @@ export default function RoadmapPage() {
                   </React.Fragment>
                 );
               })}
+              {/* ── Inline Add Project Row ── */}
+              <tr className="border-b border-border/30 hover:bg-accent/10">
+                <td className="px-2 py-1.5"></td>
+                <td className="px-1 py-1.5">
+                  <Plus className="size-3.5 text-muted-foreground/30" />
+                </td>
+                <td className="px-2 py-1.5" colSpan={8}>
+                  <input
+                    className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
+                    placeholder="새 프로젝트 추가... (Enter로 생성)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const input = e.currentTarget;
+                        const name = input.value.trim();
+                        if (name) {
+                          createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length });
+                          input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
