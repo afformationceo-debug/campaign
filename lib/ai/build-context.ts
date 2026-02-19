@@ -30,11 +30,14 @@ function formatRange(range: DateRange): string {
 
 async function fetchAssigneeContext(range: DateRange) {
   const supabase = getSupabase();
+
+  // 1) 모든 활성 사용자
   const { data: users } = await supabase
     .from('users')
-    .select('id, name, position, role')
+    .select('id, name')
     .eq('is_active', true);
 
+  // 2) 해당 기간 일일 체크
   let checksQuery = supabase
     .from('daily_checks')
     .select('assigned_user_id, status, task_id, campaign_id, note, result_value');
@@ -43,22 +46,43 @@ async function fetchAssigneeContext(range: DateRange) {
   } else {
     checksQuery = checksQuery.gte('check_date', range.from).lte('check_date', range.to);
   }
-  const { data: checks } = await checksQuery;
+  const { data: dailyChecks } = await checksQuery;
 
+  // 3) 이번 달 전체 월간/주간/once 체크 (기간과 별도)
+  const monthStart = range.from.substring(0, 7) + '-01';
+  const monthEnd = range.to.substring(0, 7) + '-31';
+  const { data: monthlyChecks } = await supabase
+    .from('daily_checks')
+    .select('assigned_user_id, status, task_id, campaign_id')
+    .gte('check_date', monthStart)
+    .lte('check_date', monthEnd);
+
+  // 4) 업무 배정 (campaign_task_config) - 누가 어떤 업무에 배정되어 있는지
+  const { data: taskConfigs } = await supabase
+    .from('campaign_task_config')
+    .select('task_id, campaign_id, is_applicable, override_assignee')
+    .eq('is_applicable', true);
+
+  // 5) 업무 마스터
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('id, task_name, category');
+    .select('id, task_name, category, frequency, scope, default_assignees');
 
+  // 6) 캠페인
   const { data: campaigns } = await supabase
     .from('campaigns')
     .select('id, client_name, campaign_name');
 
-  if (!users || !checks) return null;
+  if (!users) return null;
 
   const taskMap = new Map((tasks ?? []).map((t) => [t.id, t]));
   const campMap = new Map((campaigns ?? []).map((c) => [c.id, c]));
+  const checks = dailyChecks ?? [];
+  const allMonthly = monthlyChecks ?? [];
+  const configs = taskConfigs ?? [];
 
   const byUser = users.map((u) => {
+    // 일일 체크 (해당 기간)
     const userChecks = checks.filter((c) => c.assigned_user_id === u.id);
     const total = userChecks.length;
     const completed = userChecks.filter((c) => c.status === '완료').length;
@@ -66,13 +90,41 @@ async function fetchAssigneeContext(range: DateRange) {
     const pending = userChecks.filter((c) => c.status === '미완료').length;
     const na = userChecks.filter((c) => c.status === '해당없음').length;
 
-    // Campaigns this user is assigned to
-    const assignedCampaignIds = [...new Set(userChecks.filter((c) => c.campaign_id).map((c) => c.campaign_id))];
-    const assignedCampaigns = assignedCampaignIds
+    // 월간 체크 (이번 달 전체)
+    const userMonthly = allMonthly.filter((c) => c.assigned_user_id === u.id);
+    const monthlyTotal = userMonthly.length;
+    const monthlyCompleted = userMonthly.filter((c) => c.status === '완료').length;
+
+    // 캠페인별 업무 배정 (campaign_task_config)
+    const userConfigs = configs.filter((c) => c.override_assignee === u.id);
+    const configCampaignIds = [...new Set(userConfigs.map((c) => c.campaign_id))];
+    const configCampaigns = configCampaignIds
       .map((id) => campMap.get(id)?.client_name)
       .filter(Boolean);
 
-    // Top pending tasks
+    // 체크 기반 캠페인
+    const checkCampaignIds = [...new Set(userChecks.filter((c) => c.campaign_id).map((c) => c.campaign_id))];
+    const checkCampaigns = checkCampaignIds
+      .map((id) => campMap.get(id)?.client_name)
+      .filter(Boolean);
+
+    // 모든 담당 캠페인 (중복 제거)
+    const allCampaigns = [...new Set([...configCampaigns, ...checkCampaigns])];
+
+    // 전역 업무 (default_assignees에 포함)
+    const globalTasks = (tasks ?? [])
+      .filter((t) => t.scope === 'global' && t.default_assignees?.includes(u.id))
+      .map((t) => ({ task: t.task_name, category: t.category, frequency: t.frequency }));
+
+    // 배정된 캠페인 업무 (빈도별)
+    const assignedByFreq: Record<string, number> = {};
+    for (const cfg of userConfigs) {
+      const task = taskMap.get(cfg.task_id);
+      const freq = task?.frequency ?? 'daily';
+      assignedByFreq[freq] = (assignedByFreq[freq] || 0) + 1;
+    }
+
+    // 미완료 업무 상세
     const pendingTasks = userChecks
       .filter((c) => c.status === '미완료')
       .slice(0, 5)
@@ -86,18 +138,21 @@ async function fetchAssigneeContext(range: DateRange) {
         };
       });
 
+    // 아무 업무도 없는 사용자는 제외
+    const hasWork = total > 0 || monthlyTotal > 0 || globalTasks.length > 0 || userConfigs.length > 0;
+    if (!hasWork) return null;
+
     return {
       name: u.name,
-      total,
-      completed,
-      inProgress,
-      pending,
-      na,
-      rate: total > 0 ? Math.round((completed / total) * 100) : 0,
-      assignedCampaigns,
-      pendingTasks,
+      dailyChecks: total > 0 ? { total, completed, inProgress, pending, na, rate: Math.round((completed / total) * 100) } : null,
+      monthlyChecks: monthlyTotal > 0 ? { total: monthlyTotal, completed: monthlyCompleted, rate: Math.round((monthlyCompleted / monthlyTotal) * 100) } : null,
+      assignedCampaigns: allCampaigns,
+      assignedTaskCount: userConfigs.length,
+      assignedByFrequency: Object.keys(assignedByFreq).length > 0 ? assignedByFreq : undefined,
+      globalTasks: globalTasks.length > 0 ? globalTasks : undefined,
+      pendingTasks: pendingTasks.length > 0 ? pendingTasks : undefined,
     };
-  }).filter((u) => u.total > 0);
+  }).filter(Boolean);
 
   return { date: formatRange(range), assignees: byUser };
 }
@@ -171,6 +226,8 @@ async function fetchCampaignContext(range: DateRange) {
 
 async function fetchDailyContext(range: DateRange) {
   const supabase = getSupabase();
+
+  // 해당 기간 일일 체크
   let checksQuery = supabase
     .from('daily_checks')
     .select('status, task_id, campaign_id, assigned_user_id, note, result_value');
@@ -180,6 +237,15 @@ async function fetchDailyContext(range: DateRange) {
     checksQuery = checksQuery.gte('check_date', range.from).lte('check_date', range.to);
   }
   const { data: checks } = await checksQuery;
+
+  // 이번 달 전체 체크 (월간/주간 업무 포함)
+  const monthStart = range.from.substring(0, 7) + '-01';
+  const monthEnd = range.to.substring(0, 7) + '-31';
+  const { data: monthlyChecks } = await supabase
+    .from('daily_checks')
+    .select('status, task_id, campaign_id, assigned_user_id, result_value')
+    .gte('check_date', monthStart)
+    .lte('check_date', monthEnd);
 
   const { data: tasks } = await supabase
     .from('tasks')
@@ -193,21 +259,32 @@ async function fetchDailyContext(range: DateRange) {
     .from('users')
     .select('id, name');
 
-  if (!checks || !tasks || !campaigns) return null;
+  if (!tasks || !campaigns) return null;
 
   const taskMap = new Map(tasks.map((t) => [t.id, t]));
   const campMap = new Map(campaigns.map((c) => [c.id, c]));
   const userMap = new Map((users ?? []).map((u) => [u.id, u.name]));
 
-  const total = checks.length;
-  const completed = checks.filter((c) => c.status === '완료').length;
-  const inProgress = checks.filter((c) => c.status === '진행중').length;
-  const pending = checks.filter((c) => c.status === '미완료').length;
-  const na = checks.filter((c) => c.status === '해당없음').length;
+  const dailyList = checks ?? [];
+  const total = dailyList.length;
+  const completed = dailyList.filter((c) => c.status === '완료').length;
+  const inProgress = dailyList.filter((c) => c.status === '진행중').length;
+  const pending = dailyList.filter((c) => c.status === '미완료').length;
+  const na = dailyList.filter((c) => c.status === '해당없음').length;
 
-  // Category breakdown
+  // 월간 체크 통계
+  const monthlyList = monthlyChecks ?? [];
+  // 월간/주간 업무만 필터 (daily 제외)
+  const periodicOnly = monthlyList.filter((c) => {
+    const t = taskMap.get(c.task_id);
+    return t && (t.frequency === 'monthly' || t.frequency === 'weekly' || t.frequency === 'once' || t.frequency === 'as_needed');
+  });
+  const periodicTotal = periodicOnly.length;
+  const periodicCompleted = periodicOnly.filter((c) => c.status === '완료').length;
+
+  // Category breakdown (일일 기준)
   const byCategory: Record<string, { total: number; done: number }> = {};
-  for (const check of checks) {
+  for (const check of dailyList) {
     const task = taskMap.get(check.task_id);
     const cat = task?.category ?? '기타';
     if (!byCategory[cat]) byCategory[cat] = { total: 0, done: 0 };
@@ -215,7 +292,7 @@ async function fetchDailyContext(range: DateRange) {
     if (check.status === '완료') byCategory[cat].done++;
   }
 
-  const pendingDetails = checks
+  const pendingDetails = dailyList
     .filter((c) => c.status === '미완료')
     .slice(0, 20)
     .map((c) => {
@@ -226,11 +303,29 @@ async function fetchDailyContext(range: DateRange) {
         task: task?.task_name ?? '?',
         campaign: camp ? camp.client_name : '전역',
         category: task?.category,
+        frequency: task?.frequency,
         assignee: assignee ?? '?',
       };
     });
 
-  const withResults = checks
+  // 월간/주간 미완료
+  const periodicPending = periodicOnly
+    .filter((c) => c.status === '미완료')
+    .slice(0, 10)
+    .map((c) => {
+      const task = taskMap.get(c.task_id);
+      const camp = c.campaign_id ? campMap.get(c.campaign_id) : null;
+      const assignee = userMap.get(c.assigned_user_id);
+      return {
+        task: task?.task_name ?? '?',
+        campaign: camp ? camp.client_name : '전역',
+        category: task?.category,
+        frequency: task?.frequency,
+        assignee: assignee ?? '?',
+      };
+    });
+
+  const withResults = dailyList
     .filter((c) => c.result_value)
     .slice(0, 15)
     .map((c) => {
@@ -245,14 +340,11 @@ async function fetchDailyContext(range: DateRange) {
 
   return {
     date: formatRange(range),
-    total,
-    completed,
-    inProgress,
-    pending,
-    na,
-    rate: total > 0 ? Math.round((completed / total) * 100) : 0,
+    daily: { total, completed, inProgress, pending, na, rate: total > 0 ? Math.round((completed / total) * 100) : 0 },
+    periodic: periodicTotal > 0 ? { total: periodicTotal, completed: periodicCompleted, rate: Math.round((periodicCompleted / periodicTotal) * 100) } : null,
     byCategory,
     pendingDetails,
+    periodicPending: periodicPending.length > 0 ? periodicPending : undefined,
     withResults,
   };
 }
@@ -439,7 +531,20 @@ export async function buildContext(dimension: SummaryDimension, range?: DateRang
 
   if (dimension === 'all' || dimension === 'daily') {
     const data = await fetchDailyContext(r);
-    if (data) parts.push(`## 업무 결과 (${rangeLabel})\n전체: ${data.total}건, 완료: ${data.completed}, 진행중: ${data.inProgress}, 미완료: ${data.pending}, 해당없음: ${data.na}, 완료율: ${data.rate}%\n카테고리별: ${JSON.stringify(data.byCategory, null, 1)}\n미완료 상세(담당자 포함): ${JSON.stringify(data.pendingDetails, null, 1)}\n결과값: ${JSON.stringify(data.withResults, null, 1)}`);
+    if (data) {
+      const d = data.daily;
+      let section = `## 업무 결과 (${rangeLabel})\n### 일일 업무\n전체: ${d.total}건, 완료: ${d.completed}, 진행중: ${d.inProgress}, 미완료: ${d.pending}, 해당없음: ${d.na}, 완료율: ${d.rate}%`;
+      if (data.periodic) {
+        section += `\n### 월간/주간 업무 (이번 달)\n전체: ${data.periodic.total}건, 완료: ${data.periodic.completed}, 완료율: ${data.periodic.rate}%`;
+      }
+      section += `\n카테고리별: ${JSON.stringify(data.byCategory, null, 1)}`;
+      section += `\n일일 미완료 상세(담당자 포함): ${JSON.stringify(data.pendingDetails, null, 1)}`;
+      if (data.periodicPending) {
+        section += `\n월간/주간 미완료(담당자 포함): ${JSON.stringify(data.periodicPending, null, 1)}`;
+      }
+      section += `\n결과값: ${JSON.stringify(data.withResults, null, 1)}`;
+      parts.push(section);
+    }
   }
 
   if (dimension === 'all' || dimension === 'project') {
