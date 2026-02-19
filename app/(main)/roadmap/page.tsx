@@ -1064,8 +1064,14 @@ export default function RoadmapPage() {
                                 const taskConfig = STATE_CONFIG[task.state];
                                 const TaskIcon = taskConfig.icon;
                                 const taskAssignee = users.find((u) => u.id === task.assignee_id);
+                                const isTaskCompleted = task.state === '완료';
+                                const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
                                 return (
-                                  <tr key={task.id} className={cn('border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap bg-muted/5')}>
+                                  <tr key={task.id} className={cn(
+                                    'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap bg-muted/5',
+                                    isTaskCompleted && 'bg-gradient-to-r from-emerald-50/50 via-emerald-50/20 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent border-l-[3px] border-l-emerald-300',
+                                    isFilteredAssignee && !isTaskCompleted && 'bg-gradient-to-r from-blue-50/60 via-blue-50/20 to-transparent dark:from-blue-950/20 dark:via-blue-950/10 dark:to-transparent border-l-[3px] border-l-blue-400',
+                                  )}>
                                     <td className="px-1 py-0.5"></td>
                                     <td className="px-1 py-0.5"></td>
                                     <td className="px-2 py-0.5 pl-8 max-w-0">
@@ -1080,12 +1086,13 @@ export default function RoadmapPage() {
                                                 isEditing={isEditing(task.id, 'title')}
                                                 onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
                                                 onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                                className={cn('text-[11px]', task.state === '완료' && 'line-through text-muted-foreground/60')}
+                                                className={cn('text-[11px]', isTaskCompleted ? 'text-emerald-700 dark:text-emerald-400' : isFilteredAssignee && 'font-semibold text-blue-700 dark:text-blue-300')}
                                               />
                                             </div>
                                           </TooltipTrigger>
                                           <TooltipContent side="bottom"><p className="text-xs">{task.title}</p></TooltipContent>
                                         </Tooltip>
+                                        {isTaskCompleted && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
                                       </div>
                                     </td>
                                     <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
@@ -1391,6 +1398,8 @@ export default function RoadmapPage() {
                       const TaskIcon = taskConfig.icon;
                       const taskAssignee = users.find((u) => u.id === task.assignee_id);
                       const isTaskSelected = selectedTasks.has(task.id);
+                      const isTaskCompleted = task.state === '완료';
+                      const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
 
                       return (
                         <tr
@@ -1404,6 +1413,8 @@ export default function RoadmapPage() {
                             'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap',
                             'bg-muted/5',
                             isTaskSelected && 'bg-primary/5',
+                            isTaskCompleted && 'bg-gradient-to-r from-emerald-50/50 via-emerald-50/20 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent border-l-[3px] border-l-emerald-300',
+                            isFilteredAssignee && !isTaskCompleted && 'bg-gradient-to-r from-blue-50/60 via-blue-50/20 to-transparent dark:from-blue-950/20 dark:via-blue-950/10 dark:to-transparent border-l-[3px] border-l-blue-400',
                             dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
                             dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                           )}
@@ -1435,7 +1446,7 @@ export default function RoadmapPage() {
                                       isEditing={isEditing(task.id, 'title')}
                                       onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
                                       onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                      className={cn('text-[11px]', task.state === '완료' && 'line-through text-muted-foreground/60')}
+                                      className={cn('text-[11px]', isTaskCompleted ? 'text-emerald-700 dark:text-emerald-400' : isFilteredAssignee && 'font-semibold text-blue-700 dark:text-blue-300')}
                                     />
                                   </div>
                                 </TooltipTrigger>
@@ -1443,6 +1454,7 @@ export default function RoadmapPage() {
                                   <p className="text-xs">{task.title}</p>
                                 </TooltipContent>
                               </Tooltip>
+                              {isTaskCompleted && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
                             </div>
                           </td>
                           {/* State */}
