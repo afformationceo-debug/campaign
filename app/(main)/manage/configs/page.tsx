@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfigMatrix } from '@/components/manage/config-matrix';
 import { ConfigDashboard } from '@/components/manage/config-dashboard';
+import { ConfigKeyView } from '@/components/manage/config-key-view';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -1000,6 +1001,10 @@ export default function ConfigsPage() {
             <LayoutGrid className="h-3.5 w-3.5" />
             매트릭스 뷰
           </TabsTrigger>
+          <TabsTrigger value="key-view" className="gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            항목별 현황
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -1011,6 +1016,10 @@ export default function ConfigsPage() {
 
         <TabsContent value="matrix">
           <ConfigMatrix />
+        </TabsContent>
+
+        <TabsContent value="key-view">
+          <ConfigKeyView />
         </TabsContent>
 
         <TabsContent value="individual" className="space-y-3">

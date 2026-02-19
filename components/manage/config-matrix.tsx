@@ -33,7 +33,7 @@ const CONFIG_GROUPS: { type: string; keys: string[] }[] = [
     type: '인플루언서 관련',
     keys: [
       '인플루언서 전용 라인 세팅', '인플루언서 전용 왓츠앱 세팅',
-      '스카웃매니저 메신저 연동', '스카웃매니저 캠페인 등록',
+      '스카웃매니저 라인 메신저 연동', '스카웃매니저 왓츠앱 메신저 연동', '스카웃매니저 캠페인 등록',
     ],
   },
   {
@@ -42,7 +42,7 @@ const CONFIG_GROUPS: { type: string; keys: string[] }[] = [
   },
   {
     type: 'CS어드민',
-    keys: ['메신저 채널 연동 여부'],
+    keys: ['메신저 채널 연동 여부', 'CRM 연동설정 여부'],
   },
   {
     type: 'CRM',
