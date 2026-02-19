@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -14,6 +14,13 @@ import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-s
 import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +34,81 @@ import type {
   CampaignTaskConfig,
   TaskCategory,
 } from '@/lib/types/database';
+
+// ─── Status config for dropdown ───────────────────────
+const CHECK_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
+  '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-950' },
+  '진행중': { label: '진행중', color: 'text-blue-600', icon: Clock, bg: 'bg-blue-50 dark:bg-blue-950' },
+  '미완료': { label: '미완료', color: 'text-red-500', icon: Circle, bg: 'bg-red-50 dark:bg-red-950' },
+  '해당없음': { label: '해당없음', color: 'text-gray-400', icon: Minus, bg: 'bg-gray-50 dark:bg-gray-800' },
+};
+const CHECK_STATUSES = ['완료', '진행중', '미완료', '해당없음'] as const;
+
+import type { CheckStatus } from '@/lib/types/database';
+
+// ─── Global Status Select Dropdown ───────────────────
+function GlobalStatusSelect({
+  check,
+  taskId,
+  date,
+  assigneeId,
+  campaignId,
+}: {
+  check: DailyCheck | null;
+  taskId: string;
+  date: string;
+  assigneeId: string;
+  campaignId?: string;
+}) {
+  const { mutate: updateStatus } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
+
+  const currentStatus = check?.status ?? null;
+  const config = currentStatus ? CHECK_STATUS_CONFIG[currentStatus] : null;
+  const StatusIcon = config?.icon ?? Circle;
+
+  const handleChange = (value: string) => {
+    if (!check) {
+      createCheck({
+        campaign_id: campaignId ?? null,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: value as CheckStatus,
+      });
+    } else {
+      updateStatus({ id: check.id, status: value as CheckStatus });
+    }
+  };
+
+  return (
+    <Select value={currentStatus ?? ''} onValueChange={handleChange}>
+      <SelectTrigger className={cn(
+        'h-6 w-[80px] text-[11px] border-0 bg-transparent px-1',
+        config?.color ?? 'text-muted-foreground/40'
+      )}>
+        <div className="flex items-center gap-1">
+          <StatusIcon className="size-3" />
+          <span>{config?.label ?? '미체크'}</span>
+        </div>
+      </SelectTrigger>
+      <SelectContent position="popper" className="min-w-[100px]">
+        {CHECK_STATUSES.map((s) => {
+          const sc = CHECK_STATUS_CONFIG[s];
+          const SI = sc.icon;
+          return (
+            <SelectItem key={s} value={s}>
+              <div className="flex items-center gap-1.5">
+                <SI className={cn('size-3', sc.color)} />
+                {sc.label}
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+}
 
 // ─── Inline Result Value Input ───────────────────────
 function ResultValueInput({
@@ -367,18 +449,32 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               const check = checkMap.get(`null:${task.id}`) ?? null;
               const assignees = task.default_assignees?.join(', ') || null;
               const catColor = CATEGORY_COLORS[task.category];
+              const isCompleted = check?.status === '완료';
               return (
-                <tr key={task.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors h-7">
-                  <td className="px-2 py-0 max-w-0">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="text-[11px] font-medium truncate block cursor-default">{task.task_name}</span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[300px]">
-                        <p className="text-xs font-medium">{task.task_name}</p>
-                        {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
-                      </TooltipContent>
-                    </Tooltip>
+                <tr key={task.id} className={cn(
+                  'border-b border-border/30 hover:bg-muted/20 transition-colors h-7',
+                  isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                )}>
+                  <td className={cn(
+                    'px-2 py-0 max-w-0',
+                    isCompleted && 'border-l-[3px] border-l-emerald-400'
+                  )}>
+                    <div className="flex items-center gap-1.5">
+                      {isCompleted && (
+                        <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                          <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={cn('text-[11px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[300px]">
+                          <p className="text-xs font-medium">{task.task_name}</p>
+                          {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </td>
                   <td className="px-2 py-0">
                     <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
@@ -393,12 +489,11 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                   </td>
                   <td className="px-2 py-0">
                     <div className="flex items-center justify-center">
-                      <StatusCell
+                      <GlobalStatusSelect
                         check={check}
-                        isApplicable={true}
                         taskId={task.id}
                         date={date}
-                        assigneeId={effectiveUserId || undefined}
+                        assigneeId={effectiveUserId}
                       />
                     </div>
                   </td>

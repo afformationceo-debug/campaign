@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { CheckCircle2, Clock, Circle, CalendarDays, ChevronDown, ChevronRight, User, ListChecks } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Minus, CalendarDays, ChevronDown, ChevronRight, User, ListChecks, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -12,6 +12,13 @@ import { CATEGORY_COLORS } from '@/lib/utils/category-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-status';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Tooltip,
   TooltipContent,
@@ -182,8 +189,17 @@ function ResultValueInput({
   );
 }
 
-// ─── Status Button ────────────────────────────────────
-function PeriodicStatusButton({
+// ─── Status config for dropdown ──────────────────────
+const CHECK_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
+  '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-950' },
+  '진행중': { label: '진행중', color: 'text-blue-600', icon: Clock, bg: 'bg-blue-50 dark:bg-blue-950' },
+  '미완료': { label: '미완료', color: 'text-red-500', icon: Circle, bg: 'bg-red-50 dark:bg-red-950' },
+  '해당없음': { label: '해당없음', color: 'text-gray-400', icon: Minus, bg: 'bg-gray-50 dark:bg-gray-800' },
+};
+const CHECK_STATUSES = ['완료', '진행중', '미완료', '해당없음'] as const;
+
+// ─── Status Select Dropdown ──────────────────────────
+function PeriodicStatusSelect({
   check,
   campaignId,
   taskId,
@@ -199,57 +215,50 @@ function PeriodicStatusButton({
   const { mutate: updateStatus } = useUpdateCheckStatus();
   const { mutate: createCheck } = useCreateCheck();
 
-  const handleClick = () => {
+  const currentStatus = check?.status ?? null;
+  const config = currentStatus ? CHECK_STATUS_CONFIG[currentStatus] : null;
+  const StatusIcon = config?.icon ?? Circle;
+
+  const handleChange = (value: string) => {
     if (!check) {
       createCheck({
         campaign_id: campaignId,
         task_id: taskId,
         check_date: date,
         assigned_user_id: assigneeId,
-        status: '완료',
+        status: value as CheckStatus,
       });
-      return;
+    } else {
+      updateStatus({ id: check.id, status: value as CheckStatus });
     }
-    const cycle: CheckStatus[] = ['완료', '미완료', '진행중'];
-    const currentIdx = cycle.indexOf(check.status);
-    const nextStatus = cycle[(currentIdx + 1) % cycle.length];
-    updateStatus({ id: check.id, status: nextStatus });
   };
-
-  if (!check) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button type="button" onClick={handleClick}
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-dashed border-muted-foreground/20 text-muted-foreground/30 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all cursor-pointer hover:scale-110">
-            <Circle className="size-3.5" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top"><p className="text-xs">클릭하여 완료 처리</p></TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  const statusConfig: Record<CheckStatus, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-    '완료': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30', label: '완료' },
-    '진행중': { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30', label: '진행중' },
-    '미완료': { icon: Circle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/30', label: '미완료' },
-    '해당없음': { icon: Circle, color: 'text-gray-400', bg: 'bg-gray-50 dark:bg-gray-900/30', label: '해당없음' },
-  };
-
-  const cfg = statusConfig[check.status];
-  const Icon = cfg.icon;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" onClick={handleClick}
-          className={cn('flex items-center justify-center w-7 h-7 rounded-lg transition-all cursor-pointer hover:scale-110', cfg.bg, cfg.color)}>
-          <Icon className="size-4" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top"><p className="text-xs">{cfg.label} (클릭하여 변경)</p></TooltipContent>
-    </Tooltip>
+    <Select value={currentStatus ?? ''} onValueChange={handleChange}>
+      <SelectTrigger className={cn(
+        'h-6 w-[80px] text-[11px] border-0 bg-transparent px-1',
+        config?.color ?? 'text-muted-foreground/40'
+      )}>
+        <div className="flex items-center gap-1">
+          <StatusIcon className="size-3" />
+          <span>{config?.label ?? '미체크'}</span>
+        </div>
+      </SelectTrigger>
+      <SelectContent position="popper" className="min-w-[100px]">
+        {CHECK_STATUSES.map((s) => {
+          const sc = CHECK_STATUS_CONFIG[s];
+          const SI = sc.icon;
+          return (
+            <SelectItem key={s} value={s}>
+              <div className="flex items-center gap-1.5">
+                <SI className={cn('size-3', sc.color)} />
+                {sc.label}
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -521,7 +530,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         <tr
                           className={cn(
                             'border-b border-border/60 cursor-pointer hover:bg-accent/20 transition-colors h-8',
-                            allDone && 'bg-emerald-50/30 dark:bg-emerald-950/10'
+                            allDone && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
                           )}
                           onClick={() => toggleGroup(group.task.id)}
                         >
@@ -533,14 +542,22 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             }
                           </td>
                           {/* Task Name + Badges */}
-                          <td className="px-2 py-0.5">
+                          <td className={cn(
+                            'px-2 py-0.5',
+                            allDone && 'border-l-[3px] border-l-emerald-400'
+                          )}>
                             <div className="flex items-center gap-1 min-w-0">
+                              {allDone && (
+                                <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                  <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                              )}
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', freqCfg.color, freqCfg.bg)}>
                                 {freqCfg.label}
                               </Badge>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="text-[11px] font-semibold truncate cursor-default">{group.task.task_name}</span>
+                                  <span className={cn('text-[11px] font-semibold truncate cursor-default', allDone && 'text-emerald-800 dark:text-emerald-300')}>{group.task.task_name}</span>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-[300px]">
                                   <p className="text-xs font-medium">{group.task.task_name}</p>
@@ -614,19 +631,32 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         </tr>
 
                         {/* Campaign Rows (collapsed/expanded) */}
-                        {!isCollapsed && group.rows.map((row) => (
+                        {!isCollapsed && group.rows.map((row) => {
+                          const rowCompleted = row.check?.status === '완료' || row.onceCompleted;
+                          return (
                           <tr
                             key={`${row.campaign.id}:${row.task.id}`}
                             className={cn(
                               'border-b border-border/30 hover:bg-accent/10 transition-colors h-7',
-                              (row.check?.status === '완료' || row.onceCompleted) && 'bg-emerald-50/20 dark:bg-emerald-950/5',
+                              rowCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent',
                               row.onceCompleted && 'opacity-60'
                             )}
                           >
                             <td className="px-2 py-0.5"></td>
-                            <td className="px-2 py-0.5">
+                            <td className={cn(
+                              'px-2 py-0.5',
+                              rowCompleted && 'border-l-[3px] border-l-emerald-400'
+                            )}>
                               <div className="flex items-center gap-1 pl-4 min-w-0">
-                                <span className={cn('text-[10px] truncate', row.onceCompleted ? 'text-muted-foreground line-through' : 'text-foreground/80')}>
+                                {rowCompleted && !row.onceCompleted && (
+                                  <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                    <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
+                                  </div>
+                                )}
+                                <span className={cn(
+                                  'text-[10px] truncate',
+                                  row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-emerald-800 dark:text-emerald-300 font-medium' : 'text-foreground/80'
+                                )}>
                                   {row.campaign.campaign_name}
                                 </span>
                                 {row.onceCompleted && (
@@ -642,16 +672,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             <td className="px-2 py-0.5 text-center">
                               <div className="flex items-center justify-center">
                                 {row.onceCompleted ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
-                                        <CheckCircle2 className="size-3.5" />
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top"><p className="text-xs">1회성 완료 (변경 불가)</p></TooltipContent>
-                                  </Tooltip>
+                                  <div className="flex items-center gap-1 text-[11px] text-emerald-600">
+                                    <CheckCircle2 className="size-3" />
+                                    <span>완료</span>
+                                  </div>
                                 ) : (
-                                  <PeriodicStatusButton
+                                  <PeriodicStatusSelect
                                     check={row.check}
                                     campaignId={row.campaign.id}
                                     taskId={row.task.id}
@@ -693,7 +719,8 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               )}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </Fragment>
                     );
                   })}
