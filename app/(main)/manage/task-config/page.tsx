@@ -215,15 +215,14 @@ function TaskConfigMatrix({
                   <th
                     key={task.id}
                     className={cn(
-                      'p-0.5 border-r min-w-[48px] max-w-[48px] bg-muted/30',
+                      'p-1 border-r min-w-[64px] max-w-[64px] bg-muted/30 align-bottom',
                       idx === catTasks.length - 1 && 'border-r-2'
                     )}
                   >
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
-                          className="h-[90px] flex items-end justify-center cursor-pointer text-[9px] leading-[1.3] overflow-hidden px-0.5"
-                          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                          className="text-center cursor-pointer text-[10px] leading-tight font-medium line-clamp-2 hover:text-primary transition-colors"
                           onClick={() => {
                             const allOn = campaigns.every(
                               (c) => getIsApplicable(c.id, task.id)
@@ -244,7 +243,7 @@ function TaskConfigMatrix({
                             하위업무: {childTaskMap.get(task.id)!.map(c => c.task_name).join(', ')}
                           </p>
                         )}
-                        <p className="text-[10px] text-muted-foreground">클릭하여 전체 토글</p>
+                        <p className="text-[10px] text-blue-400 mt-0.5">클릭하여 전체 토글</p>
                       </TooltipContent>
                     </Tooltip>
                   </th>
@@ -253,9 +252,15 @@ function TaskConfigMatrix({
             </tr>
           </thead>
           <tbody>
-            {campaigns.map((campaign) => (
-              <tr key={campaign.id} className="border-b hover:bg-muted/30">
-                <td className="sticky left-0 z-10 bg-background border-r p-1 min-w-[180px] max-w-[180px]">
+            {campaigns.map((campaign, rowIdx) => (
+              <tr key={campaign.id} className={cn(
+                'border-b hover:bg-muted/40 transition-colors',
+                rowIdx % 2 === 1 && 'bg-muted/15'
+              )}>
+                <td className={cn(
+                  'sticky left-0 z-10 border-r p-1 min-w-[180px] max-w-[180px]',
+                  rowIdx % 2 === 1 ? 'bg-muted/15' : 'bg-background'
+                )}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1.5">
