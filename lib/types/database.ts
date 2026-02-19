@@ -121,6 +121,7 @@ export interface ProjectTask {
   due_date: string | null;
   sort_order: number;
   memo: string | null;
+  result_value: string | null;
   created_at: string;
   updated_at: string;
 }

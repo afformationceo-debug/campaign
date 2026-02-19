@@ -146,6 +146,7 @@ interface UpdateProjectTaskInput {
   due_date?: string | null;
   sort_order?: number;
   memo?: string | null;
+  result_value?: string | null;
 }
 
 export function useCreateProjectTask() {

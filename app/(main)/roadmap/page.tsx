@@ -808,7 +808,7 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full table-fixed text-[12px] min-w-[860px]">
+          <table className="w-full table-fixed text-[12px] min-w-[980px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="w-[20px] px-1 py-1.5"></th>
@@ -826,6 +826,7 @@ export default function RoadmapPage() {
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[68px]">진행률</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">시작일</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">마감일</th>
+                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[120px]">결과값</th>
                 <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[120px]">메모</th>
                 <th className="w-[32px] px-1 py-1.5"></th>
               </tr>
@@ -964,6 +965,8 @@ export default function RoadmapPage() {
                           onSave={(v) => saveProjectField(project.id, 'due_date', v)}
                         />
                       </td>
+                      {/* Result Value - empty for projects */}
+                      <td className="px-2 py-1"></td>
                       {/* Memo */}
                       <td className="px-2 py-1 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <InlineMemoCell
@@ -1091,6 +1094,17 @@ export default function RoadmapPage() {
                               onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)}
                             />
                           </td>
+                          {/* Result Value */}
+                          <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                            <InlineTextCell
+                              value={task.result_value ?? ''}
+                              isEditing={isEditing(task.id, 'result_value')}
+                              onStartEdit={() => startEdit(task.id, 'result_value', 'task', project.id)}
+                              onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)}
+                              className="text-[11px]"
+                              placeholder="결과값 입력..."
+                            />
+                          </td>
                           {/* Memo */}
                           <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                             <InlineMemoCell
@@ -1118,7 +1132,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-2"></td>
                         <td className="px-2 py-2"></td>
                         <td className="px-1 py-2"></td>
-                        <td className="px-2 py-2 pl-8" colSpan={8}>
+                        <td className="px-2 py-2 pl-8" colSpan={9}>
                           <span className="text-[11px] text-muted-foreground/40 italic">하위 업무가 없습니다. 아래에서 추가해보세요.</span>
                         </td>
                       </tr>
@@ -1129,7 +1143,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={8}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={9}>
                           <div className="flex items-center gap-1.5">
                             <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                             <input
@@ -1160,7 +1174,7 @@ export default function RoadmapPage() {
                 <td className="px-1 py-1.5">
                   <Plus className="size-3.5 text-muted-foreground/30" />
                 </td>
-                <td className="px-2 py-1.5" colSpan={8}>
+                <td className="px-2 py-1.5" colSpan={9}>
                   <input
                     className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
                     placeholder="새 프로젝트 추가... (Enter로 생성)"
