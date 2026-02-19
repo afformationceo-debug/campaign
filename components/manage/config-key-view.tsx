@@ -245,7 +245,6 @@ export function ConfigKeyView() {
 
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState<string>('all');
-  const [showMode, setShowMode] = useState<'all' | 'incomplete'>('incomplete');
   const [editingItem, setEditingItem] = useState<{ campaignId: string; configKey: string } | null>(null);
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
@@ -489,30 +488,6 @@ export function ConfigKeyView() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5 gap-0.5">
-            <button
-              className={cn(
-                'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                showMode === 'incomplete'
-                  ? 'bg-background shadow-sm text-red-600'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              onClick={() => setShowMode('incomplete')}
-            >
-              미완료 중심
-            </button>
-            <button
-              className={cn(
-                'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                showMode === 'all'
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              onClick={() => setShowMode('all')}
-            >
-              전체 보기
-            </button>
-          </div>
           <Badge variant="secondary" className="text-xs ml-auto">
             {campaigns.length}개 캠페인
           </Badge>
@@ -629,7 +604,7 @@ export function ConfigKeyView() {
                           <div className="px-4 pb-3 bg-muted/10">
                             <div className="ml-9 space-y-2 pt-2">
                               {/* Incomplete campaigns */}
-                              {(showMode === 'incomplete' || showMode === 'all') && stat.incomplete.length > 0 && (
+                              {stat.incomplete.length > 0 && (
                                 <div>
                                   <div className="flex items-center gap-1.5 mb-1.5">
                                     <XCircle className="size-3 text-red-500" />
@@ -717,7 +692,7 @@ export function ConfigKeyView() {
                               )}
 
                               {/* Completed campaigns */}
-                              {showMode === 'all' && stat.completed.length > 0 && (
+                              {stat.completed.length > 0 && (
                                 <div>
                                   <div className="flex items-center gap-1.5 mb-1.5">
                                     <CheckCircle2 className="size-3 text-emerald-500" />
@@ -815,7 +790,7 @@ export function ConfigKeyView() {
                                 </div>
                               )}
 
-                              {showMode === 'incomplete' && stat.incomplete.length === 0 && (
+                              {stat.incomplete.length === 0 && stat.completed.length > 0 && (
                                 <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                                   <CheckCircle2 className="size-3.5" />
                                   모든 캠페인이 완료되었습니다
