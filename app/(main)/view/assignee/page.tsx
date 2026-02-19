@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
+import { Bot } from 'lucide-react';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
 import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
@@ -60,6 +61,29 @@ export default function AssigneeViewPage() {
         <p className="text-sm text-muted-foreground mt-1">
           담당자가 맡은 캠페인의 업무 진행 상황을 한눈에 확인하고 체크할 수 있습니다.
         </p>
+      </motion.div>
+
+      {/* AI Guide Banner */}
+      <motion.div variants={fadeUpItem}>
+        <div className="relative rounded-xl border border-blue-100 dark:border-blue-900/30 bg-gradient-to-r from-blue-50/80 via-sky-50/50 to-transparent dark:from-blue-950/30 dark:via-sky-950/20 dark:to-transparent px-4 py-3 overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-100/40 to-transparent dark:from-blue-900/20 rounded-bl-full" />
+          <div className="flex gap-3 items-start relative">
+            <div className="size-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+              <Bot className="size-3.5 text-white" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <p className="text-[12px] font-semibold text-blue-900 dark:text-blue-200">
+                업무 유형 안내
+              </p>
+              <div className="text-[11px] text-blue-800/70 dark:text-blue-300/70 leading-[1.6] space-y-0.5">
+                <p><strong className="text-violet-700 dark:text-violet-300">전역 업무</strong> — 캠페인 관계없이 발생할 때마다 처리하는 업무입니다. (담당자별로 배정됩니다)</p>
+                <p><strong className="text-blue-700 dark:text-blue-300">일일 캠페인별 업무</strong> — 매일 각 캠페인마다 체크해야 하는 업무입니다.</p>
+                <p><strong className="text-amber-700 dark:text-amber-300">월간/주기별 업무</strong> — 월마다 한 번씩 생성되는 업무이며, 해당 월에 완료하면 됩니다.</p>
+                <p><strong className="text-rose-700 dark:text-rose-300">1회성 업무</strong> — 한 번만 수행하면 완료되는 업무입니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Filter Bar */}

@@ -306,6 +306,37 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     return filteredTasks.filter((t) => t.scope === 'global');
   }, [filteredTasks]);
 
+  // Group global tasks by assignee for better visibility
+  const globalTasksByAssignee = useMemo(() => {
+    const groups: { assignee: string; tasks: Task[] }[] = [];
+    const assigneeMap = new Map<string, Task[]>();
+
+    globalTasks.forEach((task) => {
+      if (!task.default_assignees || task.default_assignees.length === 0) {
+        const key = '전체';
+        if (!assigneeMap.has(key)) assigneeMap.set(key, []);
+        assigneeMap.get(key)!.push(task);
+      } else {
+        task.default_assignees.forEach((name) => {
+          const key = name.trim();
+          if (!assigneeMap.has(key)) assigneeMap.set(key, []);
+          assigneeMap.get(key)!.push(task);
+        });
+      }
+    });
+
+    // '전체' first, then alphabetical
+    if (assigneeMap.has('전체')) {
+      groups.push({ assignee: '전체', tasks: assigneeMap.get('전체')! });
+    }
+    Array.from(assigneeMap.entries())
+      .filter(([key]) => key !== '전체')
+      .sort(([a], [b]) => a.localeCompare(b, 'ko'))
+      .forEach(([assignee, tasks]) => groups.push({ assignee, tasks }));
+
+    return groups;
+  }, [globalTasks]);
+
   // Group campaign-scope tasks by category in CATEGORY_ORDER
   const taskGroups = useMemo(() => {
     const groups: { category: TaskCategory; tasks: Task[] }[] = [];
@@ -420,7 +451,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
 
   return (
     <div className="space-y-6">
-    {/* Global Tasks Section (table layout) */}
+    {/* Global Tasks Section (table layout, grouped by assignee) */}
     {globalTasks.length > 0 && (
       <TooltipProvider>
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -445,69 +476,94 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             </tr>
           </thead>
           <tbody>
-            {globalTasks.map((task) => {
-              const check = checkMap.get(`null:${task.id}`) ?? null;
-              const assignees = task.default_assignees?.join(', ') || null;
-              const catColor = CATEGORY_COLORS[task.category];
-              const isCompleted = check?.status === '완료';
-              return (
-                <tr key={task.id} className={cn(
-                  'border-b border-border/30 hover:bg-muted/20 transition-colors h-7',
-                  isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
-                )}>
-                  <td className={cn(
-                    'px-2 py-0 max-w-0',
-                    isCompleted && 'border-l-[3px] border-l-emerald-400'
-                  )}>
-                    <div className="flex items-center gap-1.5">
-                      {isCompleted && (
-                        <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                          <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+            {globalTasksByAssignee.map((group) => (
+              <Fragment key={group.assignee}>
+                {/* Assignee Group Header */}
+                {globalTasksByAssignee.length > 1 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-2 py-1 bg-violet-50/50 dark:bg-violet-950/10 border-b border-violet-100 dark:border-violet-900/30"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <div className="size-4 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                          <span className="text-[9px] font-bold text-violet-600 dark:text-violet-400">
+                            {group.assignee === '전체' ? 'A' : group.assignee.charAt(0)}
+                          </span>
                         </div>
-                      )}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className={cn('text-[11px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[300px]">
-                          <p className="text-xs font-medium">{task.task_name}</p>
-                          {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </td>
-                  <td className="px-2 py-0">
-                    <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
-                      {task.category}
-                    </Badge>
-                  </td>
-                  <td className="px-2 py-0">
-                    <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
-                  </td>
-                  <td className="px-2 py-0">
-                    <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
-                  </td>
-                  <td className="px-2 py-0">
-                    <div className="flex items-center justify-center">
-                      <GlobalStatusSelect
-                        check={check}
-                        taskId={task.id}
-                        date={date}
-                        assigneeId={effectiveUserId}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-2 py-0">
-                    <ResultValueInput
-                      check={check}
-                      taskId={task.id}
-                      date={date}
-                      assigneeId={effectiveUserId}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+                        <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+                          {group.assignee}
+                        </span>
+                        <span className="text-[9px] text-violet-500/60 ml-1">{group.tasks.length}건</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {group.tasks.map((task) => {
+                  const check = checkMap.get(`null:${task.id}`) ?? null;
+                  const assignees = task.default_assignees?.join(', ') || null;
+                  const catColor = CATEGORY_COLORS[task.category];
+                  const isCompleted = check?.status === '완료';
+                  return (
+                    <tr key={`${group.assignee}-${task.id}`} className={cn(
+                      'border-b border-border/30 hover:bg-muted/20 transition-colors h-7',
+                      isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                    )}>
+                      <td className={cn(
+                        'px-2 py-0 max-w-0',
+                        isCompleted && 'border-l-[3px] border-l-emerald-400'
+                      )}>
+                        <div className="flex items-center gap-1.5">
+                          {isCompleted && (
+                            <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={cn('text-[11px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[300px]">
+                              <p className="text-xs font-medium">{task.task_name}</p>
+                              {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </td>
+                      <td className="px-2 py-0">
+                        <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                          {task.category}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-0">
+                        <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
+                      </td>
+                      <td className="px-2 py-0">
+                        <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                      </td>
+                      <td className="px-2 py-0">
+                        <div className="flex items-center justify-center">
+                          <GlobalStatusSelect
+                            check={check}
+                            taskId={task.id}
+                            date={date}
+                            assigneeId={effectiveUserId}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-2 py-0">
+                        <ResultValueInput
+                          check={check}
+                          taskId={task.id}
+                          date={date}
+                          assigneeId={effectiveUserId}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>

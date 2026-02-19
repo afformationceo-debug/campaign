@@ -30,6 +30,7 @@ import {
   Eye,
   EyeOff,
   Layers,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -906,6 +907,26 @@ export default function RoadmapPage() {
           <Plus className="size-3.5" />
           새 프로젝트
         </Button>
+      </div>
+
+      {/* AI Guide Banner */}
+      <div className="relative rounded-xl border border-indigo-100 dark:border-indigo-900/30 bg-gradient-to-r from-indigo-50/80 via-violet-50/50 to-transparent dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-transparent px-4 py-3 overflow-hidden">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-100/40 to-transparent dark:from-indigo-900/20 rounded-bl-full" />
+        <div className="flex gap-3 items-start relative">
+          <div className="size-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            <Bot className="size-3.5 text-white" />
+          </div>
+          <div className="space-y-1 min-w-0">
+            <p className="text-[12px] font-semibold text-indigo-900 dark:text-indigo-200">
+              어포메이션 프로젝트 관리 가이드
+            </p>
+            <div className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-[1.6] space-y-0.5">
+              <p><strong className="text-indigo-900 dark:text-indigo-200">상위 프로젝트</strong>는 큰 목표(예: 신규 캠페인 런칭, 시스템 개선)를 적어주세요.</p>
+              <p><strong className="text-indigo-900 dark:text-indigo-200">하위 업무</strong>에는 그 목표를 달성하기 위한 구체적 액션 아이템을 등록합니다.</p>
+              <p className="text-[10px] text-indigo-600/50 dark:text-indigo-400/40 pt-0.5">상위 프로젝트만 늘리지 말고, 하나의 프로젝트 아래 실행 가능한 업무를 체계적으로 관리해 주세요.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats - Compact inline */}
