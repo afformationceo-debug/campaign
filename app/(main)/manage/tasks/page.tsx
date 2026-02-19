@@ -3,7 +3,7 @@
 import { Fragment, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Pencil, Plus, Trash2, ChevronsUpDown, X, ChevronDown, ChevronRight, CornerDownRight } from 'lucide-react';
+import { Pencil, Plus, Trash2, ChevronsUpDown, X, ChevronDown, ChevronRight, CornerDownRight, Bot } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -301,6 +301,37 @@ export default function TasksPage() {
           <Plus className="h-4 w-4 mr-2" />
           새 업무
         </Button>
+      </motion.div>
+
+      {/* AI Agent Guide Banner */}
+      <motion.div variants={fadeUpItem}>
+        <div className="relative rounded-xl border border-purple-100 dark:border-purple-900/30 bg-gradient-to-r from-purple-50/80 via-fuchsia-50/50 to-transparent dark:from-purple-950/30 dark:via-fuchsia-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100/30 to-transparent dark:from-purple-900/15 rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-fuchsia-100/20 to-transparent dark:from-fuchsia-900/10 rounded-tr-full" />
+          <div className="flex gap-3 items-start relative">
+            <div className="relative shrink-0 mt-0.5">
+              <div className="size-9 rounded-full bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-600 flex items-center justify-center shadow-md shadow-purple-200/50 dark:shadow-purple-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                <Bot className="size-4 text-white" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-bold text-purple-900 dark:text-purple-200">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-purple-500/60 dark:text-purple-400/50 bg-purple-100/60 dark:bg-purple-900/30 px-1.5 py-0.5 rounded-full">행위 관리 가이드</span>
+              </div>
+              <div className="text-[11px] text-purple-800/80 dark:text-purple-300/70 leading-[1.7] space-y-1">
+                <p>안녕하세요, 어포메이션 임직원 여러분! 행위(업무) 관리 페이지를 안내해 드립니다.</p>
+                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-purple-100/50 dark:border-purple-800/20">
+                  <p>여기서 등록하는 <strong className="text-purple-700 dark:text-purple-300">업무 항목</strong>이 담당자별 일일 체크에 반영됩니다.</p>
+                  <p><strong className="text-fuchsia-700 dark:text-fuchsia-300">카테고리, 주기, 범위(전역/캠페인별)</strong>를 정확히 설정해야 올바른 업무가 올바른 대상에게 보입니다.</p>
+                  <p><strong className="text-pink-700 dark:text-pink-300">하위 업무</strong>를 활용하면 큰 업무를 세부 단계로 분리하여 관리할 수 있습니다.</p>
+                </div>
+                <p className="text-[10px] text-purple-600/60 dark:text-purple-400/40">업무 항목의 변경은 곧바로 모든 체크리스트에 반영되니 신중하게 관리해 주세요!</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {isLoading ? (

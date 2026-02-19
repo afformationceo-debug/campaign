@@ -14,6 +14,7 @@ import {
   Trash2,
   Check,
   ChevronsUpDown,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -579,6 +580,36 @@ export default function CampaignQaPage() {
           <p className="text-sm text-muted-foreground mt-1">
             캠페인별 요청사항, 불만사항 등 QA 이슈를 체계적으로 관리합니다.
           </p>
+        </motion.div>
+
+        {/* AI Agent Guide Banner */}
+        <motion.div variants={fadeUpItem}>
+          <div className="relative rounded-xl border border-orange-100 dark:border-orange-900/30 bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/30 dark:via-amber-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-orange-100/30 to-transparent dark:from-orange-900/15 rounded-bl-full" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-amber-100/20 to-transparent dark:from-amber-900/10 rounded-tr-full" />
+            <div className="flex gap-3 items-start relative">
+              <div className="relative shrink-0 mt-0.5">
+                <div className="size-9 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-red-600 flex items-center justify-center shadow-md shadow-orange-200/50 dark:shadow-orange-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                  <Bot className="size-4 text-white" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[12px] font-bold text-orange-900 dark:text-orange-200">어포메이션 본질 AI Agent</p>
+                  <span className="text-[9px] font-medium text-orange-500/60 dark:text-orange-400/50 bg-orange-100/60 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full">QA 관리 가이드</span>
+                </div>
+                <div className="text-[11px] text-orange-800/80 dark:text-orange-300/70 leading-[1.7] space-y-1">
+                  <p>안녕하세요, 어포메이션 임직원 여러분! QA 관리 페이지를 안내해 드립니다.</p>
+                  <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-orange-100/50 dark:border-orange-800/20">
+                    <p>캠페인 진행 중 발생하는 <strong className="text-orange-700 dark:text-orange-300">요청사항, 불만사항, 개선사항, 버그</strong> 등을 이곳에 등록해 주세요.</p>
+                    <p><strong className="text-red-700 dark:text-red-300">우선순위</strong>를 정확히 설정하면 긴급한 이슈부터 빠르게 처리할 수 있습니다.</p>
+                  </div>
+                  <p className="text-[10px] text-orange-600/60 dark:text-orange-400/40">QA를 꼼꼼하게 관리하면 고객 만족도가 크게 향상됩니다!</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}

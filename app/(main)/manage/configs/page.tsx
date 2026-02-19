@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList, Bot } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -965,6 +965,36 @@ export default function ConfigsPage() {
             className="hidden"
             onChange={handleAllCsvUpload}
           />
+        </div>
+      </motion.div>
+
+      {/* AI Agent Guide Banner */}
+      <motion.div variants={fadeUpItem}>
+        <div className="relative rounded-xl border border-slate-200 dark:border-slate-800/50 bg-gradient-to-r from-slate-50/80 via-gray-50/50 to-transparent dark:from-slate-950/30 dark:via-gray-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-slate-100/30 to-transparent dark:from-slate-900/15 rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-gray-100/20 to-transparent dark:from-gray-900/10 rounded-tr-full" />
+          <div className="flex gap-3 items-start relative">
+            <div className="relative shrink-0 mt-0.5">
+              <div className="size-9 rounded-full bg-gradient-to-br from-slate-500 via-gray-500 to-zinc-600 flex items-center justify-center shadow-md shadow-slate-200/50 dark:shadow-slate-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                <Bot className="size-4 text-white" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-bold text-slate-900 dark:text-slate-200">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-slate-500/60 dark:text-slate-400/50 bg-slate-100/60 dark:bg-slate-800/30 px-1.5 py-0.5 rounded-full">캠페인 세팅 가이드</span>
+              </div>
+              <div className="text-[11px] text-slate-800/80 dark:text-slate-300/70 leading-[1.7] space-y-1">
+                <p>안녕하세요, 어포메이션 임직원 여러분! 캠페인 세팅 페이지를 안내해 드립니다.</p>
+                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-slate-200/50 dark:border-slate-700/20">
+                  <p>각 캠페인의 <strong className="text-slate-700 dark:text-slate-300">SNS URL, 플랫폼 ID/PW, 지식베이스, CRM 연동</strong> 등의 세팅 항목을 관리합니다.</p>
+                  <p><strong className="text-gray-700 dark:text-gray-300">대시보드 뷰</strong>에서 전체 캠페인의 세팅 현황을 한눈에 확인할 수 있으며, <strong className="text-gray-700 dark:text-gray-300">CSV 내보내기/가져오기</strong>도 지원합니다.</p>
+                </div>
+                <p className="text-[10px] text-slate-600/60 dark:text-slate-400/40">세팅 항목이 누락되면 캠페인 운영에 차질이 생길 수 있으니 빠짐없이 입력해 주세요!</p>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
 

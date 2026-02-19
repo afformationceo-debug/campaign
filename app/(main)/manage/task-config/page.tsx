@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Filter, ToggleLeft, Rows3 } from 'lucide-react';
+import { Filter, ToggleLeft, Rows3, Bot } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -846,6 +846,36 @@ export default function TaskConfigPage() {
           <p className="text-muted-foreground text-sm mt-1">
             캠페인별/전역 업무 적용 여부를 유형별로 구분하여 설정합니다.
           </p>
+        </motion.div>
+
+        {/* AI Agent Guide Banner */}
+        <motion.div variants={fadeUpItem}>
+          <div className="relative rounded-xl border border-amber-100 dark:border-amber-900/30 bg-gradient-to-r from-amber-50/80 via-yellow-50/50 to-transparent dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-100/30 to-transparent dark:from-amber-900/15 rounded-bl-full" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-yellow-100/20 to-transparent dark:from-yellow-900/10 rounded-tr-full" />
+            <div className="flex gap-3 items-start relative">
+              <div className="relative shrink-0 mt-0.5">
+                <div className="size-9 rounded-full bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-200/50 dark:shadow-amber-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                  <Bot className="size-4 text-white" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[12px] font-bold text-amber-900 dark:text-amber-200">어포메이션 본질 AI Agent</p>
+                  <span className="text-[9px] font-medium text-amber-500/60 dark:text-amber-400/50 bg-amber-100/60 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">적용설정 가이드</span>
+                </div>
+                <div className="text-[11px] text-amber-800/80 dark:text-amber-300/70 leading-[1.7] space-y-1">
+                  <p>안녕하세요, 어포메이션 임직원 여러분! Task 적용설정 페이지를 안내해 드립니다.</p>
+                  <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-amber-100/50 dark:border-amber-800/20">
+                    <p>행위 관리에서 등록한 업무가 <strong className="text-amber-700 dark:text-amber-300">어느 캠페인에 적용될지</strong>를 이 페이지에서 ON/OFF 합니다.</p>
+                    <p><strong className="text-orange-700 dark:text-orange-300">토글을 켜면</strong> 해당 캠페인의 일일 체크리스트에 업무가 나타나고, <strong className="text-orange-700 dark:text-orange-300">끄면</strong> 숨겨집니다.</p>
+                  </div>
+                  <p className="text-[10px] text-amber-600/60 dark:text-amber-400/40">새 캠페인 추가 시 필요한 업무를 여기서 활성화하는 것을 잊지 마세요!</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Filters (only for campaign-scope tabs) */}

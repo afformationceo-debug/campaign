@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Pencil, UserPlus } from 'lucide-react';
+import { Pencil, UserPlus, Bot } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { inviteUser } from '@/app/actions/invite-user';
 import { createClient } from '@/lib/supabase/client';
@@ -276,6 +276,36 @@ export default function UsersPage() {
           <UserPlus className="h-4 w-4 mr-2" />
           새 담당자 초대
         </Button>
+      </motion.div>
+
+      {/* AI Agent Guide Banner */}
+      <motion.div variants={fadeUpItem}>
+        <div className="relative rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-gradient-to-r from-emerald-50/80 via-green-50/50 to-transparent dark:from-emerald-950/30 dark:via-green-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-100/30 to-transparent dark:from-emerald-900/15 rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-green-100/20 to-transparent dark:from-green-900/10 rounded-tr-full" />
+          <div className="flex gap-3 items-start relative">
+            <div className="relative shrink-0 mt-0.5">
+              <div className="size-9 rounded-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200/50 dark:shadow-emerald-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                <Bot className="size-4 text-white" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-bold text-emerald-900 dark:text-emerald-200">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-emerald-500/60 dark:text-emerald-400/50 bg-emerald-100/60 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">담당자 관리 가이드</span>
+              </div>
+              <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/70 leading-[1.7] space-y-1">
+                <p>안녕하세요, 어포메이션 임직원 여러분! 담당자 관리 페이지를 안내해 드립니다.</p>
+                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-emerald-100/50 dark:border-emerald-800/20">
+                  <p>이 페이지에서 <strong className="text-emerald-700 dark:text-emerald-300">팀 구성원을 초대하고 역할(관리자/멤버)을 설정</strong>합니다.</p>
+                  <p><strong className="text-green-700 dark:text-green-300">비활성화</strong>하면 해당 담당자가 시스템에서 숨겨지며, 업무 배정에서 제외됩니다.</p>
+                </div>
+                <p className="text-[10px] text-emerald-600/60 dark:text-emerald-400/40">정확한 담당자 정보가 업무 배정과 일일 체크의 기반이 됩니다!</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {isLoading ? (

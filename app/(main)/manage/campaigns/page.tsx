@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, ExternalLink, Bot } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -468,9 +468,38 @@ export default function CampaignsPage() {
           </p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="rounded-lg">
-          <Plus className="h-4 w-4" />
-          새 캠페인
+          <Plus className="size-4 mr-1" /> 캠페인 추가
         </Button>
+      </motion.div>
+
+      {/* AI Agent Guide Banner */}
+      <motion.div variants={fadeUpItem}>
+        <div className="relative rounded-xl border border-teal-100 dark:border-teal-900/30 bg-gradient-to-r from-teal-50/80 via-cyan-50/50 to-transparent dark:from-teal-950/30 dark:via-cyan-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-teal-100/30 to-transparent dark:from-teal-900/15 rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-cyan-100/20 to-transparent dark:from-cyan-900/10 rounded-tr-full" />
+          <div className="flex gap-3 items-start relative">
+            <div className="relative shrink-0 mt-0.5">
+              <div className="size-9 rounded-full bg-gradient-to-br from-teal-500 via-cyan-500 to-emerald-600 flex items-center justify-center shadow-md shadow-teal-200/50 dark:shadow-teal-900/30 ring-2 ring-white/80 dark:ring-white/10">
+                <Bot className="size-4 text-white" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] font-bold text-teal-900 dark:text-teal-200">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-teal-500/60 dark:text-teal-400/50 bg-teal-100/60 dark:bg-teal-900/30 px-1.5 py-0.5 rounded-full">캠페인 관리 가이드</span>
+              </div>
+              <div className="text-[11px] text-teal-800/80 dark:text-teal-300/70 leading-[1.7] space-y-1">
+                <p>안녕하세요, 어포메이션 임직원 여러분! 캠페인 관리 페이지 안내를 드립니다.</p>
+                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-teal-100/50 dark:border-teal-800/20">
+                  <p>이 페이지에서는 <strong className="text-teal-700 dark:text-teal-300">캠페인의 등록, 수정, 삭제</strong>를 관리합니다.</p>
+                  <p>셀을 <strong className="text-cyan-700 dark:text-cyan-300">직접 클릭</strong>하면 해당 항목을 즉시 수정할 수 있으며, 상태/단계/통역 등의 정보를 정확히 유지해 주세요.</p>
+                </div>
+                <p className="text-[10px] text-teal-600/60 dark:text-teal-400/40">캠페인 정보가 정확해야 모든 업무 체크와 리포트가 올바르게 작동합니다!</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Search & Filter */}
