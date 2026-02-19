@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Pencil, Plus, Trash2, ChevronsUpDown, X } from 'lucide-react';
+import { Pencil, Plus, Trash2, ChevronsUpDown, X, ChevronDown, ChevronRight, CornerDownRight } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DataTable, type ColumnDef } from '@/components/manage/data-table';
+// DataTable not used for hierarchical task display
 import type { Task, TaskCategory, TaskFrequency, TaskScope, User } from '@/lib/types/database';
 
 const FREQUENCY_CONFIG: Record<TaskFrequency, { label: string; className: string }> = {
@@ -55,6 +55,8 @@ interface TaskFormData {
   loop_order: string;
   default_assignees: string[];
   scope: TaskScope;
+  parent_task_id: string | null;
+  sub_order: number;
 }
 
 export default function TasksPage() {
@@ -73,8 +75,11 @@ export default function TasksPage() {
     loop_order: '',
     default_assignees: [],
     scope: 'campaign',
+    parent_task_id: null,
+    sub_order: 0,
   });
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   // Fetch active users for assignee selection
   const { data: activeUsers = [] } = useQuery({
@@ -105,7 +110,7 @@ export default function TasksPage() {
   const createMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
       const assigneesArr = data.default_assignees.length > 0 ? data.default_assignees : null;
-      const { error } = await supabase.from('tasks').insert({
+      const payload: Record<string, unknown> = {
         task_name: data.task_name,
         description: data.description || null,
         tool: data.tool || null,
@@ -115,7 +120,12 @@ export default function TasksPage() {
         default_assignees: assigneesArr,
         is_applicable_default: true,
         scope: data.scope,
-      });
+      };
+      if (data.parent_task_id) {
+        payload.parent_task_id = data.parent_task_id;
+        payload.sub_order = data.sub_order;
+      }
+      const { error } = await supabase.from('tasks').insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -161,6 +171,28 @@ export default function TasksPage() {
     },
   });
 
+  // Build hierarchy
+  const { topLevelTasks, childTaskMap } = useMemo(() => {
+    const top = tasks.filter((t) => !t.parent_task_id);
+    const childMap = new Map<string, Task[]>();
+    tasks.filter((t) => t.parent_task_id).forEach((t) => {
+      const children = childMap.get(t.parent_task_id!) ?? [];
+      children.push(t);
+      childMap.set(t.parent_task_id!, children);
+    });
+    childMap.forEach((children) => children.sort((a, b) => a.sub_order - b.sub_order));
+    return { topLevelTasks: top, childTaskMap: childMap };
+  }, [tasks]);
+
+  const toggleParentExpand = (taskId: string) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
   const openCreateDialog = () => {
     setEditingTask(null);
     setFormData({
@@ -169,9 +201,32 @@ export default function TasksPage() {
       tool: '',
       category: '보고',
       frequency: 'daily',
-      loop_order: String((tasks.length > 0 ? Math.max(...tasks.map((t) => t.loop_order)) : 0) + 1),
+      loop_order: String((topLevelTasks.length > 0 ? Math.max(...topLevelTasks.map((t) => t.loop_order)) : 0) + 1),
       default_assignees: [],
       scope: 'campaign',
+      parent_task_id: null,
+      sub_order: 0,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openCreateSubTaskDialog = (parentTask: Task) => {
+    const existingChildren = childTaskMap.get(parentTask.id) ?? [];
+    const nextSubOrder = existingChildren.length > 0
+      ? Math.max(...existingChildren.map((c) => c.sub_order)) + 1
+      : 1;
+    setEditingTask(null);
+    setFormData({
+      task_name: '',
+      description: '',
+      tool: parentTask.tool ?? '',
+      category: parentTask.category,
+      frequency: parentTask.frequency,
+      loop_order: String(parentTask.loop_order),
+      default_assignees: parentTask.default_assignees ?? [],
+      scope: parentTask.scope,
+      parent_task_id: parentTask.id,
+      sub_order: nextSubOrder,
     });
     setIsDialogOpen(true);
   };
@@ -187,6 +242,8 @@ export default function TasksPage() {
       loop_order: String(task.loop_order),
       default_assignees: task.default_assignees ?? [],
       scope: task.scope ?? 'campaign',
+      parent_task_id: task.parent_task_id ?? null,
+      sub_order: task.sub_order ?? 0,
     });
     setIsDialogOpen(true);
   };
@@ -204,113 +261,6 @@ export default function TasksPage() {
       createMutation.mutate(formData);
     }
   };
-
-  const columns: ColumnDef<Task>[] = [
-    {
-      key: 'loop_order',
-      header: '#',
-      sortable: true,
-      className: 'w-12',
-      sortValue: (row) => row.loop_order,
-      cell: (row) => (
-        <span className="text-muted-foreground text-xs font-mono">
-          {row.loop_order}
-        </span>
-      ),
-    },
-    {
-      key: 'task_name',
-      header: '업무명',
-      sortable: true,
-      cell: (row) => <span className="font-medium">{row.task_name}</span>,
-    },
-    {
-      key: 'category',
-      header: '카테고리',
-      sortable: true,
-      sortValue: (row) => CATEGORY_ORDER.indexOf(row.category),
-      cell: (row) => {
-        const color = CATEGORY_COLORS[row.category];
-        return (
-          <Badge variant="secondary" className={`${color.bg} ${color.text} ${color.darkBg}`}>
-            {row.category}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'tool',
-      header: '도구',
-      sortable: true,
-      cell: (row) => row.tool ?? '-',
-    },
-    {
-      key: 'default_assignees',
-      header: '기본 담당자',
-      cell: (row) =>
-        row.default_assignees?.length
-          ? row.default_assignees.join(', ')
-          : '-',
-    },
-    {
-      key: 'scope',
-      header: '범위',
-      sortable: true,
-      cell: (row) => (
-        <Badge
-          variant="secondary"
-          className={
-            row.scope === 'global'
-              ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30'
-              : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30'
-          }
-        >
-          {row.scope === 'global' ? '전역' : '캠페인'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'frequency',
-      header: '주기',
-      sortable: true,
-      cell: (row) => {
-        const config = FREQUENCY_CONFIG[row.frequency];
-        return (
-          <Badge variant="secondary" className={config.className}>
-            {config.label}
-          </Badge>
-        );
-      },
-    },
-    {
-      key: 'actions',
-      header: '',
-      className: 'w-20',
-      cell: (row) => (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => openEditDialog(row)}
-          >
-            <Pencil className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="text-red-500 hover:text-red-700"
-            onClick={() => {
-              if (confirm(`"${row.task_name}" 업무를 삭제하시겠습니까?`)) {
-                deleteMutation.mutate(row.id);
-              }
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
 
   if (isAdmin === null) {
     return (
@@ -344,7 +294,7 @@ export default function TasksPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">행위 관리</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            전체 {tasks.length}개 업무 항목을 관리합니다.
+            전체 {topLevelTasks.length}개 업무 (하위 {tasks.length - topLevelTasks.length}개 포함)
           </p>
         </div>
         <Button onClick={openCreateDialog} className="rounded-lg">
@@ -362,12 +312,145 @@ export default function TasksPage() {
         </div>
       ) : (
         <motion.div variants={fadeUpItem}>
-          <DataTable
-            columns={columns}
-            data={tasks}
-            searchKey="task_name"
-            searchPlaceholder="업무명 검색..."
-          />
+          <div className="rounded-lg border bg-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-12">#</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">업무명</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[80px]">카테고리</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[60px]">주기</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[60px]">범위</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">담당자</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[100px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {topLevelTasks.map((task) => {
+                  const children = childTaskMap.get(task.id) ?? [];
+                  const hasChildren = children.length > 0;
+                  const isExpanded = expandedParents.has(task.id);
+                  const color = CATEGORY_COLORS[task.category];
+                  const freq = FREQUENCY_CONFIG[task.frequency];
+
+                  return (
+                    <Fragment key={task.id}>
+                      {/* Parent row */}
+                      <tr className={cn('border-b hover:bg-muted/30 transition-colors', hasChildren && 'bg-muted/10')}>
+                        <td className="px-3 py-2">
+                          <span className="text-muted-foreground text-xs font-mono">{task.loop_order}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {hasChildren && (
+                              <button
+                                type="button"
+                                className="shrink-0 p-0.5 rounded hover:bg-accent"
+                                onClick={() => toggleParentExpand(task.id)}
+                              >
+                                {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                              </button>
+                            )}
+                            <span className="font-medium">{task.task_name}</span>
+                            {hasChildren && (
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                                하위 {children.length}
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="secondary" className={`text-[10px] ${color.bg} ${color.text} ${color.darkBg}`}>
+                            {task.category}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="secondary" className={`text-[10px] ${freq.className}`}>
+                            {freq.label}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="secondary" className={`text-[10px] ${task.scope === 'global' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30' : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30'}`}>
+                            {task.scope === 'global' ? '전역' : '캠페인'}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {task.default_assignees?.join(', ') ?? '-'}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon-xs" onClick={() => openCreateSubTaskDialog(task)} title="하위 업무 추가">
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon-xs" onClick={() => openEditDialog(task)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => {
+                                const msg = hasChildren
+                                  ? `"${task.task_name}" 및 하위 ${children.length}개 업무를 모두 삭제하시겠습니까?`
+                                  : `"${task.task_name}" 업무를 삭제하시겠습니까?`;
+                                if (confirm(msg)) deleteMutation.mutate(task.id);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Sub-task rows */}
+                      {isExpanded && children.map((child) => (
+                        <tr key={child.id} className="border-b hover:bg-muted/20 transition-colors bg-accent/5">
+                          <td className="px-3 py-1.5">
+                            <span className="text-muted-foreground/50 text-[10px] font-mono pl-2">{child.sub_order}</span>
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <div className="flex items-center gap-2 pl-6">
+                              <CornerDownRight className="size-3 text-muted-foreground/50 shrink-0" />
+                              <span className="text-sm">{child.task_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className="text-[10px] text-muted-foreground">{child.category}</span>
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className="text-[10px] text-muted-foreground">{FREQUENCY_CONFIG[child.frequency]?.label}</span>
+                          </td>
+                          <td className="px-3 py-1.5" />
+                          <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                            {child.default_assignees?.join(', ') ?? '-'}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon-xs" onClick={() => openEditDialog(child)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                className="text-red-500 hover:text-red-700"
+                                onClick={() => {
+                                  if (confirm(`"${child.task_name}" 하위 업무를 삭제하시겠습니까?`)) {
+                                    deleteMutation.mutate(child.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       )}
 
@@ -375,9 +458,15 @@ export default function TasksPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingTask ? '업무 수정' : '새 업무 추가'}</DialogTitle>
+            <DialogTitle>
+              {editingTask
+                ? (editingTask.parent_task_id ? '하위 업무 수정' : '업무 수정')
+                : (formData.parent_task_id ? '하위 업무 추가' : '새 업무 추가')}
+            </DialogTitle>
             <DialogDescription>
-              {editingTask ? '업무 항목의 정보를 수정합니다.' : '새로운 업무 항목을 추가합니다.'}
+              {formData.parent_task_id
+                ? '상위 업무의 하위 단계를 추가합니다. 카테고리, 주기, 범위는 상위 업무를 따릅니다.'
+                : editingTask ? '업무 항목의 정보를 수정합니다.' : '새로운 업무 항목을 추가합니다.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -426,6 +515,7 @@ export default function TasksPage() {
                   onValueChange={(v) =>
                     setFormData((prev) => ({ ...prev, category: v as TaskCategory }))
                   }
+                  disabled={!!formData.parent_task_id}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -446,6 +536,7 @@ export default function TasksPage() {
                   onValueChange={(v) =>
                     setFormData((prev) => ({ ...prev, frequency: v as TaskFrequency }))
                   }
+                  disabled={!!formData.parent_task_id}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -468,6 +559,7 @@ export default function TasksPage() {
                 onValueChange={(v) =>
                   setFormData((prev) => ({ ...prev, scope: v as TaskScope }))
                 }
+                disabled={!!formData.parent_task_id}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />

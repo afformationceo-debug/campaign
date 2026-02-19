@@ -272,12 +272,17 @@ export default function DashboardPage() {
   // ─── Periodic Tasks Stats ─────────────────────────────
   const periodicTaskStats = useMemo(() => {
     const periodicTasks = tasks.filter((t) => t.scope !== 'global' && (t.frequency === 'monthly' || t.frequency === 'once' || t.frequency === 'as_needed'));
-    const periodicTaskIds = new Set(periodicTasks.map((t) => t.id));
+    // Exclude parent tasks that have sub-tasks (to avoid double-counting checks)
+    const parentIdsWithChildren = new Set(periodicTasks.filter((t) => t.parent_task_id).map((t) => t.parent_task_id!));
+    const countableTasks = periodicTasks.filter((t) => !parentIdsWithChildren.has(t.id));
+    const periodicTaskIds = new Set(countableTasks.map((t) => t.id));
     const periodicMonthlyChecks = monthlyChecks.filter((c) => periodicTaskIds.has(c.task_id) && c.status !== '해당없음');
     const completed = periodicMonthlyChecks.filter((c) => c.status === '완료').length;
     const total = periodicMonthlyChecks.length;
     const withResultValue = periodicMonthlyChecks.filter((c) => c.result_value).length;
-    return { completed, total, rate: total > 0 ? Math.round((completed / total) * 100) : 0, taskCount: periodicTasks.length, withResultValue };
+    // taskCount: show top-level tasks only (excluding sub-tasks for display)
+    const topLevelCount = periodicTasks.filter((t) => !t.parent_task_id).length;
+    return { completed, total, rate: total > 0 ? Math.round((completed / total) * 100) : 0, taskCount: topLevelCount, withResultValue };
   }, [tasks, monthlyChecks]);
 
   const yesterdayRate = useMemo(() => {

@@ -144,7 +144,7 @@ export function CampaignGrid({
 
   // Filter out global tasks AND non-daily/weekly tasks (monthly/once/as_needed go to periodic section)
   const campaignTasks = useMemo(() => {
-    return tasks.filter((t) => t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly'));
+    return tasks.filter((t) => !t.parent_task_id && t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly'));
   }, [tasks]);
 
   // Group tasks by category

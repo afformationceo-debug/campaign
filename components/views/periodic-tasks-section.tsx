@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { CheckCircle2, Clock, Circle, Minus, CalendarDays, ChevronDown, ChevronRight, User, ListChecks, Trophy } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Minus, CalendarDays, ChevronDown, ChevronRight, User, ListChecks, Trophy, CornerDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -403,39 +403,141 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     onceCompleted: boolean; // true if once-task already completed (read-only)
   };
 
+  type SubTaskGroup = {
+    task: Task;
+    rows: RowData[];
+    completedCount: number;
+  };
+
+  type HierarchicalGroup = {
+    task: Task;               // parent task (or standalone task)
+    subTasks: SubTaskGroup[]; // empty if no sub-tasks
+    rows: RowData[];          // campaign rows (for standalone tasks only)
+    completedCount: number;
+    targetCount: number | null; // from campaign_task_config
+    isParent: boolean;
+  };
+
+  // Build target count map from configs
+  const targetCountMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    taskConfigs.forEach(c => {
+      if (c.target_count != null) {
+        map.set(`${c.campaign_id}:${c.task_id}`, c.target_count);
+      }
+    });
+    return map;
+  }, [taskConfigs]);
+
+  // Helper: build rows for a single task
+  const buildRowsForTask = useCallback((task: Task, targetCampaigns: Campaign[]): RowData[] => {
+    const rows: RowData[] = [];
+    for (const campaign of targetCampaigns) {
+      const config = configMap.get(`${campaign.id}:${task.id}`);
+      const applicable = config ? config.is_applicable : task.is_applicable_default;
+      if (!applicable) continue;
+
+      const key = `${campaign.id}:${task.id}`;
+      const onceCheck = task.frequency === 'once' ? onceCompletedMap.get(key) : undefined;
+      const isOnceCompleted = !!onceCheck;
+
+      // For once-completed: use the historical check; otherwise use current month check
+      const check = isOnceCompleted ? onceCheck! : (checkMap.get(key) ?? null);
+      const assigneeName = getAssigneeName(task, config ?? undefined);
+      rows.push({ task, campaign, check, assigneeName, onceCompleted: isOnceCompleted });
+    }
+    return rows;
+  }, [configMap, checkMap, onceCompletedMap, getAssigneeName]);
+
   const groupedData = useMemo(() => {
-    const groups: { task: Task; rows: RowData[]; completedCount: number }[] = [];
+    const groups: HierarchicalGroup[] = [];
     const targetCampaigns = campaignId ? campaigns.filter((c) => c.id === campaignId) : campaigns;
+
+    // Identify which tasks are sub-tasks (have parent_task_id)
+    const subTasksByParent = new Map<string, Task[]>();
+    const subTaskIds = new Set<string>();
+    for (const task of periodicTasks) {
+      if (task.parent_task_id) {
+        subTaskIds.add(task.id);
+        const existing = subTasksByParent.get(task.parent_task_id) ?? [];
+        existing.push(task);
+        subTasksByParent.set(task.parent_task_id, existing);
+      }
+    }
+
+    // Sort sub-tasks by sub_order
+    for (const [, subs] of subTasksByParent) {
+      subs.sort((a, b) => a.sub_order - b.sub_order);
+    }
 
     for (const task of periodicTasks) {
       if (task.scope === 'global') continue;
+      // Skip sub-tasks from top-level iteration; they're nested under parents
+      if (subTaskIds.has(task.id)) continue;
 
-      const rows: RowData[] = [];
-      for (const campaign of targetCampaigns) {
-        const config = configMap.get(`${campaign.id}:${task.id}`);
-        const applicable = config ? config.is_applicable : task.is_applicable_default;
-        if (!applicable) continue;
+      const childTasks = subTasksByParent.get(task.id);
+      const isParent = !!childTasks && childTasks.length > 0;
 
-        const key = `${campaign.id}:${task.id}`;
-        const onceCheck = task.frequency === 'once' ? onceCompletedMap.get(key) : undefined;
-        const isOnceCompleted = !!onceCheck;
+      if (isParent) {
+        // Parent task with sub-tasks
+        const subTaskGroups: SubTaskGroup[] = [];
+        let totalCompleted = 0;
+        let totalRows = 0;
 
-        // For once-completed: use the historical check; otherwise use current month check
-        const check = isOnceCompleted ? onceCheck! : (checkMap.get(key) ?? null);
-        const assigneeName = getAssigneeName(task, config ?? undefined);
-        rows.push({ task, campaign, check, assigneeName, onceCompleted: isOnceCompleted });
-      }
+        for (const subTask of childTasks!) {
+          const rows = buildRowsForTask(subTask, targetCampaigns);
+          if (rows.length > 0) {
+            const completedCount = rows.filter((r) => r.check?.status === '완료' || r.onceCompleted).length;
+            subTaskGroups.push({ task: subTask, rows, completedCount });
+            totalCompleted += completedCount;
+            totalRows += rows.length;
+          }
+        }
 
-      if (rows.length > 0) {
-        const completedCount = rows.filter((r) => r.check?.status === '완료' || r.onceCompleted).length;
-        groups.push({ task, rows, completedCount });
+        if (subTaskGroups.length > 0) {
+          // Compute aggregate target_count for the parent task across campaigns
+          let aggregateTargetCount: number | null = null;
+          for (const campaign of targetCampaigns) {
+            const tc = targetCountMap.get(`${campaign.id}:${task.id}`);
+            if (tc != null) {
+              aggregateTargetCount = (aggregateTargetCount ?? 0) + tc;
+            }
+          }
+
+          groups.push({
+            task,
+            subTasks: subTaskGroups,
+            rows: [],
+            completedCount: totalCompleted,
+            targetCount: aggregateTargetCount,
+            isParent: true,
+          });
+        }
+      } else {
+        // Standalone task (no children)
+        const rows = buildRowsForTask(task, targetCampaigns);
+
+        if (rows.length > 0) {
+          const completedCount = rows.filter((r) => r.check?.status === '완료' || r.onceCompleted).length;
+          groups.push({
+            task,
+            subTasks: [],
+            rows,
+            completedCount,
+            targetCount: null,
+            isParent: false,
+          });
+        }
       }
     }
 
     return groups;
-  }, [periodicTasks, campaigns, campaignId, configMap, checkMap, getAssigneeName, onceCompletedMap]);
+  }, [periodicTasks, campaigns, campaignId, buildRowsForTask, targetCountMap]);
 
-  const totalItems = groupedData.reduce((s, g) => s + g.rows.length, 0);
+  const totalItems = groupedData.reduce((s, g) => {
+    if (g.isParent) return s + g.subTasks.reduce((ss, st) => ss + st.rows.length, 0);
+    return s + g.rows.length;
+  }, 0);
   const completedItems = groupedData.reduce((s, g) => s + g.completedCount, 0);
 
   const toggleGroup = (taskId: string) => {
@@ -447,8 +549,8 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   };
 
   // Bulk complete: mark all uncompleted rows in a group as '완료'
-  const handleBulkComplete = useCallback((group: { task: Task; rows: RowData[] }) => {
-    for (const row of group.rows) {
+  const handleBulkComplete = useCallback((rows: RowData[]) => {
+    for (const row of rows) {
       if (row.onceCompleted) continue;
       if (row.check?.status === '완료') continue;
 
@@ -465,6 +567,17 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
       }
     }
   }, [date, effectiveUserId, bulkCreateCheck, bulkUpdateStatus]);
+
+  // Bulk complete for entire hierarchical group (parent with sub-tasks)
+  const handleBulkCompleteGroup = useCallback((group: HierarchicalGroup) => {
+    if (group.isParent) {
+      for (const subGroup of group.subTasks) {
+        handleBulkComplete(subGroup.rows);
+      }
+    } else {
+      handleBulkComplete(group.rows);
+    }
+  }, [handleBulkComplete]);
 
   if (groupedData.length === 0) return null;
 
@@ -510,16 +623,26 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                     const freqCfg = FREQ_LABELS[group.task.frequency] ?? FREQ_LABELS.monthly;
                     const catColor = CATEGORY_COLORS[group.task.category as TaskCategory];
                     const isCollapsed = !expandedGroups.has(group.task.id);
-                    const allDone = group.completedCount === group.rows.length;
-                    const progressPct = group.rows.length > 0
-                      ? Math.round((group.completedCount / group.rows.length) * 100)
+
+                    // Compute total row count for progress calculation
+                    const groupTotalRows = group.isParent
+                      ? group.subTasks.reduce((s, st) => s + st.rows.length, 0)
+                      : group.rows.length;
+                    const allDone = group.completedCount === groupTotalRows && groupTotalRows > 0;
+                    const progressPct = groupTotalRows > 0
+                      ? Math.round((group.completedCount / groupTotalRows) * 100)
                       : 0;
 
                     // Group-level assignee (from task default_assignees)
                     const groupAssignees = group.task.default_assignees?.join(', ') ?? null;
 
+                    // Collect all rows for aggregation (standalone: group.rows, parent: all sub-task rows)
+                    const allGroupRows = group.isParent
+                      ? group.subTasks.flatMap((st) => st.rows)
+                      : group.rows;
+
                     // Latest completion date among completed rows
-                    const latestDate = group.rows
+                    const latestDate = allGroupRows
                       .filter((r) => r.check?.status === '완료')
                       .map((r) => r.check!.check_date)
                       .sort((a, b) => b.localeCompare(a))[0] ?? null;
@@ -569,6 +692,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {group.task.category}
                               </Badge>
+                              {group.targetCount != null && (
+                                <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
+                                  목표: {group.targetCount}건
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           {/* Assignee */}
@@ -588,17 +716,17 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 />
                               </div>
                               <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', allDone ? 'text-emerald-600' : 'text-muted-foreground')}>
-                                {progressPct}% ({group.completedCount}/{group.rows.length})
+                                {progressPct}% ({group.completedCount}/{groupTotalRows})
                               </span>
                             </div>
                           </td>
                           {/* Result Value Summary */}
                           <td className="px-2 py-0.5">
                             {(() => {
-                              const filledCount = group.rows.filter((r) => r.check?.result_value).length;
+                              const filledCount = allGroupRows.filter((r) => r.check?.result_value).length;
                               return filledCount > 0 ? (
                                 <span className="text-[9px] text-muted-foreground">
-                                  {filledCount}/{group.rows.length} 입력됨
+                                  {filledCount}/{groupTotalRows} 입력됨
                                 </span>
                               ) : (
                                 <span className="text-[9px] text-muted-foreground/30">-</span>
@@ -616,7 +744,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
-                                      onClick={(e) => { e.stopPropagation(); handleBulkComplete(group); }}
+                                      onClick={(e) => { e.stopPropagation(); handleBulkCompleteGroup(group); }}
                                       className="ml-auto shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 transition-colors"
                                     >
                                       <ListChecks className="size-2.5" />
@@ -630,8 +758,116 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                           </td>
                         </tr>
 
-                        {/* Campaign Rows (collapsed/expanded) */}
-                        {!isCollapsed && group.rows.map((row) => {
+                        {/* Expanded content: differs for parent vs standalone */}
+                        {!isCollapsed && group.isParent && group.subTasks.map((subGroup) => (
+                          <Fragment key={subGroup.task.id}>
+                            {/* Sub-Task Header Row */}
+                            <tr className="bg-muted/10">
+                              <td colSpan={6} className="px-4 py-1.5 pl-10">
+                                <div className="flex items-center gap-2">
+                                  <CornerDownRight className="size-3 text-muted-foreground/50" />
+                                  <span className="text-xs font-medium">{subGroup.task.task_name}</span>
+                                  <Badge variant="secondary" className="text-[9px]">
+                                    {subGroup.completedCount}/{subGroup.rows.length}
+                                  </Badge>
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Sub-Task Campaign Rows */}
+                            {subGroup.rows.map((row) => {
+                              const rowCompleted = row.check?.status === '완료' || row.onceCompleted;
+                              return (
+                                <tr
+                                  key={`${row.campaign.id}:${row.task.id}`}
+                                  className={cn(
+                                    'border-b border-border/30 hover:bg-accent/10 transition-colors h-7',
+                                    rowCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent',
+                                    row.onceCompleted && 'opacity-60'
+                                  )}
+                                >
+                                  <td className="px-2 py-0.5"></td>
+                                  <td className={cn(
+                                    'px-2 py-0.5',
+                                    rowCompleted && 'border-l-[3px] border-l-emerald-400'
+                                  )}>
+                                    <div className="flex items-center gap-1 pl-8 min-w-0">
+                                      {rowCompleted && !row.onceCompleted && (
+                                        <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                          <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                      )}
+                                      <span className={cn(
+                                        'text-[10px] truncate',
+                                        row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-emerald-800 dark:text-emerald-300 font-medium' : 'text-foreground/80'
+                                      )}>
+                                        {row.campaign.campaign_name}
+                                      </span>
+                                      {row.onceCompleted && (
+                                        <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                                          완료됨
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-0.5">
+                                    <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{row.assigneeName || '-'}</span>
+                                  </td>
+                                  <td className="px-2 py-0.5 text-center">
+                                    <div className="flex items-center justify-center">
+                                      {row.onceCompleted ? (
+                                        <div className="flex items-center gap-1 text-[11px] text-emerald-600">
+                                          <CheckCircle2 className="size-3" />
+                                          <span>완료</span>
+                                        </div>
+                                      ) : (
+                                        <PeriodicStatusSelect
+                                          check={row.check}
+                                          campaignId={row.campaign.id}
+                                          taskId={row.task.id}
+                                          date={date}
+                                          assigneeId={effectiveUserId}
+                                        />
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-0.5">
+                                    {row.onceCompleted ? (
+                                      <span className="text-[10px] text-muted-foreground truncate block">
+                                        {row.check?.result_value || '-'}
+                                      </span>
+                                    ) : (
+                                      <ResultValueInput
+                                        check={row.check}
+                                        campaignId={row.campaign.id}
+                                        taskId={row.task.id}
+                                        date={date}
+                                        assigneeId={effectiveUserId}
+                                      />
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-0.5">
+                                    {row.onceCompleted ? (
+                                      <span className="text-[10px] text-emerald-600 font-medium tabular-nums">
+                                        {row.check?.check_date ?? '-'}
+                                      </span>
+                                    ) : (
+                                      <CompletionDateCell
+                                        check={row.check}
+                                        campaignId={row.campaign.id}
+                                        taskId={row.task.id}
+                                        currentDate={date}
+                                        assigneeId={effectiveUserId}
+                                      />
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </Fragment>
+                        ))}
+
+                        {/* Standalone task Campaign Rows (same as original) */}
+                        {!isCollapsed && !group.isParent && group.rows.map((row) => {
                           const rowCompleted = row.check?.status === '완료' || row.onceCompleted;
                           return (
                           <tr

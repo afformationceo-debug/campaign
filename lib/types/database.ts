@@ -44,6 +44,8 @@ export interface Task {
   day_of_week: number[] | null;
   is_applicable_default: boolean;
   scope: TaskScope;
+  parent_task_id: string | null;
+  sub_order: number;
   created_at: string;
 }
 
@@ -65,6 +67,7 @@ export interface CampaignTaskConfig {
   is_applicable: boolean;
   override_assignee: string | null;
   note: string | null;
+  target_count: number | null;
   created_at: string;
   updated_at: string;
 }

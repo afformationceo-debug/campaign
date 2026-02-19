@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Filter, ToggleLeft, Rows3 } from 'lucide-react';
@@ -49,6 +49,46 @@ const FREQUENCY_LABEL: Record<TaskFrequency, string> = {
 };
 
 /* ──────────────────────────────────────────────
+ *  Target Count Input (debounced via onBlur)
+ * ────────────────────────────────────────────── */
+function TargetCountInput({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (val: number | null) => void;
+}) {
+  const [localValue, setLocalValue] = useState<string>(value != null ? String(value) : '');
+
+  useEffect(() => {
+    setLocalValue(value != null ? String(value) : '');
+  }, [value]);
+
+  return (
+    <Input
+      type="number"
+      className="h-6 w-14 text-xs text-center"
+      min={0}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        const num = localValue === '' ? null : parseInt(localValue, 10);
+        const finalVal = num != null && Number.isNaN(num) ? null : num;
+        if (finalVal !== value) {
+          onChange(finalVal);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder="목표"
+    />
+  );
+}
+
+/* ──────────────────────────────────────────────
  *  Campaign × Task Matrix (used for Tab 1 & 2)
  * ────────────────────────────────────────────── */
 function TaskConfigMatrix({
@@ -60,6 +100,9 @@ function TaskConfigMatrix({
   onBulkToggleRow,
   onBulkToggleColumn,
   onBulkToggleCategory,
+  childTaskMap,
+  targetCountMap,
+  onUpdateTargetCount,
 }: {
   tasks: Task[];
   campaigns: Campaign[];
@@ -69,6 +112,9 @@ function TaskConfigMatrix({
   onBulkToggleRow: (campaignId: string, tasks: Task[], enable: boolean) => void;
   onBulkToggleColumn: (taskId: string, campaigns: Campaign[], enable: boolean) => void;
   onBulkToggleCategory: (category: TaskCategory, tasks: Task[], campaigns: Campaign[], enable: boolean) => void;
+  childTaskMap?: Map<string, Task[]>;
+  targetCountMap?: Map<string, number | null>;
+  onUpdateTargetCount?: (campaignId: string, taskId: string, targetCount: number | null) => void;
 }) {
   const getIsApplicable = useCallback(
     (campaignId: string, taskId: string): boolean => {
@@ -193,6 +239,11 @@ function TaskConfigMatrix({
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {task.category} · {FREQUENCY_LABEL[task.frequency]}
                         </p>
+                        {childTaskMap?.has(task.id) && (
+                          <p className="text-[10px] text-muted-foreground">
+                            하위업무: {childTaskMap.get(task.id)!.map(c => c.task_name).join(', ')}
+                          </p>
+                        )}
                         <p className="text-[10px] text-muted-foreground">클릭하여 전체 토글</p>
                       </TooltipContent>
                     </Tooltip>
@@ -245,6 +296,7 @@ function TaskConfigMatrix({
                 {tasksByCategory.map(({ tasks: catTasks }) =>
                   catTasks.map((task, idx) => {
                     const isApplicable = getIsApplicable(campaign.id, task.id);
+                    const hasChildren = childTaskMap?.has(task.id);
                     return (
                       <td
                         key={task.id}
@@ -254,7 +306,10 @@ function TaskConfigMatrix({
                           isApplicable && 'bg-emerald-50/50 dark:bg-emerald-950/20'
                         )}
                       >
-                        <div className="flex items-center justify-center h-7">
+                        <div className={cn(
+                          'flex flex-col items-center justify-center',
+                          hasChildren ? 'py-0.5 gap-0.5' : 'h-7'
+                        )}>
                           <Switch
                             size="sm"
                             checked={isApplicable}
@@ -262,6 +317,14 @@ function TaskConfigMatrix({
                               onToggle(campaign.id, task.id, checked)
                             }
                           />
+                          {hasChildren && targetCountMap && onUpdateTargetCount && (
+                            <TargetCountInput
+                              value={targetCountMap.get(`${campaign.id}-${task.id}`) ?? null}
+                              onChange={(val) =>
+                                onUpdateTargetCount(campaign.id, task.id, val)
+                              }
+                            />
+                          )}
                         </div>
                       </td>
                     );
@@ -476,6 +539,7 @@ export default function TaskConfigPage() {
               is_applicable: isApplicable,
               override_assignee: null,
               note: null,
+              target_count: null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             } satisfies CampaignTaskConfig,
@@ -538,6 +602,81 @@ export default function TaskConfigPage() {
     },
   });
 
+  // Update target_count for a campaign-task config row
+  const updateTargetCountMutation = useMutation({
+    mutationFn: async ({
+      campaignId,
+      taskId,
+      targetCount,
+    }: {
+      campaignId: string;
+      taskId: string;
+      targetCount: number | null;
+    }) => {
+      const { error } = await supabase
+        .from('campaign_task_config')
+        .upsert(
+          {
+            campaign_id: campaignId,
+            task_id: taskId,
+            is_applicable: configMap.get(`${campaignId}-${taskId}`) ?? true,
+            target_count: targetCount,
+          },
+          { onConflict: 'campaign_id,task_id' }
+        );
+      if (error) throw error;
+      logActivity({
+        userId: profile?.id,
+        actionType: 'upsert',
+        targetTable: 'campaign_task_config',
+        newValue: { campaign_id: campaignId, task_id: taskId, target_count: targetCount },
+      });
+    },
+    onMutate: async ({ campaignId, taskId, targetCount }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.taskConfig.all });
+      const previous = queryClient.getQueryData<CampaignTaskConfig[]>(
+        queryKeys.taskConfig.all
+      );
+      queryClient.setQueryData(
+        queryKeys.taskConfig.all,
+        (old: CampaignTaskConfig[] | undefined) => {
+          const list = old || [];
+          const idx = list.findIndex(
+            (c) => c.campaign_id === campaignId && c.task_id === taskId
+          );
+          if (idx >= 0) {
+            const updated = [...list];
+            updated[idx] = { ...updated[idx], target_count: targetCount };
+            return updated;
+          }
+          return [
+            ...list,
+            {
+              id: `temp-${campaignId}-${taskId}`,
+              campaign_id: campaignId,
+              task_id: taskId,
+              is_applicable: true,
+              override_assignee: null,
+              note: null,
+              target_count: targetCount,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } satisfies CampaignTaskConfig,
+          ];
+        }
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.taskConfig.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.taskConfig.all });
+    },
+  });
+
   // ── Derived Data ──
 
   // Config lookup map
@@ -549,17 +688,43 @@ export default function TaskConfigPage() {
     return map;
   }, [configs]);
 
-  // Split tasks into 3 groups
+  // Split tasks into 3 groups (exclude sub-tasks from matrix columns)
   const { dailyWeeklyTasks, periodicTasks, globalTasks } = useMemo(() => {
     const dw = tasks.filter(
-      (t) => t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly')
+      (t) => !t.parent_task_id && t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly')
     );
     const p = tasks.filter(
-      (t) => t.scope !== 'global' && t.frequency !== 'daily' && t.frequency !== 'weekly'
+      (t) => !t.parent_task_id && t.scope !== 'global' && t.frequency !== 'daily' && t.frequency !== 'weekly'
     );
     const g = tasks.filter((t) => t.scope === 'global');
     return { dailyWeeklyTasks: dw, periodicTasks: p, globalTasks: g };
   }, [tasks]);
+
+  // Map parent_task_id → child tasks (sorted by sub_order)
+  const childTaskMap = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const t of tasks) {
+      if (t.parent_task_id) {
+        const children = map.get(t.parent_task_id) || [];
+        children.push(t);
+        map.set(t.parent_task_id, children);
+      }
+    }
+    // Sort children by sub_order
+    for (const [, children] of map) {
+      children.sort((a, b) => a.sub_order - b.sub_order);
+    }
+    return map;
+  }, [tasks]);
+
+  // target_count lookup: campaignId-taskId → target_count
+  const targetCountMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    for (const config of configs) {
+      map.set(`${config.campaign_id}-${config.task_id}`, config.target_count);
+    }
+    return map;
+  }, [configs]);
 
   // Unique countries
   const countries = useMemo(() => {
@@ -623,6 +788,13 @@ export default function TaskConfigPage() {
       }
     },
     [toggleMutation]
+  );
+
+  const handleUpdateTargetCount = useCallback(
+    (campaignId: string, taskId: string, targetCount: number | null) => {
+      updateTargetCountMutation.mutate({ campaignId, taskId, targetCount });
+    },
+    [updateTargetCountMutation]
   );
 
   const handleToggleGlobalDefault = useCallback(
@@ -755,6 +927,9 @@ export default function TaskConfigPage() {
                   onBulkToggleRow={handleBulkToggleRow}
                   onBulkToggleColumn={handleBulkToggleColumn}
                   onBulkToggleCategory={handleBulkToggleCategory}
+                  childTaskMap={childTaskMap}
+                  targetCountMap={targetCountMap}
+                  onUpdateTargetCount={handleUpdateTargetCount}
                 />
               </TabsContent>
 
