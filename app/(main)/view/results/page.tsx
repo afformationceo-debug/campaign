@@ -204,7 +204,7 @@ export default function ResultsViewPage() {
 
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('global');
+  const [activeTab, setActiveTab] = useState('all');
 
   const currentDate = parseISO(date);
   const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -475,6 +475,12 @@ export default function ResultsViewPage() {
         <motion.div variants={fadeUpItem}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-3">
+              <TabsTrigger value="all" className="text-xs gap-1.5">
+                전체보기
+                {totalResults > 0 && (
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 ml-0.5">{totalResults}</Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="global" className="text-xs gap-1.5">
                 <ClipboardList className="size-3.5" />
                 전역
@@ -504,6 +510,60 @@ export default function ResultsViewPage() {
                 )}
               </TabsTrigger>
             </TabsList>
+
+            {/* Global Tab */}
+            {/* All Tab */}
+            <TabsContent value="all" className="space-y-4">
+              {globalRows.length > 0 && (
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                  <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
+                    <ClipboardList className="size-3.5 text-blue-500" />
+                    <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">전역 일일/주간 결과값</h3>
+                    <span className="text-[10px] text-blue-500/70">{date}</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{globalRows.length}건</Badge>
+                  </div>
+                  <ResultTable rows={globalRows} showCampaign={false} />
+                </div>
+              )}
+              {campaignRows.length > 0 && (
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                  <div className="px-3 py-1.5 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
+                    <CalendarDays className="size-3.5 text-violet-500" />
+                    <h3 className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">캠페인별 일일 결과값</h3>
+                    <span className="text-[10px] text-violet-500/70">{date}</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{campaignRows.length}건</Badge>
+                  </div>
+                  <ResultTable rows={campaignRows} showCampaign={true} />
+                </div>
+              )}
+              {monthlyRows.length > 0 && (
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                  <div className="px-3 py-1.5 border-b bg-indigo-50 dark:bg-indigo-950/20 flex items-center gap-2">
+                    <CalendarDays className="size-3.5 text-indigo-500" />
+                    <h3 className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">월간/주기별 결과값</h3>
+                    <span className="text-[10px] text-indigo-500/70">{format(currentDate, 'yyyy년 MM월')} 기준</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{monthlyRows.length}건</Badge>
+                  </div>
+                  <ResultTable rows={monthlyRows} showCampaign={true} />
+                </div>
+              )}
+              {projectResultRows.length > 0 && (
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                  <div className="px-3 py-1.5 border-b bg-emerald-50 dark:bg-emerald-950/20 flex items-center gap-2">
+                    <FolderOpen className="size-3.5 text-emerald-500" />
+                    <h3 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">프로젝트 업무 결과값</h3>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{projectResultRows.length}건</Badge>
+                  </div>
+                  <ProjectResultTable rows={projectResultRows} />
+                </div>
+              )}
+              {totalResults === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                  <FileText className="size-8 opacity-30" />
+                  <span className="text-sm">입력된 결과값이 없습니다.</span>
+                </div>
+              )}
+            </TabsContent>
 
             {/* Global Tab */}
             <TabsContent value="global">
