@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const dimension: SummaryDimension = body.dimension ?? 'all';
     const userId: string | undefined = body.userId;
+    const roomId: string | undefined = body.roomId;
     const userMessage: string | undefined = body.message;
     const previousMessages: { role: 'user' | 'assistant'; content: string }[] =
       body.history ?? [];
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
         role: 'user',
         content: userMessage,
         dimension,
+        room_id: roomId || null,
       });
     }
 
@@ -155,6 +157,7 @@ export async function POST(req: NextRequest) {
               role: 'assistant',
               content: fullResponse,
               dimension,
+              room_id: roomId || null,
             });
           }
         } catch (err) {
@@ -182,15 +185,24 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId');
+    const roomId = req.nextUrl.searchParams.get('roomId');
     if (!userId) {
       return Response.json({ messages: [] });
     }
 
     const supabase = getSupabase();
-    const { data: messages, error } = await supabase
+    let query = supabase
       .from('ai_chat_messages')
       .select('id, role, content, dimension, created_at')
-      .eq('user_id', userId)
+      .eq('user_id', userId);
+
+    if (roomId) {
+      query = query.eq('room_id', roomId);
+    } else {
+      query = query.is('room_id', null);
+    }
+
+    const { data: messages, error } = await query
       .order('created_at', { ascending: true })
       .limit(100);
 
@@ -209,15 +221,24 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId');
+    const roomId = req.nextUrl.searchParams.get('roomId');
     if (!userId) {
       return Response.json({ error: 'userId required' }, { status: 400 });
     }
 
     const supabase = getSupabase();
-    const { error } = await supabase
+    let query = supabase
       .from('ai_chat_messages')
       .delete()
       .eq('user_id', userId);
+
+    if (roomId) {
+      query = query.eq('room_id', roomId);
+    } else {
+      query = query.is('room_id', null);
+    }
+
+    const { error } = await query;
 
     if (error) {
       return Response.json({ error: error.message }, { status: 500 });

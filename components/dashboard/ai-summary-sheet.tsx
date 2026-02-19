@@ -10,9 +10,13 @@ import {
   Check,
   Sparkles,
   X,
-  User,
   Trash2,
   MessageCircle,
+  Plus,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Pencil,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,8 +26,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import type { SummaryDimension } from '@/lib/ai/types';
+
+/* ─── Types ─── */
 
 interface ChatMessage {
   id: string;
@@ -32,6 +44,15 @@ interface ChatMessage {
   timestamp: Date;
   dimension?: SummaryDimension;
 }
+
+interface ChatRoom {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/* ─── Constants ─── */
 
 const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string; color: string }[] = [
   { label: '전체 현황 요약', message: '전체현황 알려줘', dimension: 'all', emoji: '📊', color: 'from-violet-500 to-indigo-500' },
@@ -58,6 +79,22 @@ function formatTime(date: Date) {
   return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatRoomDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return '방금';
+  if (diffMins < 60) return `${diffMins}분 전`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+  return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+/* ─── Component ─── */
+
 export function AiSummarySheet({
   open,
   onOpenChange,
@@ -68,6 +105,15 @@ export function AiSummarySheet({
   const { user } = useAuth();
   const userId = user?.id;
 
+  // Sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  // Chat
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -87,16 +133,75 @@ export function AiSummarySheet({
     });
   }, []);
 
-  useEffect(() => {
-    if (open && userId && !historyLoaded) {
-      loadHistory();
-    }
-  }, [open, userId, historyLoaded]);
+  /* ─── Room API ─── */
 
-  const loadHistory = async () => {
+  const loadRooms = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`/api/ai-summary?userId=${userId}`);
+      const res = await fetch(`/api/ai-chat-rooms?userId=${userId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setRooms(data.rooms ?? []);
+    } catch {
+      // silent
+    } finally {
+      setRoomsLoaded(true);
+    }
+  }, [userId]);
+
+  const createRoom = useCallback(async (title?: string) => {
+    if (!userId) return null;
+    try {
+      const res = await fetch('/api/ai-chat-rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, title }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const newRoom: ChatRoom = data.room;
+      setRooms((prev) => [newRoom, ...prev]);
+      return newRoom;
+    } catch {
+      return null;
+    }
+  }, [userId]);
+
+  const deleteRoom = useCallback(async (roomId: string) => {
+    try {
+      await fetch(`/api/ai-chat-rooms?roomId=${roomId}`, { method: 'DELETE' });
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      if (activeRoomId === roomId) {
+        setActiveRoomId(null);
+        setMessages([]);
+        setHistoryLoaded(false);
+      }
+    } catch {
+      // silent
+    }
+  }, [activeRoomId]);
+
+  const renameRoom = useCallback(async (roomId: string, title: string) => {
+    try {
+      await fetch('/api/ai-chat-rooms', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, title }),
+      });
+      setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, title } : r));
+    } catch {
+      // silent
+    }
+  }, []);
+
+  /* ─── Chat API ─── */
+
+  const loadHistory = useCallback(async (roomId: string | null) => {
+    if (!userId) return;
+    try {
+      const params = new URLSearchParams({ userId });
+      if (roomId) params.set('roomId', roomId);
+      const res = await fetch(`/api/ai-summary?${params}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.messages?.length > 0) {
@@ -109,18 +214,46 @@ export function AiSummarySheet({
         }));
         setMessages(loaded);
         setTimeout(scrollToBottom, 100);
+      } else {
+        setMessages([]);
       }
     } catch {
       // silent
     } finally {
       setHistoryLoaded(true);
     }
-  };
+  }, [userId, scrollToBottom]);
+
+  // Load rooms on open
+  useEffect(() => {
+    if (open && userId && !roomsLoaded) {
+      loadRooms();
+    }
+  }, [open, userId, roomsLoaded, loadRooms]);
+
+  // Load history when room changes
+  useEffect(() => {
+    if (open && userId) {
+      setHistoryLoaded(false);
+      loadHistory(activeRoomId);
+    }
+  }, [activeRoomId, open, userId, loadHistory]);
 
   const sendMessage = useCallback(async (userMessage: string, dimension: SummaryDimension) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+
+    // Auto-create room if none selected
+    let roomId = activeRoomId;
+    if (!roomId) {
+      const shortTitle = userMessage.length > 20 ? userMessage.substring(0, 20) + '...' : userMessage;
+      const newRoom = await createRoom(shortTitle);
+      if (newRoom) {
+        roomId = newRoom.id;
+        setActiveRoomId(newRoom.id);
+      }
+    }
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -152,7 +285,7 @@ export function AiSummarySheet({
       const res = await fetch('/api/ai-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dimension, message: userMessage, userId, history }),
+        body: JSON.stringify({ dimension, message: userMessage, userId, roomId, history }),
         signal: controller.signal,
       });
 
@@ -175,6 +308,14 @@ export function AiSummarySheet({
         );
         scrollToBottom();
       }
+
+      // Update room's updated_at in local state
+      if (roomId) {
+        setRooms((prev) =>
+          prev.map((r) => r.id === roomId ? { ...r, updated_at: new Date().toISOString() } : r)
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        );
+      }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : '요약 생성에 실패했습니다.');
@@ -182,7 +323,7 @@ export function AiSummarySheet({
     } finally {
       setIsLoading(false);
     }
-  }, [messages, userId, scrollToBottom]);
+  }, [messages, userId, activeRoomId, createRoom, scrollToBottom]);
 
   const handleQuickAction = (action: typeof QUICK_ACTIONS[number]) => {
     if (isLoading) return;
@@ -215,8 +356,27 @@ export function AiSummarySheet({
     setError(null);
     setIsLoading(false);
     if (userId) {
-      fetch(`/api/ai-summary?userId=${userId}`, { method: 'DELETE' }).catch(() => {});
+      const params = new URLSearchParams({ userId });
+      if (activeRoomId) params.set('roomId', activeRoomId);
+      fetch(`/api/ai-summary?${params}`, { method: 'DELETE' }).catch(() => {});
     }
+  };
+
+  const handleNewChat = async () => {
+    if (abortRef.current) abortRef.current.abort();
+    setActiveRoomId(null);
+    setMessages([]);
+    setError(null);
+    setIsLoading(false);
+    setHistoryLoaded(false);
+  };
+
+  const handleSelectRoom = (roomId: string) => {
+    if (roomId === activeRoomId) return;
+    if (abortRef.current) abortRef.current.abort();
+    setIsLoading(false);
+    setError(null);
+    setActiveRoomId(roomId);
   };
 
   const handleOpenChange = (val: boolean) => {
@@ -225,261 +385,403 @@ export function AiSummarySheet({
     if (val) setTimeout(() => inputRef.current?.focus(), 300);
   };
 
+  const handleRenameSubmit = (roomId: string) => {
+    const trimmed = editTitle.trim();
+    if (trimmed) renameRoom(roomId, trimmed);
+    setEditingRoomId(null);
+  };
+
   const hasMessages = messages.length > 0;
+  const activeRoom = rooms.find((r) => r.id === activeRoomId);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-[560px] flex flex-col gap-0 p-0 border-l-0 sm:border-l">
-        {/* ─── Header ─── */}
-        <SheetHeader className="px-5 py-3.5 border-b shrink-0 bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-indigo-950">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-3 text-base">
-              <div className="relative">
-                <div className="size-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center ring-2 ring-white/20">
-                  <Bot className="size-5 text-white" />
-                </div>
-                <div className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-400 border-2 border-slate-900 dark:border-slate-950" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[13px] font-bold text-white">어포메이션 AI Agent</span>
-                <span className="text-[10px] text-white/50 font-normal">Human-in-the-Loop · 온라인</span>
-              </div>
-            </SheetTitle>
-            {hasMessages && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleClearChat}
-                className="size-8 text-white/40 hover:text-white/80 hover:bg-white/10"
-                title="대화 초기화"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            )}
-          </div>
-        </SheetHeader>
-
-        {/* ─── Messages ─── */}
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto bg-[#f0f2f5] dark:bg-gray-950/50"
-          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
-        >
-          <div className="px-4 py-4 space-y-3 min-h-full">
-            {error && (
-              <div className="mx-2 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm shadow-sm">
-                <X className="size-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* ─── Welcome ─── */}
-            {!hasMessages && !isLoading && (
-              <div className="flex flex-col gap-4 pt-4">
-                {/* Welcome card */}
-                <div className="mx-auto max-w-[340px] rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
-                  <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-6 text-center">
-                    <div className="size-14 mx-auto rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-                      <Sparkles className="size-7 text-white" />
-                    </div>
-                    <h3 className="text-[15px] font-bold text-white">어포메이션 AI Agent</h3>
-                    <p className="text-[11px] text-white/70 mt-1">
-                      캠페인 운영 데이터를 실시간 분석합니다
-                    </p>
-                  </div>
-                  <div className="px-4 py-3 text-center">
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      아래 버튼을 누르거나 직접 질문을 입력해주세요
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quick actions */}
-                <div className="space-y-1.5">
-                  {QUICK_ACTIONS.map((action) => (
-                    <button
-                      key={action.dimension}
-                      type="button"
-                      onClick={() => handleQuickAction(action)}
-                      disabled={isLoading}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all',
-                        'bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5',
-                        'hover:shadow-md hover:scale-[1.01] active:scale-[0.99]',
-                        'disabled:opacity-50 disabled:cursor-not-allowed'
-                      )}
-                    >
-                      <div className={cn(
-                        'size-9 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 text-sm shadow-sm',
-                        action.color
-                      )}>
-                        <span>{action.emoji}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-semibold text-foreground block">{action.label}</span>
-                        <span className="text-[10px] text-muted-foreground">{action.message}</span>
-                      </div>
-                      <Send className="size-3.5 text-muted-foreground/40 shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ─── Chat Bubbles ─── */}
-            {messages.map((msg, idx) => {
-              const isUser = msg.role === 'user';
-              const showTime = idx === messages.length - 1 ||
-                messages[idx + 1]?.role !== msg.role;
-
-              return (
-                <div key={msg.id} className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
-                  <div className={cn('flex gap-2 max-w-[88%]', isUser ? 'flex-row-reverse' : 'flex-row')}>
-                    {/* Avatar */}
-                    {!isUser && (
-                      <div className="shrink-0 self-end mb-5">
-                        <div className="size-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
-                          <Bot className="size-4 text-white" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Bubble */}
-                    <div className="flex flex-col gap-0.5">
-                      <div
-                        className={cn(
-                          'relative group rounded-2xl shadow-sm',
-                          isUser
-                            ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md px-4 py-2.5'
-                            : 'bg-white dark:bg-gray-900 border border-black/5 dark:border-white/5 rounded-bl-md px-4 py-3'
-                        )}
-                      >
-                        {isUser ? (
-                          <p className="text-[13px] leading-relaxed">{msg.content}</p>
-                        ) : msg.content ? (
-                          <div className="relative">
-                            <div className="prose prose-sm dark:prose-invert max-w-none
-                              prose-headings:text-[13px] prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1
-                              prose-p:text-[12.5px] prose-li:text-[12.5px]
-                              prose-p:leading-[1.7] prose-li:leading-[1.7]
-                              prose-p:my-1 prose-ul:my-1 prose-ol:my-1
-                              prose-strong:text-foreground
-                              prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {msg.content}
-                              </ReactMarkdown>
-                            </div>
-                            {isLoading && msg.id === messages[messages.length - 1]?.id && (
-                              <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
-                            )}
-                            {!isLoading && msg.content && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopy(msg.content, msg.id)}
-                                className="absolute -bottom-5 right-0 opacity-0 group-hover:opacity-100 transition-opacity
-                                  flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                              >
-                                {copiedId === msg.id ? (
-                                  <><Check className="size-3 text-emerald-500" /> 복사됨</>
-                                ) : (
-                                  <><Copy className="size-3" /> 복사</>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2.5 py-0.5">
-                            <div className="flex gap-1">
-                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                            <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
-                          </div>
-                        )}
-                      </div>
-                      {/* Timestamp */}
-                      {showTime && msg.content && (
-                        <span className={cn(
-                          'text-[9px] text-muted-foreground/60 px-1',
-                          isUser ? 'text-right' : 'text-left'
-                        )}>
-                          {formatTime(msg.timestamp)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ─── Quick Actions (in-chat) ─── */}
-        {hasMessages && (
-          <div className="px-3 py-2 border-t shrink-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
-              {QUICK_ACTIONS.map((action) => (
+      <SheetContent className="w-full sm:max-w-[720px] flex flex-row gap-0 p-0 border-l-0 sm:border-l">
+        {/* ─── Sidebar ─── */}
+        {sidebarOpen && (
+          <div className="w-[220px] shrink-0 flex flex-col bg-slate-950 border-r border-white/5">
+            {/* Sidebar Header */}
+            <div className="px-3 py-3 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">대화 목록</span>
+              <div className="flex items-center gap-1">
                 <button
-                  key={action.dimension}
                   type="button"
-                  onClick={() => handleQuickAction(action)}
-                  disabled={isLoading}
-                  className={cn(
-                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
-                    'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700',
-                    'text-gray-600 dark:text-gray-300',
-                    'disabled:opacity-40 disabled:cursor-not-allowed'
-                  )}
+                  onClick={handleNewChat}
+                  className="size-7 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  title="새 대화"
                 >
-                  <span className="text-[10px]">{action.emoji}</span>
-                  {action.label}
+                  <Plus className="size-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  className="size-7 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  title="사이드바 닫기"
+                >
+                  <PanelLeftClose className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Room List */}
+            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
+              {/* New Chat option */}
+              <button
+                type="button"
+                onClick={handleNewChat}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all text-[12px]',
+                  !activeRoomId
+                    ? 'bg-indigo-600/30 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                )}
+              >
+                <Sparkles className="size-3.5 shrink-0" />
+                <span className="truncate font-medium">새 대화</span>
+              </button>
+
+              {/* Rooms */}
+              {rooms.map((room) => (
+                <div
+                  key={room.id}
+                  className={cn(
+                    'group relative flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all cursor-pointer',
+                    activeRoomId === room.id
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                  )}
+                  onClick={() => handleSelectRoom(room.id)}
+                >
+                  <MessageCircle className="size-3.5 shrink-0 opacity-50" />
+                  {editingRoomId === room.id ? (
+                    <input
+                      autoFocus
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onBlur={() => handleRenameSubmit(room.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                          e.preventDefault();
+                          handleRenameSubmit(room.id);
+                        }
+                        if (e.key === 'Escape') setEditingRoomId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 min-w-0 bg-transparent border-b border-white/30 text-[12px] text-white outline-none py-0"
+                    />
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[12px] block truncate">{room.title}</span>
+                      <span className="text-[9px] text-white/30">{formatRoomDate(room.updated_at)}</span>
+                    </div>
+                  )}
+
+                  {/* Room actions */}
+                  {editingRoomId !== room.id && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="size-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                        >
+                          <MoreHorizontal className="size-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditTitle(room.title);
+                            setEditingRoomId(room.id);
+                          }}
+                        >
+                          <Pencil className="size-3 mr-2" />
+                          이름 변경
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteRoom(room.id);
+                          }}
+                          className="text-red-500 focus:text-red-500"
+                        >
+                          <Trash2 className="size-3 mr-2" />
+                          삭제
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ─── Input ─── */}
-        <div className="px-3 py-2.5 border-t shrink-0 bg-white dark:bg-gray-950">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="메시지를 입력하세요..."
-                disabled={isLoading}
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-full text-[13px]',
-                  'bg-gray-100 dark:bg-gray-800 border-0',
-                  'focus:outline-none focus:ring-2 focus:ring-indigo-500/30',
-                  'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-                  'disabled:opacity-50'
+        {/* ─── Main Chat Area ─── */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* ─── Header ─── */}
+          <SheetHeader className="px-4 py-3 border-b shrink-0 bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-indigo-950">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {!sidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(true)}
+                    className="size-8 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                    title="사이드바 열기"
+                  >
+                    <PanelLeftOpen className="size-4" />
+                  </button>
                 )}
-              />
+                <SheetTitle className="flex items-center gap-2.5 text-base">
+                  <div className="relative">
+                    <div className="size-9 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center ring-2 ring-white/20">
+                      <Bot className="size-4.5 text-white" />
+                    </div>
+                    <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold text-white truncate max-w-[200px]">
+                      {activeRoom ? activeRoom.title : '어포메이션 AI Agent'}
+                    </span>
+                    <span className="text-[10px] text-white/50 font-normal">GPT-4o-mini · 온라인</span>
+                  </div>
+                </SheetTitle>
+              </div>
+              <div className="flex items-center gap-1">
+                {hasMessages && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={handleClearChat}
+                    className="size-8 text-white/40 hover:text-white/80 hover:bg-white/10"
+                    title="대화 초기화"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleSendInput}
-              disabled={!inputValue.trim() || isLoading}
-              className={cn(
-                'size-10 rounded-full flex items-center justify-center shrink-0 transition-all',
-                inputValue.trim()
-                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-95'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+          </SheetHeader>
+
+          {/* ─── Messages ─── */}
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto bg-[#f0f2f5] dark:bg-gray-950/50"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
+          >
+            <div className="px-4 py-4 space-y-3 min-h-full">
+              {error && (
+                <div className="mx-2 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm shadow-sm">
+                  <X className="size-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
-            >
-              <Send className={cn('size-4', inputValue.trim() && 'translate-x-[1px] -translate-y-[1px]')} />
-            </button>
+
+              {/* ─── Welcome ─── */}
+              {!hasMessages && !isLoading && (
+                <div className="flex flex-col gap-4 pt-4">
+                  <div className="mx-auto max-w-[340px] rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+                    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-6 text-center">
+                      <div className="size-14 mx-auto rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
+                        <Sparkles className="size-7 text-white" />
+                      </div>
+                      <h3 className="text-[15px] font-bold text-white">어포메이션 AI Agent</h3>
+                      <p className="text-[11px] text-white/70 mt-1">
+                        캠페인 운영 데이터를 실시간 분석합니다
+                      </p>
+                    </div>
+                    <div className="px-4 py-3 text-center">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        아래 버튼을 누르거나 직접 질문을 입력해주세요
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {QUICK_ACTIONS.map((action) => (
+                      <button
+                        key={action.dimension}
+                        type="button"
+                        onClick={() => handleQuickAction(action)}
+                        disabled={isLoading}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all',
+                          'bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5',
+                          'hover:shadow-md hover:scale-[1.01] active:scale-[0.99]',
+                          'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
+                      >
+                        <div className={cn(
+                          'size-9 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 text-sm shadow-sm',
+                          action.color
+                        )}>
+                          <span>{action.emoji}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[13px] font-semibold text-foreground block">{action.label}</span>
+                          <span className="text-[10px] text-muted-foreground">{action.message}</span>
+                        </div>
+                        <Send className="size-3.5 text-muted-foreground/40 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Chat Bubbles ─── */}
+              {messages.map((msg, idx) => {
+                const isUser = msg.role === 'user';
+                const showTime = idx === messages.length - 1 ||
+                  messages[idx + 1]?.role !== msg.role;
+
+                return (
+                  <div key={msg.id} className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+                    <div className={cn('flex gap-2 max-w-[88%]', isUser ? 'flex-row-reverse' : 'flex-row')}>
+                      {!isUser && (
+                        <div className="shrink-0 self-end mb-5">
+                          <div className="size-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
+                            <Bot className="size-4 text-white" />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-0.5">
+                        <div
+                          className={cn(
+                            'relative group rounded-2xl shadow-sm',
+                            isUser
+                              ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md px-4 py-2.5'
+                              : 'bg-white dark:bg-gray-900 border border-black/5 dark:border-white/5 rounded-bl-md px-4 py-3'
+                          )}
+                        >
+                          {isUser ? (
+                            <p className="text-[13px] leading-relaxed">{msg.content}</p>
+                          ) : msg.content ? (
+                            <div className="relative">
+                              <div className="prose prose-sm dark:prose-invert max-w-none
+                                prose-headings:text-[13px] prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1
+                                prose-p:text-[12.5px] prose-li:text-[12.5px]
+                                prose-p:leading-[1.7] prose-li:leading-[1.7]
+                                prose-p:my-1 prose-ul:my-1 prose-ol:my-1
+                                prose-strong:text-foreground
+                                prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                              {isLoading && msg.id === messages[messages.length - 1]?.id && (
+                                <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
+                              )}
+                              {!isLoading && msg.content && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(msg.content, msg.id)}
+                                  className="absolute -bottom-5 right-0 opacity-0 group-hover:opacity-100 transition-opacity
+                                    flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                >
+                                  {copiedId === msg.id ? (
+                                    <><Check className="size-3 text-emerald-500" /> 복사됨</>
+                                  ) : (
+                                    <><Copy className="size-3" /> 복사</>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2.5 py-0.5">
+                              <div className="flex gap-1">
+                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                              <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
+                            </div>
+                          )}
+                        </div>
+                        {showTime && msg.content && (
+                          <span className={cn(
+                            'text-[9px] text-muted-foreground/60 px-1',
+                            isUser ? 'text-right' : 'text-left'
+                          )}>
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center justify-center mt-1.5">
-            <span className="text-[9px] text-gray-400 flex items-center gap-1">
-              <MessageCircle className="size-2.5" />
-              GPT-4o-mini · 대화 내용은 자동 저장됩니다
-            </span>
+
+          {/* ─── Quick Actions (in-chat) ─── */}
+          {hasMessages && (
+            <div className="px-3 py-2 border-t shrink-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.dimension}
+                    type="button"
+                    onClick={() => handleQuickAction(action)}
+                    disabled={isLoading}
+                    className={cn(
+                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
+                      'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700',
+                      'text-gray-600 dark:text-gray-300',
+                      'disabled:opacity-40 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    <span className="text-[10px]">{action.emoji}</span>
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── Input ─── */}
+          <div className="px-3 py-2.5 border-t shrink-0 bg-white dark:bg-gray-950">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="메시지를 입력하세요..."
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full px-4 py-2.5 rounded-full text-[13px]',
+                    'bg-gray-100 dark:bg-gray-800 border-0',
+                    'focus:outline-none focus:ring-2 focus:ring-indigo-500/30',
+                    'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+                    'disabled:opacity-50'
+                  )}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSendInput}
+                disabled={!inputValue.trim() || isLoading}
+                className={cn(
+                  'size-10 rounded-full flex items-center justify-center shrink-0 transition-all',
+                  inputValue.trim()
+                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-95'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                )}
+              >
+                <Send className={cn('size-4', inputValue.trim() && 'translate-x-[1px] -translate-y-[1px]')} />
+              </button>
+            </div>
+            <div className="flex items-center justify-center mt-1.5">
+              <span className="text-[9px] text-gray-400 flex items-center gap-1">
+                <MessageCircle className="size-2.5" />
+                GPT-4o-mini · 대화 내용은 자동 저장됩니다
+              </span>
+            </div>
           </div>
         </div>
       </SheetContent>
