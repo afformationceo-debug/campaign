@@ -1053,20 +1053,33 @@ export default function RoadmapPage() {
             // Helper: render project table rows (leaf level)
             const renderProjectRows = (projectList: Project[]) => (
               <div className="border-t overflow-x-auto">
-                <table className="w-full table-fixed text-[12px] min-w-[900px]">
+                <table className="w-full text-[12px] min-w-[860px]" style={{ tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: 28 }} />
+                    <col style={{ width: 28 }} />
+                    <col />
+                    <col style={{ width: 76 }} />
+                    <col style={{ width: 68 }} />
+                    <col style={{ width: 56 }} />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 120 }} />
+                    <col style={{ width: 130 }} />
+                    <col style={{ width: 28 }} />
+                  </colgroup>
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="w-[28px] px-1 py-0.5"></th>
-                      <th className="w-[28px] px-1 py-0.5"></th>
+                      <th className="px-1 py-0.5"></th>
+                      <th className="px-1 py-0.5"></th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[72px]">담당자</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[60px]">진행률</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">시작일</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">마감일</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">결과값</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">메모</th>
-                      <th className="w-[28px] px-1 py-0.5"></th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">상태</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">담당자</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">진행률</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">시작일</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">마감일</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">결과값</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">메모</th>
+                      <th className="px-1 py-0.5"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1410,27 +1423,41 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full table-fixed text-[12px] min-w-[900px]">
+          <table className="w-full text-[12px] min-w-[860px]" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: 20 }} />
+              <col style={{ width: 28 }} />
+              <col style={{ width: 24 }} />
+              <col />
+              <col style={{ width: 76 }} />
+              <col style={{ width: 68 }} />
+              <col style={{ width: 56 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 130 }} />
+              <col style={{ width: 28 }} />
+            </colgroup>
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="w-[20px] px-1 py-0.5"></th>
-                <th className="w-[28px] px-2 py-0.5">
+                <th className="px-1 py-0.5"></th>
+                <th className="px-2 py-0.5">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={(checked) => { if (checked) selectAll(); else clearSelection(); }}
                     className="size-3.5"
                   />
                 </th>
-                <th className="w-[24px] px-1 py-0.5"></th>
+                <th className="px-1 py-0.5"></th>
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[72px]">담당자</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[60px]">진행률</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">시작일</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">마감일</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">결과값</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">메모</th>
-                <th className="w-[28px] px-1 py-0.5"></th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">상태</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">담당자</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">진행률</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">시작일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">마감일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">결과값</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">메모</th>
+                <th className="px-1 py-0.5"></th>
               </tr>
             </thead>
             <tbody>
