@@ -480,12 +480,18 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
 
       if (isParent) {
         // Parent task with sub-tasks
+        // IMPORTANT: Only show sub-tasks for campaigns where the PARENT task is applicable
+        const parentApplicableCampaigns = targetCampaigns.filter((campaign) => {
+          const parentConfig = configMap.get(`${campaign.id}:${task.id}`);
+          return parentConfig ? parentConfig.is_applicable : task.is_applicable_default;
+        });
+
         const subTaskGroups: SubTaskGroup[] = [];
         let totalCompleted = 0;
         let totalRows = 0;
 
         for (const subTask of childTasks!) {
-          const rows = buildRowsForTask(subTask, targetCampaigns);
+          const rows = buildRowsForTask(subTask, parentApplicableCampaigns);
           if (rows.length > 0) {
             const completedCount = rows.filter((r) => r.check?.status === '완료' || r.onceCompleted).length;
             subTaskGroups.push({ task: subTask, rows, completedCount });
@@ -495,9 +501,9 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         }
 
         if (subTaskGroups.length > 0) {
-          // Compute aggregate target_count for the parent task across campaigns
+          // Compute aggregate target_count for the parent task across applicable campaigns only
           let aggregateTargetCount: number | null = null;
-          for (const campaign of targetCampaigns) {
+          for (const campaign of parentApplicableCampaigns) {
             const tc = targetCountMap.get(`${campaign.id}:${task.id}`);
             if (tc != null) {
               aggregateTargetCount = (aggregateTargetCount ?? 0) + tc;

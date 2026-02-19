@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
@@ -14,6 +14,9 @@ import {
   Globe,
   BarChart3,
   Filter,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -23,6 +26,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRealtimeConfigs } from '@/hooks/use-realtime-configs';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -32,12 +37,44 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { Campaign, CampaignConfig } from '@/lib/types/database';
+import type { Campaign, CampaignConfig, ConfigValueType } from '@/lib/types/database';
+
+// Value type mapping for each config key
+const VALUE_TYPE_MAP: Record<string, ConfigValueType> = {
+  '인스타그램 URL': 'url',
+  '페이스북 URL': 'url',
+  '트위터 URL': 'url',
+  '틱톡 URL': 'url',
+  '플랫폼별 ID/PW': 'credentials',
+  '고객전용 라인': 'url',
+  '고객전용 왓츠앱 링크': 'url',
+  '홈페이지 링크': 'url',
+  '구글맵 세팅여부': 'status',
+  '리틀리 세팅여부': 'status',
+  '리틀리 링크': 'url',
+  '인플루언서 전용 라인 세팅': 'url',
+  '인플루언서 전용 왓츠앱 세팅': 'url',
+  '스카웃매니저 라인 메신저 연동': 'status',
+  '스카웃매니저 왓츠앱 메신저 연동': 'status',
+  '스카웃매니저 캠페인 등록': 'status',
+  '고객전용 지식베이스 세팅여부': 'status',
+  '인플전용 지식베이스 세팅여부': 'status',
+  '메신저 채널 연동 여부': 'status',
+  'CRM 연동설정 여부': 'status',
+  'CRM 등록여부': 'status',
+};
+
+const STATUS_VALUE_OPTIONS = ['세팅완료', '완료', '진행중', '미완료', '진행필요', '불필요', '해당없음'];
 
 const CONFIG_GROUPS: { type: string; icon: React.ElementType; keys: string[] }[] = [
   {
@@ -74,6 +111,14 @@ const CONFIG_GROUPS: { type: string; icon: React.ElementType; keys: string[] }[]
   },
 ];
 
+// Find config_type for a given config_key
+function getConfigType(key: string): string {
+  for (const group of CONFIG_GROUPS) {
+    if (group.keys.includes(key)) return group.type;
+  }
+  return '기타';
+}
+
 interface KeyStats {
   key: string;
   configType: string;
@@ -81,6 +126,114 @@ interface KeyStats {
   incomplete: { campaign: Campaign; config: CampaignConfig | null }[];
   total: number;
   pct: number;
+}
+
+// Inline editor for a single campaign config value
+function InlineConfigEditor({
+  campaign,
+  configKey,
+  config,
+  valueType,
+  onSave,
+  isSaving,
+}: {
+  campaign: Campaign;
+  configKey: string;
+  config: CampaignConfig | null;
+  valueType: ConfigValueType;
+  onSave: (value: string) => void;
+  isSaving: boolean;
+}) {
+  const [localValue, setLocalValue] = useState(config?.config_value ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Auto-focus input on mount
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  const handleSave = () => {
+    onSave(localValue);
+  };
+
+  if (valueType === 'status') {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground">
+          {campaign.client_name} - {campaign.campaign_name}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          항목: <span className="font-medium text-foreground">{configKey}</span>
+        </p>
+        <Select
+          value={localValue || '__empty__'}
+          onValueChange={(v) => {
+            const val = v === '__empty__' ? '' : v;
+            setLocalValue(val);
+            onSave(val);
+          }}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="상태를 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__empty__">
+              <span className="text-muted-foreground">(선택안함)</span>
+            </SelectItem>
+            {STATUS_VALUE_OPTIONS.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                <span className={cn(
+                  (opt === '세팅완료' || opt === '완료') && 'text-emerald-700',
+                  opt === '미완료' && 'text-red-600',
+                  (opt === '진행필요' || opt === '진행중') && 'text-amber-600',
+                  (opt === '불필요' || opt === '해당없음') && 'text-gray-500',
+                )}>
+                  {opt}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-foreground">
+        {campaign.client_name} - {campaign.campaign_name}
+      </p>
+      <p className="text-[10px] text-muted-foreground">
+        항목: <span className="font-medium text-foreground">{configKey}</span>
+      </p>
+      <div className="flex items-center gap-1.5">
+        <Input
+          ref={inputRef}
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          placeholder={valueType === 'url' ? 'https://...' : '값을 입력하세요'}
+          className="h-8 text-xs flex-1"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave();
+          }}
+        />
+        <Button
+          size="sm"
+          className="h-8 px-2.5"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          <Save className="size-3.5 mr-1" />
+          {isSaving ? '저장...' : '저장'}
+        </Button>
+      </div>
+      {config?.config_value && (
+        <p className="text-[10px] text-muted-foreground">
+          현재값: <span className="font-mono">{config.config_value}</span>
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function ConfigKeyView() {
@@ -93,6 +246,7 @@ export function ConfigKeyView() {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState<string>('all');
   const [showMode, setShowMode] = useState<'all' | 'incomplete'>('incomplete');
+  const [editingItem, setEditingItem] = useState<{ campaignId: string; configKey: string } | null>(null);
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
     queryKey: queryKeys.campaigns.all,
@@ -157,7 +311,71 @@ export function ConfigKeyView() {
     return stats;
   }, [campaigns, configMap, filterType]);
 
-  // Toggle mutation
+  // Upsert mutation: creates or updates a config + sets value + marks 완료
+  const upsertMutation = useMutation({
+    mutationFn: async ({
+      campaignId,
+      configKey,
+      configValue,
+      existingId,
+    }: {
+      campaignId: string;
+      configKey: string;
+      configValue: string;
+      existingId: string | null;
+    }) => {
+      const configType = getConfigType(configKey);
+      const valueType = VALUE_TYPE_MAP[configKey] ?? 'text';
+
+      if (existingId) {
+        // Update existing
+        const { error } = await supabase
+          .from('campaign_configs')
+          .update({
+            config_value: configValue,
+            status: '완료',
+          })
+          .eq('id', existingId);
+        if (error) throw error;
+        logActivity({
+          userId: profile?.id,
+          actionType: 'update',
+          targetTable: 'campaign_configs',
+          targetId: existingId,
+          newValue: { config_value: configValue, status: '완료' },
+        });
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from('campaign_configs')
+          .insert({
+            campaign_id: campaignId,
+            config_type: configType,
+            config_key: configKey,
+            config_value: configValue,
+            value_type: valueType,
+            status: '완료',
+          });
+        if (error) throw error;
+        logActivity({
+          userId: profile?.id,
+          actionType: 'create',
+          targetTable: 'campaign_configs',
+          targetId: campaignId,
+          newValue: { config_key: configKey, config_value: configValue, status: '완료' },
+        });
+      }
+    },
+    onSuccess: () => {
+      setEditingItem(null);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.configs.all });
+      queryClient.invalidateQueries({ queryKey: ['configs'] });
+    },
+  });
+
+  // Toggle mutation (for completed → 미완료)
   const toggleMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
@@ -215,8 +433,8 @@ export function ConfigKeyView() {
     );
   }
 
-  // Group stats by configType
-  const grouped = useMemo(() => {
+  // Group stats by configType (must be below early return)
+  const grouped = (() => {
     const map = new Map<string, KeyStats[]>();
     for (const stat of keyStats) {
       const list = map.get(stat.configType) || [];
@@ -224,14 +442,14 @@ export function ConfigKeyView() {
       map.set(stat.configType, list);
     }
     return Array.from(map.entries());
-  }, [keyStats]);
+  })();
 
   // Overall stats
-  const overallStats = useMemo(() => {
+  const overallStats = (() => {
     const allComplete = keyStats.filter((s) => s.pct === 100).length;
     const hasIssues = keyStats.filter((s) => s.incomplete.length > 0).length;
     return { total: keyStats.length, allComplete, hasIssues };
-  }, [keyStats]);
+  })();
 
   return (
     <TooltipProvider>
@@ -420,44 +638,80 @@ export function ConfigKeyView() {
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {stat.incomplete.map(({ campaign, config }) => (
-                                      <Tooltip key={campaign.id}>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            type="button"
-                                            className={cn(
-                                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all',
-                                              'border border-red-200 dark:border-red-800',
-                                              'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300',
-                                              'hover:bg-red-100 dark:hover:bg-red-950/50',
-                                              config && 'cursor-pointer'
+                                    {stat.incomplete.map(({ campaign, config }) => {
+                                      const isEditing = editingItem?.campaignId === campaign.id && editingItem?.configKey === stat.key;
+                                      const valueType = VALUE_TYPE_MAP[stat.key] ?? 'text';
+
+                                      return (
+                                        <Popover
+                                          key={campaign.id}
+                                          open={isEditing}
+                                          onOpenChange={(open) => {
+                                            if (!open) setEditingItem(null);
+                                          }}
+                                        >
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <PopoverTrigger asChild>
+                                                <button
+                                                  type="button"
+                                                  className={cn(
+                                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer',
+                                                    'border border-red-200 dark:border-red-800',
+                                                    'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300',
+                                                    'hover:bg-red-100 dark:hover:bg-red-950/50',
+                                                    isEditing && 'ring-2 ring-red-400/50',
+                                                  )}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingItem({ campaignId: campaign.id, configKey: stat.key });
+                                                  }}
+                                                >
+                                                  <XCircle className="size-3 shrink-0" />
+                                                  <span className="truncate max-w-[150px]">{campaign.client_name}</span>
+                                                  <Pencil className="size-2.5 ml-0.5 opacity-50" />
+                                                </button>
+                                              </PopoverTrigger>
+                                            </TooltipTrigger>
+                                            {!isEditing && (
+                                              <TooltipContent>
+                                                <p className="text-xs font-medium">{campaign.client_name} - {campaign.campaign_name}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                  {config ? (
+                                                    <>값: {config.config_value || '(비어있음)'} | 상태: {config.status}</>
+                                                  ) : (
+                                                    '설정 항목이 없습니다'
+                                                  )}
+                                                </p>
+                                                <p className="text-[10px] text-blue-400 mt-0.5">클릭하여 세팅값 입력</p>
+                                              </TooltipContent>
                                             )}
-                                            onClick={() => {
-                                              if (config) {
-                                                toggleMutation.mutate({ id: config.id, status: '완료' });
-                                              }
-                                            }}
+                                          </Tooltip>
+                                          <PopoverContent
+                                            className="w-80 p-3"
+                                            side="bottom"
+                                            align="start"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            <XCircle className="size-3 shrink-0" />
-                                            <span className="truncate max-w-[150px]">{campaign.client_name}</span>
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="text-xs font-medium">{campaign.client_name} - {campaign.campaign_name}</p>
-                                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                                            {config ? (
-                                              <>
-                                                값: {config.config_value || '(비어있음)'} | 상태: {config.status}
-                                                <br />
-                                                <span className="text-emerald-400">클릭하여 완료 처리</span>
-                                              </>
-                                            ) : (
-                                              '설정 항목이 없습니다'
-                                            )}
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ))}
+                                            <InlineConfigEditor
+                                              campaign={campaign}
+                                              configKey={stat.key}
+                                              config={config}
+                                              valueType={valueType}
+                                              isSaving={upsertMutation.isPending}
+                                              onSave={(value) => {
+                                                upsertMutation.mutate({
+                                                  campaignId: campaign.id,
+                                                  configKey: stat.key,
+                                                  configValue: value,
+                                                  existingId: config?.id ?? null,
+                                                });
+                                              }}
+                                            />
+                                          </PopoverContent>
+                                        </Popover>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -472,35 +726,91 @@ export function ConfigKeyView() {
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {stat.completed.map(({ campaign, config }) => (
-                                      <Tooltip key={campaign.id}>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            type="button"
-                                            className={cn(
-                                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer',
-                                              'border border-emerald-200 dark:border-emerald-800',
-                                              'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300',
-                                              'hover:bg-emerald-100 dark:hover:bg-emerald-950/50',
+                                    {stat.completed.map(({ campaign, config }) => {
+                                      const isEditing = editingItem?.campaignId === campaign.id && editingItem?.configKey === stat.key;
+
+                                      return (
+                                        <Popover
+                                          key={campaign.id}
+                                          open={isEditing}
+                                          onOpenChange={(open) => {
+                                            if (!open) setEditingItem(null);
+                                          }}
+                                        >
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <PopoverTrigger asChild>
+                                                <button
+                                                  type="button"
+                                                  className={cn(
+                                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer',
+                                                    'border border-emerald-200 dark:border-emerald-800',
+                                                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300',
+                                                    'hover:bg-emerald-100 dark:hover:bg-emerald-950/50',
+                                                    isEditing && 'ring-2 ring-emerald-400/50',
+                                                  )}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingItem({ campaignId: campaign.id, configKey: stat.key });
+                                                  }}
+                                                >
+                                                  <CheckCircle2 className="size-3 shrink-0" />
+                                                  <span className="truncate max-w-[150px]">{campaign.client_name}</span>
+                                                  {config.config_value && (
+                                                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-0.5 bg-emerald-100/80 text-emerald-600 dark:bg-emerald-900/40">
+                                                      {config.config_value.length > 15 ? config.config_value.slice(0, 15) + '…' : config.config_value}
+                                                    </Badge>
+                                                  )}
+                                                </button>
+                                              </PopoverTrigger>
+                                            </TooltipTrigger>
+                                            {!isEditing && (
+                                              <TooltipContent>
+                                                <p className="text-xs font-medium">{campaign.client_name} - {campaign.campaign_name}</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                  값: {config.config_value || '(비어있음)'} | 상태: 완료
+                                                </p>
+                                                <p className="text-[10px] text-blue-400 mt-0.5">클릭하여 수정</p>
+                                              </TooltipContent>
                                             )}
-                                            onClick={() => {
-                                              toggleMutation.mutate({ id: config.id, status: '미완료' });
-                                            }}
+                                          </Tooltip>
+                                          <PopoverContent
+                                            className="w-80 p-3"
+                                            side="bottom"
+                                            align="start"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            <CheckCircle2 className="size-3 shrink-0" />
-                                            <span className="truncate max-w-[150px]">{campaign.client_name}</span>
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="text-xs font-medium">{campaign.client_name} - {campaign.campaign_name}</p>
-                                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                                            값: {config.config_value || '(비어있음)'} | 상태: 완료
-                                            <br />
-                                            <span className="text-red-400">클릭하여 미완료로 변경</span>
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ))}
+                                            <InlineConfigEditor
+                                              campaign={campaign}
+                                              configKey={stat.key}
+                                              config={config}
+                                              valueType={VALUE_TYPE_MAP[stat.key] ?? 'text'}
+                                              isSaving={upsertMutation.isPending}
+                                              onSave={(value) => {
+                                                upsertMutation.mutate({
+                                                  campaignId: campaign.id,
+                                                  configKey: stat.key,
+                                                  configValue: value,
+                                                  existingId: config.id,
+                                                });
+                                              }}
+                                            />
+                                            <div className="mt-2 pt-2 border-t">
+                                              <button
+                                                type="button"
+                                                className="text-[10px] text-red-500 hover:text-red-700 transition-colors"
+                                                onClick={() => {
+                                                  toggleMutation.mutate({ id: config.id, status: '미완료' });
+                                                  setEditingItem(null);
+                                                }}
+                                              >
+                                                미완료로 변경
+                                              </button>
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}

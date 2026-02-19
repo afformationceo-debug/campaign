@@ -29,6 +29,7 @@ export const queryKeys = {
   },
   configs: {
     all: ['configs'] as const,
+    counts: ['configs', 'counts'] as const,
     byCampaign: (id: string) => ['configs', id] as const,
   },
   logs: {

@@ -181,9 +181,9 @@ export default function ConfigsPage() {
     },
   });
 
-  // Fetch ALL configs for counts in dropdown
+  // Fetch ALL configs for counts in dropdown (uses separate key to avoid collisions)
   const { data: allCampaignConfigs = [] } = useQuery({
-    queryKey: queryKeys.configs.all,
+    queryKey: queryKeys.configs.counts,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaign_configs')
