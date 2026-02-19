@@ -215,7 +215,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               placeholder="메모를 입력하세요..."
               className="mt-1 h-8 text-sm rounded-lg"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleNoteSave();
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleNoteSave();
               }}
             />
           </div>

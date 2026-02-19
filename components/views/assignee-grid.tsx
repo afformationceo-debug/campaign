@@ -162,7 +162,7 @@ function ResultValueInput({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave(); if (e.key === 'Escape') setEditing(false); }}
         className="w-full text-[11px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
         placeholder="결과값 입력..."
       />

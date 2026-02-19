@@ -1350,7 +1350,7 @@ export default function ConfigsPage() {
                               className="h-6 text-[11px] font-medium"
                               autoFocus
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                   e.currentTarget.blur();
                                 }
                                 if (e.key === 'Escape') { setRenamingConfigId(null); setRenameKeyValue(''); }
@@ -1427,7 +1427,7 @@ export default function ConfigsPage() {
                               autoFocus
                               placeholder="URL 또는 세팅완료/불필요"
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEdit(config.id);
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) saveEdit(config.id);
                                 if (e.key === 'Escape') cancelEditing();
                               }}
                               onBlur={() => saveEdit(config.id)}
@@ -1480,7 +1480,7 @@ export default function ConfigsPage() {
                               className="h-6 text-[11px]"
                               autoFocus
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEdit(config.id);
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) saveEdit(config.id);
                                 if (e.key === 'Escape') cancelEditing();
                               }}
                               onBlur={() => saveEdit(config.id)}

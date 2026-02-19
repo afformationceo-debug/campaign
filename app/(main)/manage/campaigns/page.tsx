@@ -174,7 +174,7 @@ function InlineTextCell({
         else onSave(value);
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
           e.currentTarget.blur();
         }
         if (e.key === 'Escape') {

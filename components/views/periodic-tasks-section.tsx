@@ -164,7 +164,7 @@ function ResultValueInput({
         value={localValue}
         onChange={(e) => { setLocalValue(e.target.value); setEditing(true); }}
         onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) e.currentTarget.blur(); }}
         placeholder="결과값 입력 (URL, 수치 등)..."
         className={cn(
           'flex-1 min-w-0 bg-transparent text-[11px] outline-none',

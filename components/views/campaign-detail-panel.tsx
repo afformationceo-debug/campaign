@@ -229,7 +229,7 @@ function NoteEditor({
             placeholder="메모 또는 결과값 입력..."
             className="h-8 text-sm"
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
             }}
           />
           <div className="flex justify-end gap-2">

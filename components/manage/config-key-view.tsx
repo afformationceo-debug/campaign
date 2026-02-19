@@ -239,7 +239,7 @@ function InlineConfigEditor({
           placeholder={valueType === 'url' ? 'https://...' : '값을 입력하세요'}
           className="h-8 text-xs flex-1"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
           }}
         />
         <Button

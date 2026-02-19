@@ -191,7 +191,7 @@ function InlineTextCell({
         onBlur={handleSave}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setEditing(false);
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); }
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleSave(); }
         }}
         className="w-full text-[11px] bg-background border border-primary/40 rounded px-1.5 py-1 outline-none resize-none min-h-[32px]"
         rows={2}
