@@ -7,11 +7,14 @@ export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-�
 export type TaskScope = 'campaign' | 'global';
 export type ProjectState = '진행전' | '진행중' | '완료';
 export type InterpreterStatus = '통역 필요 없음' | '돈받고 지원 (상시)' | '돈받고 지원 (요청시)' | '무료로 지원(요청시)' | '무료로 지원(상시)';
+export type CampaignType = '해외마케팅' | '국내챗닥';
+export type ChatdocStatus = '대기' | '온보딩중' | '운영중' | '종료';
 
 export interface Campaign {
   id: string;
   client_name: string;
   campaign_name: string;
+  campaign_type: CampaignType;
   target_country: string | null;
   status: CampaignStatus;
   phase: CampaignPhase;
@@ -21,6 +24,10 @@ export interface Campaign {
   interpreter_status: InterpreterStatus | null;
   start_date: string | null;
   homepage_url: string | null;
+  // 국내챗닥 전용
+  chatdoc_onboarding_done: boolean | null;
+  chatdoc_roas_target: number | null;
+  chatdoc_status: ChatdocStatus | null;
   created_at: string;
   updated_at: string;
 }
