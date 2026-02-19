@@ -76,6 +76,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
 
 type ViewMode = 'cards' | 'kanban' | 'table' | 'grouped';
+type GroupBy = 'state' | 'assignee' | 'due_month' | 'none';
+
+interface GroupDefinition {
+  key: string;
+  label: string;
+  color: string;
+  icon: React.ElementType;
+  bg: string;
+  projects: Project[];
+}
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; bg: string }> = {
   '진행전': { label: '진행전', color: 'text-gray-500', icon: CircleDashed, bg: 'bg-gray-100 dark:bg-gray-800' },
@@ -391,6 +401,7 @@ export default function RoadmapPage() {
   useRealtimeProjects();
 
   const [viewMode, setViewMode] = useState<ViewMode>('grouped');
+  const [groupBy, setGroupBy] = useState<GroupBy>('state');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(['완료']));
   const [searchText, setSearchText] = useState('');
@@ -502,21 +513,125 @@ export default function RoadmapPage() {
   // Group order for grouped view: 진행중 first, then 진행전, then 완료
   const GROUPED_ORDER: ProjectState[] = ['진행중', '진행전', '완료'];
 
-  const groupedProjects = useMemo(() => {
-    return GROUPED_ORDER.map((state) => ({
-      state,
-      config: STATE_CONFIG[state],
-      projects: filteredProjects.filter((p) => p.state === state),
-    }));
-  }, [filteredProjects]);
+  const groupedProjects: GroupDefinition[] = useMemo(() => {
+    switch (groupBy) {
+      case 'state':
+        return GROUPED_ORDER.map((state) => ({
+          key: state,
+          label: STATE_CONFIG[state].label,
+          color: STATE_CONFIG[state].color,
+          icon: STATE_CONFIG[state].icon,
+          bg: STATE_CONFIG[state].bg,
+          projects: filteredProjects.filter((p) => p.state === state),
+        }));
 
-  const toggleGroupCollapse = useCallback((state: string) => {
+      case 'assignee': {
+        const groups: GroupDefinition[] = [];
+        const assigneeMap = new Map<string, Project[]>();
+        const unassigned: Project[] = [];
+        filteredProjects.forEach((p) => {
+          if (p.assignee_id) {
+            const existing = assigneeMap.get(p.assignee_id) || [];
+            existing.push(p);
+            assigneeMap.set(p.assignee_id, existing);
+          } else {
+            unassigned.push(p);
+          }
+        });
+        // Sort by user name
+        const sortedEntries = [...assigneeMap.entries()].sort((a, b) => {
+          const nameA = users.find((u) => u.id === a[0])?.name ?? '';
+          const nameB = users.find((u) => u.id === b[0])?.name ?? '';
+          return nameA.localeCompare(nameB);
+        });
+        sortedEntries.forEach(([userId, projects]) => {
+          const user = users.find((u) => u.id === userId);
+          groups.push({
+            key: userId,
+            label: user?.name ?? '알 수 없음',
+            color: 'text-blue-600',
+            icon: User,
+            bg: 'bg-blue-50 dark:bg-blue-950',
+            projects,
+          });
+        });
+        if (unassigned.length > 0) {
+          groups.push({
+            key: '__unassigned__',
+            label: '미지정',
+            color: 'text-gray-500',
+            icon: CircleDashed,
+            bg: 'bg-gray-100 dark:bg-gray-800',
+            projects: unassigned,
+          });
+        }
+        return groups;
+      }
+
+      case 'due_month': {
+        const groups: GroupDefinition[] = [];
+        const monthMap = new Map<string, Project[]>();
+        const noDate: Project[] = [];
+        filteredProjects.forEach((p) => {
+          if (p.due_date) {
+            const month = p.due_date.substring(0, 7); // YYYY-MM
+            const existing = monthMap.get(month) || [];
+            existing.push(p);
+            monthMap.set(month, existing);
+          } else {
+            noDate.push(p);
+          }
+        });
+        // Sort months chronologically
+        const sortedMonths = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+        sortedMonths.forEach(([month, projects]) => {
+          const [y, m] = month.split('-');
+          groups.push({
+            key: month,
+            label: `${y}년 ${parseInt(m)}월`,
+            color: 'text-violet-600',
+            icon: CalendarDays,
+            bg: 'bg-violet-50 dark:bg-violet-950',
+            projects,
+          });
+        });
+        if (noDate.length > 0) {
+          groups.push({
+            key: '__no_date__',
+            label: '마감일 미정',
+            color: 'text-gray-500',
+            icon: CircleDashed,
+            bg: 'bg-gray-100 dark:bg-gray-800',
+            projects: noDate,
+          });
+        }
+        return groups;
+      }
+
+      case 'none':
+        return [{
+          key: '__all__',
+          label: '전체 프로젝트',
+          color: 'text-foreground',
+          icon: Layers,
+          bg: 'bg-muted',
+          projects: filteredProjects,
+        }];
+    }
+  }, [filteredProjects, groupBy, users]);
+
+  const toggleGroupCollapse = useCallback((key: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(state)) next.delete(state); else next.add(state);
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   }, []);
+
+  // Reset collapsed groups when groupBy changes
+  useEffect(() => {
+    setCollapsedGroups(groupBy === 'state' ? new Set(['완료']) : new Set());
+  }, [groupBy]);
 
   const stats = useMemo(() => {
     const total = projects.length;
@@ -802,6 +917,19 @@ export default function RoadmapPage() {
             완료 {showCompleted ? '숨기기' : `보기 (${stats.completed})`}
           </Button>
         )}
+        {viewMode === 'grouped' && (
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectValue placeholder="그룹화 기준" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="state">상태별</SelectItem>
+              <SelectItem value="assignee">담당자별</SelectItem>
+              <SelectItem value="due_month">마감월별</SelectItem>
+              <SelectItem value="none">그룹없음</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <div className="ml-auto flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
           {([
             { mode: 'cards' as ViewMode, icon: LayoutGrid, label: '카드' },
@@ -869,44 +997,47 @@ export default function RoadmapPage() {
       ) : viewMode === 'grouped' ? (
         /* ═══════════════ GROUPED VIEW ═══════════════ */
         <div className="space-y-2">
-          {groupedProjects.map(({ state, config: groupConfig, projects: groupProjects }) => {
-            const GroupIcon = groupConfig.icon;
-            const isGroupCollapsed = collapsedGroups.has(state);
-            const groupCompletedTasks = groupProjects.reduce((sum, p) => {
+          {groupedProjects.map((group) => {
+            const GroupIcon = group.icon;
+            const isGroupCollapsed = collapsedGroups.has(group.key);
+            const groupCompletedTasks = group.projects.reduce((sum, p) => {
               const tasks = tasksByProject.get(p.id) || [];
               return sum + tasks.filter((t) => t.state === '완료').length;
             }, 0);
-            const groupTotalTasks = groupProjects.reduce((sum, p) => {
+            const groupTotalTasks = group.projects.reduce((sum, p) => {
               return sum + (tasksByProject.get(p.id) || []).length;
             }, 0);
+            // Special styling for completed state group
+            const isCompletedStateGroup = groupBy === 'state' && group.key === '완료';
+            const isActiveStateGroup = groupBy === 'state' && group.key === '진행중';
 
             return (
-              <div key={state} className={cn(
+              <div key={group.key} className={cn(
                 'rounded-xl border bg-card overflow-hidden',
-                state === '완료' && 'border-emerald-200 dark:border-emerald-800',
+                isCompletedStateGroup && 'border-emerald-200 dark:border-emerald-800',
               )}>
                 {/* Group Header */}
                 <button
                   type="button"
-                  onClick={() => toggleGroupCollapse(state)}
+                  onClick={() => toggleGroupCollapse(group.key)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-1.5 transition-colors',
-                    state === '완료'
+                    isCompletedStateGroup
                       ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
-                      : state === '진행중'
+                      : isActiveStateGroup
                         ? 'bg-gradient-to-r from-blue-50 to-blue-50/30 dark:from-blue-950/30 dark:to-transparent hover:from-blue-100/80 dark:hover:from-blue-950/40'
                         : 'bg-muted/30 hover:bg-muted/50',
                   )}
                 >
                   {isGroupCollapsed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
-                  {state === '완료' ? <Trophy className={cn('size-4', groupConfig.color)} /> : <GroupIcon className={cn('size-4', groupConfig.color)} />}
-                  <span className={cn('text-sm font-semibold', groupConfig.color)}>{groupConfig.label}</span>
+                  {isCompletedStateGroup ? <Trophy className={cn('size-4', group.color)} /> : <GroupIcon className={cn('size-4', group.color)} />}
+                  <span className={cn('text-sm font-semibold', group.color)}>{group.label}</span>
                   <Badge variant="secondary" className={cn(
                     'text-[10px] px-1.5 py-0',
-                    state === '완료' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-                    state === '진행중' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                    isCompletedStateGroup && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+                    isActiveStateGroup && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
                   )}>
-                    {groupProjects.length}개
+                    {group.projects.length}개
                   </Badge>
                   {groupTotalTasks > 0 && (
                     <span className="text-[10px] text-muted-foreground ml-auto">
@@ -916,7 +1047,7 @@ export default function RoadmapPage() {
                 </button>
 
                 {/* Group Table */}
-                {!isGroupCollapsed && groupProjects.length > 0 && (
+                {!isGroupCollapsed && group.projects.length > 0 && (
                   <div className="border-t overflow-x-auto">
                     <table className="w-full table-fixed text-[12px] min-w-[980px]">
                       <thead>
@@ -935,7 +1066,7 @@ export default function RoadmapPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {groupProjects.map((project) => {
+                        {group.projects.map((project) => {
                           const tasks = tasksByProject.get(project.id) || [];
                           const completed = tasks.filter((t) => t.state === '완료').length;
                           const pct = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
@@ -1171,9 +1302,9 @@ export default function RoadmapPage() {
                 )}
 
                 {/* Empty state */}
-                {!isGroupCollapsed && groupProjects.length === 0 && (
+                {!isGroupCollapsed && group.projects.length === 0 && (
                   <div className="border-t px-4 py-1.5 text-center text-[11px] text-muted-foreground/50">
-                    {state === '완료' ? '완료된 프로젝트가 없습니다' : state === '진행중' ? '진행중인 프로젝트가 없습니다' : '진행전 프로젝트가 없습니다'}
+                    {group.label} 프로젝트가 없습니다
                   </div>
                 )}
               </div>
