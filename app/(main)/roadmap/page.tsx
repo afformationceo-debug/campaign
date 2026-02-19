@@ -523,8 +523,12 @@ export default function RoadmapPage() {
     const inProgress = projects.filter((p) => p.state === '진행중').length;
     const completed = projects.filter((p) => p.state === '완료').length;
     const notStarted = projects.filter((p) => p.state === '진행전').length;
-    return { total, inProgress, completed, notStarted };
-  }, [projects]);
+    const totalTasks = allTasks.length;
+    const tasksInProgress = allTasks.filter((t) => t.state === '진행중').length;
+    const tasksCompleted = allTasks.filter((t) => t.state === '완료').length;
+    const tasksNotStarted = allTasks.filter((t) => t.state === '진행전').length;
+    return { total, inProgress, completed, notStarted, totalTasks, tasksInProgress, tasksCompleted, tasksNotStarted };
+  }, [projects, allTasks]);
 
   // ─── Dialog handlers ──────────────────────────────────
   const openCreateDialog = () => { setEditingProject(null); setFormData({ state: '진행전' }); setDialogOpen(true); };
@@ -758,22 +762,54 @@ export default function RoadmapPage() {
         </Button>
       </div>
 
-      {/* Stats - more compact */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { label: '전체', value: stats.total, color: 'text-foreground', border: 'border-border', bg: '' },
-          { label: '진행전', value: stats.notStarted, color: 'text-gray-500', border: 'border-gray-200 dark:border-gray-700', bg: '' },
-          { label: '진행중', value: stats.inProgress, color: 'text-blue-600', border: 'border-blue-200 dark:border-blue-800', bg: '' },
-          { label: '완료', value: stats.completed, color: 'text-emerald-600', border: 'border-emerald-200 dark:border-emerald-800', bg: 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20' },
-        ].map((s) => (
-          <div key={s.label} className={cn('rounded-lg border bg-card px-3 py-2', s.border, s.bg)}>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-              {s.label === '완료' && <Trophy className="size-2.5 text-emerald-500" />}
-              {s.label}
-            </p>
-            <p className={cn('text-lg font-bold leading-tight', s.color)}>{s.value}</p>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* 상위 프로젝트 */}
+        <div className="rounded-lg border bg-card px-3 py-2">
+          <p className="text-[10px] text-muted-foreground font-medium">상위 프로젝트</p>
+          <p className="text-lg font-bold leading-tight">{stats.total}</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[9px] text-gray-500">{stats.notStarted} 진행전</span>
+            <span className="text-[9px] text-blue-600">{stats.inProgress} 진행중</span>
+            <span className="text-[9px] text-emerald-600">{stats.completed} 완료</span>
           </div>
-        ))}
+        </div>
+        {/* 하위 업무 */}
+        <div className="rounded-lg border bg-card px-3 py-2">
+          <p className="text-[10px] text-muted-foreground font-medium">하위 업무</p>
+          <p className="text-lg font-bold leading-tight">{stats.totalTasks}</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[9px] text-gray-500">{stats.tasksNotStarted} 진행전</span>
+            <span className="text-[9px] text-blue-600">{stats.tasksInProgress} 진행중</span>
+            <span className="text-[9px] text-emerald-600">{stats.tasksCompleted} 완료</span>
+          </div>
+        </div>
+        {/* 진행중 */}
+        <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-card px-3 py-2">
+          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">진행중</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-lg font-bold leading-tight text-blue-600">{stats.inProgress}</p>
+            <span className="text-[9px] text-muted-foreground">프로젝트</span>
+          </div>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <p className="text-sm font-semibold text-blue-500">{stats.tasksInProgress}</p>
+            <span className="text-[9px] text-muted-foreground">하위업무</span>
+          </div>
+        </div>
+        {/* 완료 */}
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 px-3 py-2">
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <Trophy className="size-2.5" />완료
+          </p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-lg font-bold leading-tight text-emerald-600">{stats.completed}</p>
+            <span className="text-[9px] text-muted-foreground">프로젝트</span>
+          </div>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <p className="text-sm font-semibold text-emerald-500">{stats.tasksCompleted}</p>
+            <span className="text-[9px] text-muted-foreground">하위업무</span>
+          </div>
+        </div>
       </div>
 
       {/* Filters & View Toggle */}
