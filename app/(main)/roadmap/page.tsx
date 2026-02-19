@@ -161,7 +161,7 @@ function InlineTextCell({
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => { onSave(draft); }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') { onSave(draft); }
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) { onSave(draft); }
         if (e.key === 'Escape') { onSave(value); }
       }}
       onClick={(e) => e.stopPropagation()}
@@ -1293,7 +1293,7 @@ export default function RoadmapPage() {
                                     className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
                                     placeholder="새 하위업무 추가..."
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
+                                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                         const input = e.currentTarget;
                                         const title = input.value.trim();
                                         if (title) {
@@ -1842,7 +1842,7 @@ export default function RoadmapPage() {
                               className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
                               placeholder="새 하위업무 추가..."
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                                   const input = e.currentTarget;
                                   const title = input.value.trim();
                                   if (title) {
@@ -1871,7 +1871,7 @@ export default function RoadmapPage() {
                     className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
                     placeholder="새 프로젝트 추가... (Enter로 생성)"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                         const input = e.currentTarget;
                         const name = input.value.trim();
                         if (name) {
