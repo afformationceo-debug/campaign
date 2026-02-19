@@ -14,7 +14,8 @@ function getSupabase(): SupabaseClient {
 }
 
 function today() {
-  return new Date().toISOString().split('T')[0];
+  // 한국 시간(KST) 기준 오늘 날짜 반환
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 }
 
 function defaultRange(): DateRange {
