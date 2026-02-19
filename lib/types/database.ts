@@ -76,12 +76,21 @@ export interface DailyCheck {
   updated_at: string;
 }
 
+export type ConfigValueType = 'text' | 'url' | 'status' | 'credentials';
+
+export interface PlatformCredential {
+  platform: string;
+  username: string;
+  password: string;
+}
+
 export interface CampaignConfig {
   id: string;
   campaign_id: string;
   config_type: string;
   config_key: string;
   config_value: string | null;
+  value_type: ConfigValueType;
   status: string;
   created_at: string;
   updated_at: string;

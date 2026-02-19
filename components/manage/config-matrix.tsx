@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { parseCredentials } from '@/components/manage/credential-editor';
 import type { Campaign, CampaignConfig } from '@/lib/types/database';
 
 // Config keys grouped by type, matching DEFAULT_TEMPLATE_CONFIGS
@@ -293,9 +294,25 @@ export function ConfigMatrix() {
                               </TooltipTrigger>
                               <TooltipContent side="top" sideOffset={4}>
                                 <p className="font-medium">{key}</p>
-                                <p className="text-[10px] opacity-80">
-                                  {config.config_value || '(비어있음)'}
-                                </p>
+                                {config.value_type === 'credentials' ? (
+                                  <div className="text-[10px] opacity-80 mt-0.5">
+                                    {config.config_value ? (
+                                      parseCredentials(config.config_value).map((c, i) => (
+                                        <p key={i}>{c.platform}: {c.username} / ••••</p>
+                                      ))
+                                    ) : (
+                                      <p>(비어있음)</p>
+                                    )}
+                                  </div>
+                                ) : config.value_type === 'url' && config.config_value ? (
+                                  <p className="text-[10px] opacity-80 text-blue-300 break-all max-w-[250px]">
+                                    {config.config_value}
+                                  </p>
+                                ) : (
+                                  <p className="text-[10px] opacity-80">
+                                    {config.config_value || '(비어있음)'}
+                                  </p>
+                                )}
                                 <p className="text-[10px] mt-1">
                                   상태: {config.status}
                                 </p>

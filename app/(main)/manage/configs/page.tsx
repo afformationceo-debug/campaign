@@ -35,7 +35,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import type { Campaign, CampaignConfig } from '@/lib/types/database';
+import { CredentialEditor, parseCredentials, credentialsToText, textToCredentialsJson } from '@/components/manage/credential-editor';
+import type { Campaign, CampaignConfig, ConfigValueType } from '@/lib/types/database';
 
 const CONFIG_TYPE_OPTIONS = [
   '세팅 관련',
@@ -48,30 +49,32 @@ const CONFIG_TYPE_OPTIONS = [
 
 const DEFAULT_TEMPLATE_CONFIGS = [
   // 세팅 관련
-  { config_type: '세팅 관련', config_key: '인스타그램 URL' },
-  { config_type: '세팅 관련', config_key: '페이스북 URL' },
-  { config_type: '세팅 관련', config_key: '트위터 URL' },
-  { config_type: '세팅 관련', config_key: '틱톡 URL' },
-  { config_type: '세팅 관련', config_key: '플랫폼별 ID/PW' },
-  { config_type: '세팅 관련', config_key: '고객전용 라인' },
-  { config_type: '세팅 관련', config_key: '고객전용 왓츠앱 링크' },
-  { config_type: '세팅 관련', config_key: '홈페이지 링크' },
-  { config_type: '세팅 관련', config_key: '구글맵 세팅여부' },
-  { config_type: '세팅 관련', config_key: '리틀리 세팅여부' },
-  { config_type: '세팅 관련', config_key: '리틀리 링크' },
+  { config_type: '세팅 관련', config_key: '인스타그램 URL', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '페이스북 URL', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '트위터 URL', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '틱톡 URL', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '플랫폼별 ID/PW', value_type: 'credentials' as const },
+  { config_type: '세팅 관련', config_key: '고객전용 라인', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '고객전용 왓츠앱 링크', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '홈페이지 링크', value_type: 'url' as const },
+  { config_type: '세팅 관련', config_key: '구글맵 세팅여부', value_type: 'status' as const },
+  { config_type: '세팅 관련', config_key: '리틀리 세팅여부', value_type: 'status' as const },
+  { config_type: '세팅 관련', config_key: '리틀리 링크', value_type: 'url' as const },
   // 인플루언서 관련
-  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 라인 세팅' },
-  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 왓츠앱 세팅' },
-  { config_type: '인플루언서 관련', config_key: '스카웃매니저 메신저 연동' },
-  { config_type: '인플루언서 관련', config_key: '스카웃매니저 캠페인 등록' },
+  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 라인 세팅', value_type: 'url' as const },
+  { config_type: '인플루언서 관련', config_key: '인플루언서 전용 왓츠앱 세팅', value_type: 'url' as const },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 메신저 연동', value_type: 'status' as const },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 캠페인 등록', value_type: 'status' as const },
   // 지식베이스
-  { config_type: '지식베이스', config_key: '고객전용 지식베이스 세팅여부' },
-  { config_type: '지식베이스', config_key: '인플전용 지식베이스 세팅여부' },
+  { config_type: '지식베이스', config_key: '고객전용 지식베이스 세팅여부', value_type: 'status' as const },
+  { config_type: '지식베이스', config_key: '인플전용 지식베이스 세팅여부', value_type: 'status' as const },
   // CS어드민
-  { config_type: 'CS어드민', config_key: '메신저 채널 연동 여부' },
+  { config_type: 'CS어드민', config_key: '메신저 채널 연동 여부', value_type: 'status' as const },
   // CRM
-  { config_type: 'CRM', config_key: 'CRM 등록여부' },
+  { config_type: 'CRM', config_key: 'CRM 등록여부', value_type: 'status' as const },
 ];
+
+const STATUS_VALUE_OPTIONS = ['세팅완료', '진행필요', '미완료', '불필요', '해당없음'];
 
 // Parse a single CSV line handling quoted fields with commas/quotes inside
 function parseCsvLine(line: string): string[] {
@@ -154,6 +157,10 @@ export default function ConfigsPage() {
   const [allCsvUploading, setAllCsvUploading] = useState(false);
   const [allCsvResult, setAllCsvResult] = useState<{ updated: number; created: number; skipped: number } | null>(null);
   const allCsvFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Credential editor state
+  const [credentialEditorOpen, setCredentialEditorOpen] = useState(false);
+  const [credentialEditingConfig, setCredentialEditingConfig] = useState<CampaignConfig | null>(null);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery({
@@ -315,6 +322,7 @@ export default function ConfigsPage() {
         config_type: item.config_type,
         config_key: item.config_key,
         config_value: '',
+        value_type: item.value_type,
         status: '미완료',
       }));
       const { error } = await supabase
@@ -511,14 +519,17 @@ export default function ConfigsPage() {
 
     const BOM = '\uFEFF';
     const header = '설정유형,항목이름,값,상태';
-    const rows = configs.map((config) =>
-      [
+    const rows = configs.map((config) => {
+      const displayValue = config.value_type === 'credentials'
+        ? credentialsToText(config.config_value)
+        : config.config_value ?? '';
+      return [
         escapeCsvField(config.config_type),
         escapeCsvField(config.config_key),
-        escapeCsvField(config.config_value ?? ''),
+        escapeCsvField(displayValue),
         escapeCsvField(config.status),
-      ].join(',')
-    );
+      ].join(',');
+    });
 
     const csvContent = BOM + [header, ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -614,11 +625,17 @@ export default function ConfigsPage() {
           const key = `${row.config_type}::${row.config_key}`;
           const existing = existingMap.get(key);
 
+          // Convert credentials text to JSON for storage
+          const isCredential = row.config_key === '플랫폼별 ID/PW' || existing?.value_type === 'credentials';
+          const storedValue = isCredential
+            ? textToCredentialsJson(row.config_value)
+            : row.config_value;
+
           if (existing) {
             const { error } = await supabase
               .from('campaign_configs')
               .update({
-                config_value: row.config_value,
+                config_value: storedValue,
                 status: row.status,
               })
               .eq('id', existing.id);
@@ -631,7 +648,7 @@ export default function ConfigsPage() {
                 campaign_id: selectedCampaignId,
                 config_type: row.config_type,
                 config_key: row.config_key,
-                config_value: row.config_value,
+                config_value: storedValue,
                 status: row.status,
               });
             if (error) throw error;
@@ -695,12 +712,15 @@ export default function ConfigsPage() {
     const header = '고객명,캠페인명,설정유형,항목이름,값,상태';
     const rows = (allConfigs as CampaignConfig[]).map((config) => {
       const campaign = campaignMap.get(config.campaign_id);
+      const displayValue = config.value_type === 'credentials'
+        ? credentialsToText(config.config_value)
+        : config.config_value ?? '';
       return [
         escapeCsvField(campaign?.client_name ?? ''),
         escapeCsvField(campaign?.campaign_name ?? ''),
         escapeCsvField(config.config_type),
         escapeCsvField(config.config_key),
-        escapeCsvField(config.config_value ?? ''),
+        escapeCsvField(displayValue),
         escapeCsvField(config.status),
       ].join(',');
     });
@@ -819,11 +839,17 @@ export default function ConfigsPage() {
           const key = `${campaignId}::${row.config_type}::${row.config_key}`;
           const existing = existingMap.get(key);
 
+          // Convert credentials text to JSON for storage
+          const isCredential = row.config_key === '플랫폼별 ID/PW' || existing?.value_type === 'credentials';
+          const storedValue = isCredential
+            ? textToCredentialsJson(row.config_value)
+            : row.config_value;
+
           if (existing) {
             const { error: updateErr } = await supabase
               .from('campaign_configs')
               .update({
-                config_value: row.config_value,
+                config_value: storedValue,
                 status: row.status,
               })
               .eq('id', existing.id);
@@ -836,7 +862,7 @@ export default function ConfigsPage() {
                 campaign_id: campaignId,
                 config_type: row.config_type,
                 config_key: row.config_key,
-                config_value: row.config_value,
+                config_value: storedValue,
                 status: row.status,
               });
             if (insertErr) throw insertErr;
@@ -1270,28 +1296,115 @@ export default function ConfigsPage() {
                         )}
                       </td>
                       <td className="px-3 py-1">
-                        {editingConfigId === config.id ? (
-                          <Input
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            className="h-6 text-[11px]"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveEdit(config.id);
-                              if (e.key === 'Escape') cancelEditing();
-                            }}
-                            onBlur={() => saveEdit(config.id)}
-                          />
-                        ) : (
+                        {/* value_type-aware rendering */}
+                        {config.value_type === 'credentials' ? (
                           <span
-                            className={cn(
-                              'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
-                              !config.config_value && 'text-muted-foreground/50 italic'
-                            )}
-                            onClick={() => startEditing(config)}
+                            className="text-[11px] cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px] block"
+                            onClick={() => { setCredentialEditingConfig(config); setCredentialEditorOpen(true); }}
                           >
-                            {config.config_value || '(비어있음)'}
+                            {config.config_value ? (
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                {parseCredentials(config.config_value).length}개 플랫폼
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground/50 italic">클릭하여 입력</span>
+                            )}
                           </span>
+                        ) : config.value_type === 'status' ? (
+                          <Select
+                            value={config.config_value || '__empty__'}
+                            onValueChange={(v) => {
+                              const newVal = v === '__empty__' ? '' : v;
+                              updateValueMutation.mutate({ id: config.id, value: newVal });
+                            }}
+                          >
+                            <SelectTrigger className={cn(
+                              'h-6 text-[11px] border-0 bg-transparent px-1 -mx-1',
+                              config.config_value === '세팅완료' && 'text-emerald-700',
+                              config.config_value === '불필요' || config.config_value === '해당없음' ? 'text-gray-500' : '',
+                              config.config_value === '미완료' && 'text-red-600',
+                              config.config_value === '진행필요' && 'text-amber-600',
+                            )}>
+                              <SelectValue placeholder="선택..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__empty__">
+                                <span className="text-muted-foreground/50">(비어있음)</span>
+                              </SelectItem>
+                              {STATUS_VALUE_OPTIONS.map((opt) => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : config.value_type === 'url' ? (
+                          editingConfigId === config.id ? (
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-6 text-[11px]"
+                              type="url"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(config.id);
+                                if (e.key === 'Escape') cancelEditing();
+                              }}
+                              onBlur={() => saveEdit(config.id)}
+                            />
+                          ) : config.config_value && /^https?:\/\//.test(config.config_value) ? (
+                            <div className="flex items-center gap-1 min-w-0">
+                              <a
+                                href={config.config_value}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {config.config_value}
+                              </a>
+                              <span
+                                className="text-[9px] text-muted-foreground/40 cursor-text hover:text-muted-foreground shrink-0"
+                                onClick={() => startEditing(config)}
+                                title="수정"
+                              >
+                                수정
+                              </span>
+                            </div>
+                          ) : (
+                            <span
+                              className={cn(
+                                'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
+                                !config.config_value && 'text-muted-foreground/50 italic'
+                              )}
+                              onClick={() => startEditing(config)}
+                            >
+                              {config.config_value || '(비어있음)'}
+                            </span>
+                          )
+                        ) : (
+                          /* text (default) */
+                          editingConfigId === config.id ? (
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-6 text-[11px]"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(config.id);
+                                if (e.key === 'Escape') cancelEditing();
+                              }}
+                              onBlur={() => saveEdit(config.id)}
+                            />
+                          ) : (
+                            <span
+                              className={cn(
+                                'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
+                                !config.config_value && 'text-muted-foreground/50 italic'
+                              )}
+                              onClick={() => startEditing(config)}
+                            >
+                              {config.config_value || '(비어있음)'}
+                            </span>
+                          )
                         )}
                       </td>
                       <td className="px-3 py-1 text-center">
@@ -1339,6 +1452,19 @@ export default function ConfigsPage() {
 
         </TabsContent>
       </Tabs>
+
+      {/* Credential Editor Dialog */}
+      <CredentialEditor
+        open={credentialEditorOpen}
+        onOpenChange={setCredentialEditorOpen}
+        value={credentialEditingConfig?.config_value ?? null}
+        campaignName={campaigns.find((c) => c.id === credentialEditingConfig?.campaign_id)?.campaign_name}
+        onSave={(value) => {
+          if (credentialEditingConfig) {
+            updateValueMutation.mutate({ id: credentialEditingConfig.id, value });
+          }
+        }}
+      />
     </motion.div>
   );
 }
