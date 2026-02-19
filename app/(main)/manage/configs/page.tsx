@@ -65,18 +65,20 @@ const DEFAULT_TEMPLATE_CONFIGS = [
   // 인플루언서 관련
   { config_type: '인플루언서 관련', config_key: '인플루언서 전용 라인 세팅', value_type: 'url' as const },
   { config_type: '인플루언서 관련', config_key: '인플루언서 전용 왓츠앱 세팅', value_type: 'url' as const },
-  { config_type: '인플루언서 관련', config_key: '스카웃매니저 메신저 연동', value_type: 'status' as const },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 라인 메신저 연동', value_type: 'status' as const },
+  { config_type: '인플루언서 관련', config_key: '스카웃매니저 왓츠앱 메신저 연동', value_type: 'status' as const },
   { config_type: '인플루언서 관련', config_key: '스카웃매니저 캠페인 등록', value_type: 'status' as const },
   // 지식베이스
   { config_type: '지식베이스', config_key: '고객전용 지식베이스 세팅여부', value_type: 'status' as const },
   { config_type: '지식베이스', config_key: '인플전용 지식베이스 세팅여부', value_type: 'status' as const },
   // CS어드민
   { config_type: 'CS어드민', config_key: '메신저 채널 연동 여부', value_type: 'status' as const },
+  { config_type: 'CS어드민', config_key: 'CRM 연동설정 여부', value_type: 'status' as const },
   // CRM
   { config_type: 'CRM', config_key: 'CRM 등록여부', value_type: 'status' as const },
 ];
 
-const STATUS_VALUE_OPTIONS = ['세팅완료', '진행필요', '미완료', '불필요', '해당없음'];
+const STATUS_VALUE_OPTIONS = ['완료', '진행중', '미완료', '해당없음', '세팅완료', '진행필요', '불필요'];
 
 // Parse a single CSV line handling quoted fields with commas/quotes inside
 function parseCsvLine(line: string): string[] {
@@ -1381,10 +1383,10 @@ export default function ConfigsPage() {
                           >
                             <SelectTrigger className={cn(
                               'h-6 text-[11px] border-0 bg-transparent px-1 -mx-1 font-medium',
-                              config.config_value === '세팅완료' && 'text-emerald-700 dark:text-emerald-400',
+                              (config.config_value === '세팅완료' || config.config_value === '완료') && 'text-emerald-700 dark:text-emerald-400',
                               (config.config_value === '불필요' || config.config_value === '해당없음') && 'text-gray-500',
                               config.config_value === '미완료' && 'text-red-600 dark:text-red-400',
-                              config.config_value === '진행필요' && 'text-amber-600 dark:text-amber-400',
+                              (config.config_value === '진행필요' || config.config_value === '진행중') && 'text-amber-600 dark:text-amber-400',
                             )}>
                               <SelectValue placeholder="선택..." />
                             </SelectTrigger>
@@ -1395,12 +1397,12 @@ export default function ConfigsPage() {
                               {STATUS_VALUE_OPTIONS.map((opt) => (
                                 <SelectItem key={opt} value={opt}>
                                   <span className={cn(
-                                    opt === '세팅완료' && 'text-emerald-700',
+                                    (opt === '세팅완료' || opt === '완료') && 'text-emerald-700',
                                     opt === '미완료' && 'text-red-600',
-                                    opt === '진행필요' && 'text-amber-600',
+                                    (opt === '진행필요' || opt === '진행중') && 'text-amber-600',
                                     (opt === '불필요' || opt === '해당없음') && 'text-gray-500',
                                   )}>
-                                    {opt === '세팅완료' ? '✓ ' : opt === '미완료' ? '✕ ' : opt === '진행필요' ? '◌ ' : ''}{opt}
+                                    {(opt === '세팅완료' || opt === '완료') ? '✓ ' : opt === '미완료' ? '✕ ' : (opt === '진행필요' || opt === '진행중') ? '◌ ' : ''}{opt}
                                   </span>
                                 </SelectItem>
                               ))}
@@ -1440,9 +1442,9 @@ export default function ConfigsPage() {
                                 수정
                               </span>
                             </div>
-                          ) : config.config_value === '세팅완료' ? (
+                          ) : (config.config_value === '세팅완료' || config.config_value === '완료') ? (
                             <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>
-                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">세팅완료</Badge>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{config.config_value}</Badge>
                             </span>
                           ) : config.config_value === '불필요' ? (
                             <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>

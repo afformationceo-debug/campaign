@@ -41,7 +41,7 @@ export function parseCredentials(value: string | null): PlatformCredential[] {
   return value.split('|').map((segment) => {
     const trimmed = segment.trim();
     const colonIdx = trimmed.indexOf(':');
-    if (colonIdx === -1) return { platform: '기타', username: trimmed, password: '' };
+    if (colonIdx === -1) return { platform: '기타', username: trimmed, password: '', owner: '' };
     const platform = trimmed.slice(0, colonIdx).trim();
     const rest = trimmed.slice(colonIdx + 1).trim();
     const parts = rest.split('/').map((p) => p.trim());
@@ -49,6 +49,7 @@ export function parseCredentials(value: string | null): PlatformCredential[] {
       platform,
       username: parts[0] ?? '',
       password: parts[1] ?? '',
+      owner: parts[2] ?? '',
     };
   }).filter((c) => c.username || c.password);
 }
@@ -64,7 +65,10 @@ export function credentialsToText(value: string | null): string {
   const creds = parseCredentials(value);
   if (creds.length === 0) return '';
   return creds
-    .map((c) => `${c.platform}: ${c.username} / ${c.password}`)
+    .map((c) => {
+      const base = `${c.platform}: ${c.username} / ${c.password}`;
+      return c.owner ? `${base} / ${c.owner}` : base;
+    })
     .join(' | ');
 }
 
@@ -103,13 +107,13 @@ export function CredentialEditor({
   useEffect(() => {
     if (open) {
       const parsed = parseCredentials(value);
-      setCredentials(parsed.length > 0 ? parsed : [{ platform: '', username: '', password: '' }]);
+      setCredentials(parsed.length > 0 ? parsed : [{ platform: '', username: '', password: '', owner: '' }]);
       setVisiblePasswords(new Set());
     }
   }, [open, value]);
 
   const addRow = () => {
-    setCredentials([...credentials, { platform: '', username: '', password: '' }]);
+    setCredentials([...credentials, { platform: '', username: '', password: '', owner: '' }]);
   };
 
   const removeRow = (idx: number) => {
@@ -183,7 +187,7 @@ export function CredentialEditor({
                     />
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[10px] text-muted-foreground">ID / 이메일</Label>
                     <Input
@@ -215,6 +219,15 @@ export function CredentialEditor({
                         )}
                       </button>
                     </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">명의자</Label>
+                    <Input
+                      value={cred.owner || ''}
+                      onChange={(e) => updateRow(idx, 'owner', e.target.value)}
+                      placeholder="홍길동"
+                      className="h-7 text-xs mt-0.5"
+                    />
                   </div>
                 </div>
               </div>

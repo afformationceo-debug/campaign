@@ -89,6 +89,7 @@ export interface PlatformCredential {
   platform: string;
   username: string;
   password: string;
+  owner?: string;
 }
 
 export interface CampaignConfig {
