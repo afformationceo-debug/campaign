@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { FileText, CalendarDays, ClipboardList, FolderOpen, Search, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -242,10 +242,6 @@ export default function ResultsViewPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [allPeriod, setAllPeriod] = useState(false);
 
-  const currentDate = parseISO(date);
-  const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
-  const monthEnd = format(endOfMonth(currentDate), 'yyyy-MM-dd');
-  const yearMonth = format(currentDate, 'yyyy-MM');
 
   // ── Data Fetching ──
 
@@ -329,20 +325,20 @@ export default function ResultsViewPage() {
     },
   });
 
-  // Periodic results: entire month range or all period
+  // Periodic results: exact date match (same as daily) or all period
   const { data: periodicChecks = [], isLoading: periodicLoading } = useQuery({
     queryKey: allPeriod
       ? queryKeys.checks.allPeriodicResults(selectedUserId ?? undefined)
       : selectedUserId
-        ? queryKeys.checks.periodicResultsByMonthAndUser(yearMonth, selectedUserId)
-        : queryKeys.checks.periodicResultsByMonth(yearMonth),
+        ? queryKeys.checks.periodicResultsByMonthAndUser(date, selectedUserId)
+        : queryKeys.checks.periodicResultsByMonth(date),
     queryFn: async () => {
       let query = supabase
         .from('daily_checks')
         .select('*')
         .not('result_value', 'is', null);
       if (!allPeriod) {
-        query = query.gte('check_date', monthStart).lte('check_date', monthEnd);
+        query = query.eq('check_date', date);
       }
       if (selectedUserId) {
         query = query.eq('assigned_user_id', selectedUserId);
@@ -652,7 +648,7 @@ export default function ResultsViewPage() {
                   <div className="px-3 py-1.5 border-b bg-indigo-50 dark:bg-indigo-950/20 flex items-center gap-2">
                     <CalendarDays className="size-3.5 text-indigo-500" />
                     <h3 className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">월간/주기별 결과값</h3>
-                    <span className="text-[10px] text-indigo-500/70">{allPeriod ? '전체기간' : `${format(currentDate, 'yyyy년 MM월')} 기준`}</span>
+                    <span className="text-[10px] text-indigo-500/70">{allPeriod ? '전체기간' : date}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{monthlyRows.length}건</Badge>
                   </div>
                   <ResultTable rows={monthlyRows} showCampaign={true} search={searchQuery} />
@@ -721,7 +717,7 @@ export default function ResultsViewPage() {
                     월간/주기별 결과값
                   </h3>
                   <span className="text-[10px] text-indigo-500/70">
-                    {allPeriod ? '전체기간' : `${format(currentDate, 'yyyy년 MM월')} 기준`}
+                    {allPeriod ? '전체기간' : date}
                   </span>
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
                     {monthlyRows.length}건
