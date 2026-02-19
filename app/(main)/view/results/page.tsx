@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
-import { FileText, CalendarDays, ClipboardList, FolderOpen, ExternalLink } from 'lucide-react';
+import { FileText, CalendarDays, ClipboardList, FolderOpen, Search, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -55,19 +55,39 @@ interface ProjectResultRow {
   dueDate: string | null;
 }
 
+/* ── Highlight matching text ─────────────── */
+function HighlightText({ text, search }: { text: string; search: string }) {
+  if (!search) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(search.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-yellow-200 dark:bg-yellow-800/50 rounded-sm px-0.5">{text.slice(idx, idx + search.length)}</mark>
+      {text.slice(idx + search.length)}
+    </>
+  );
+}
+
 /* ── Result Table ─────────────────────── */
 function ResultTable({
   rows,
   showCampaign,
+  search,
+  showDate,
 }: {
   rows: ResultRow[];
   showCampaign: boolean;
+  search: string;
+  showDate?: boolean;
 }) {
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
         <FileText className="size-7 opacity-30" />
-        <span className="text-sm">입력된 결과값이 없습니다.</span>
+        <span className="text-sm">
+          {search ? '검색 결과가 없습니다.' : '입력된 결과값이 없습니다.'}
+        </span>
       </div>
     );
   }
@@ -97,7 +117,9 @@ function ResultTable({
                 </td>
                 <td className="px-3 py-0.5">
                   <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-[12px] font-medium truncate">{row.taskName}</span>
+                    <span className="text-[12px] font-medium truncate">
+                      <HighlightText text={row.taskName} search={search} />
+                    </span>
                     {catColor && (
                       <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', catColor.text, catColor.bg)}>
                         {row.taskCategory}
@@ -107,11 +129,11 @@ function ResultTable({
                 </td>
                 {showCampaign && (
                   <td className="px-3 py-0.5 text-[11px] text-muted-foreground truncate">
-                    {row.campaignName || '-'}
+                    <HighlightText text={row.campaignName || '-'} search={search} />
                   </td>
                 )}
                 <td className="px-3 py-0.5 text-[11px] text-muted-foreground truncate">
-                  {row.assignee}
+                  <HighlightText text={row.assignee} search={search} />
                 </td>
                 <td className="px-3 py-0.5 text-[12px] text-foreground">
                   {isUrl ? (
@@ -121,10 +143,12 @@ function ResultTable({
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
                     >
-                      {row.resultValue}
+                      <HighlightText text={row.resultValue} search={search} />
                     </a>
                   ) : (
-                    <span className="truncate block">{row.resultValue}</span>
+                    <span className="truncate block">
+                      <HighlightText text={row.resultValue} search={search} />
+                    </span>
                   )}
                 </td>
               </tr>
@@ -137,12 +161,14 @@ function ResultTable({
 }
 
 /* ── Project Result Table ─────────────── */
-function ProjectResultTable({ rows }: { rows: ProjectResultRow[] }) {
+function ProjectResultTable({ rows, search }: { rows: ProjectResultRow[]; search: string }) {
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
         <FolderOpen className="size-7 opacity-30" />
-        <span className="text-sm">결과값이 입력된 프로젝트 업무가 없습니다.</span>
+        <span className="text-sm">
+          {search ? '검색 결과가 없습니다.' : '결과값이 입력된 프로젝트 업무가 없습니다.'}
+        </span>
       </div>
     );
   }
@@ -168,9 +194,15 @@ function ProjectResultTable({ rows }: { rows: ProjectResultRow[] }) {
               row.state === '진행중' ? 'text-blue-600' : 'text-gray-500';
             return (
               <tr key={row.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors h-8">
-                <td className="px-3 py-0.5 text-[12px] font-medium truncate">{row.projectName}</td>
-                <td className="px-3 py-0.5 text-[11px] truncate">{row.taskTitle}</td>
-                <td className="px-3 py-0.5 text-[11px] text-muted-foreground truncate">{row.assignee}</td>
+                <td className="px-3 py-0.5 text-[12px] font-medium truncate">
+                  <HighlightText text={row.projectName} search={search} />
+                </td>
+                <td className="px-3 py-0.5 text-[11px] truncate">
+                  <HighlightText text={row.taskTitle} search={search} />
+                </td>
+                <td className="px-3 py-0.5 text-[11px] text-muted-foreground truncate">
+                  <HighlightText text={row.assignee} search={search} />
+                </td>
                 <td className="px-3 py-0.5">
                   <span className={cn('text-[11px] font-medium', stateColor)}>{row.state}</span>
                 </td>
@@ -183,10 +215,12 @@ function ProjectResultTable({ rows }: { rows: ProjectResultRow[] }) {
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
                     >
-                      {row.resultValue}
+                      <HighlightText text={row.resultValue} search={search} />
                     </a>
                   ) : (
-                    <span className="truncate block">{row.resultValue}</span>
+                    <span className="truncate block">
+                      <HighlightText text={row.resultValue} search={search} />
+                    </span>
                   )}
                 </td>
               </tr>
@@ -205,6 +239,8 @@ export default function ResultsViewPage() {
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allPeriod, setAllPeriod] = useState(false);
 
   const currentDate = parseISO(date);
   const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -268,41 +304,50 @@ export default function ResultsViewPage() {
     return map;
   }, [campaigns]);
 
-  // Daily/weekly results: exact date match
+  // Daily/weekly results: exact date match or all period
   const { data: dailyChecks = [], isLoading: dailyLoading } = useQuery({
-    queryKey: selectedUserId
-      ? queryKeys.checks.resultsByDateAndUser(date, selectedUserId)
-      : queryKeys.checks.resultsByDate(date),
+    queryKey: allPeriod
+      ? queryKeys.checks.allResults(selectedUserId ?? undefined)
+      : selectedUserId
+        ? queryKeys.checks.resultsByDateAndUser(date, selectedUserId)
+        : queryKeys.checks.resultsByDate(date),
     queryFn: async () => {
       let query = supabase
         .from('daily_checks')
         .select('*')
-        .eq('check_date', date)
         .not('result_value', 'is', null);
+      if (!allPeriod) {
+        query = query.eq('check_date', date);
+      }
       if (selectedUserId) {
         query = query.eq('assigned_user_id', selectedUserId);
       }
+      query = query.order('check_date', { ascending: false }).limit(500);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
   });
 
-  // Periodic results: entire month range
+  // Periodic results: entire month range or all period
   const { data: periodicChecks = [], isLoading: periodicLoading } = useQuery({
-    queryKey: selectedUserId
-      ? queryKeys.checks.periodicResultsByMonthAndUser(yearMonth, selectedUserId)
-      : queryKeys.checks.periodicResultsByMonth(yearMonth),
+    queryKey: allPeriod
+      ? queryKeys.checks.allPeriodicResults(selectedUserId ?? undefined)
+      : selectedUserId
+        ? queryKeys.checks.periodicResultsByMonthAndUser(yearMonth, selectedUserId)
+        : queryKeys.checks.periodicResultsByMonth(yearMonth),
     queryFn: async () => {
       let query = supabase
         .from('daily_checks')
         .select('*')
-        .gte('check_date', monthStart)
-        .lte('check_date', monthEnd)
         .not('result_value', 'is', null);
+      if (!allPeriod) {
+        query = query.gte('check_date', monthStart).lte('check_date', monthEnd);
+      }
       if (selectedUserId) {
         query = query.eq('assigned_user_id', selectedUserId);
       }
+      query = query.order('check_date', { ascending: false }).limit(500);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
@@ -366,38 +411,65 @@ export default function ResultsViewPage() {
     };
   };
 
-  // ── Global tab: all results for date (daily/weekly, no campaign split) ──
+  // Search filter function
+  const matchesSearch = (row: ResultRow): boolean => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      row.taskName.toLowerCase().includes(q) ||
+      row.resultValue.toLowerCase().includes(q) ||
+      row.assignee.toLowerCase().includes(q) ||
+      (row.campaignName?.toLowerCase().includes(q) ?? false)
+    );
+  };
+
+  const matchesProjectSearch = (row: ProjectResultRow): boolean => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      row.projectName.toLowerCase().includes(q) ||
+      row.taskTitle.toLowerCase().includes(q) ||
+      row.resultValue.toLowerCase().includes(q) ||
+      row.assignee.toLowerCase().includes(q)
+    );
+  };
+
+  // ── Filtered rows ──
   const globalRows = useMemo(() => {
     return dailyChecks
       .filter((c) => c.result_value && !c.campaign_id && !periodicTaskIds.has(c.task_id))
       .map(toRow)
-      .sort((a, b) => a.loopOrder - b.loopOrder);
+      .filter(matchesSearch)
+      .sort((a, b) => allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap]);
+  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap, searchQuery, allPeriod]);
 
-  // ── Campaign tab: daily results grouped by campaign ──
   const campaignRows = useMemo(() => {
     return dailyChecks
       .filter((c) => c.result_value && c.campaign_id && !periodicTaskIds.has(c.task_id))
       .map(toRow)
+      .filter(matchesSearch)
       .sort((a, b) => {
+        if (allPeriod) {
+          const dateCmp = b.date.localeCompare(a.date);
+          if (dateCmp !== 0) return dateCmp;
+        }
         const campCmp = (a.campaignName ?? '').localeCompare(b.campaignName ?? '', 'ko');
         if (campCmp !== 0) return campCmp;
         return a.loopOrder - b.loopOrder;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap]);
+  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap, searchQuery, allPeriod]);
 
-  // ── Monthly tab: periodic results ──
   const monthlyRows = useMemo(() => {
     return periodicChecks
       .filter((c) => c.result_value && periodicTaskIds.has(c.task_id))
       .map(toRow)
-      .sort((a, b) => a.loopOrder - b.loopOrder || a.date.localeCompare(b.date));
+      .filter(matchesSearch)
+      .sort((a, b) => allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder || a.date.localeCompare(b.date));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodicChecks, periodicTaskIds, taskMap, campaignMap]);
+  }, [periodicChecks, periodicTaskIds, taskMap, campaignMap, searchQuery, allPeriod]);
 
-  // ── Project tab: project task results ──
   const projectResultRows = useMemo((): ProjectResultRow[] => {
     return projectTasks.map((pt) => {
       const project = projectMap.get(pt.project_id);
@@ -410,8 +482,9 @@ export default function ResultsViewPage() {
         resultValue: pt.result_value!,
         dueDate: pt.due_date,
       };
-    });
-  }, [projectTasks, projectMap, userMap]);
+    }).filter(matchesProjectSearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectTasks, projectMap, userMap, searchQuery]);
 
   const isLoading = dailyLoading || periodicLoading || projectTasksLoading;
 
@@ -441,26 +514,65 @@ export default function ResultsViewPage() {
 
       {/* Filters */}
       <motion.div variants={fadeUpItem}>
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-[160px] h-8 text-sm"
-          />
-          <select
-            value={selectedUserId ?? ''}
-            onChange={(e) => setSelectedUserId(e.target.value || null)}
-            className="h-8 rounded-md border bg-background px-3 text-sm"
-          >
-            <option value="">전체 담당자</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-          <Badge variant="secondary" className="text-xs">
-            총 {totalResults}건
-          </Badge>
+        <div className="flex flex-col gap-2.5 rounded-xl border bg-card p-3">
+          {/* First row: date, user, period toggle */}
+          <div className="flex flex-wrap items-center gap-3">
+            {!allPeriod && (
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-[160px] h-8 text-sm"
+              />
+            )}
+            <select
+              value={selectedUserId ?? ''}
+              onChange={(e) => setSelectedUserId(e.target.value || null)}
+              className="h-8 rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">전체 담당자</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setAllPeriod(!allPeriod)}
+              className={cn(
+                'h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 border',
+                allPeriod
+                  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                  : 'bg-background text-muted-foreground hover:bg-muted border-border'
+              )}
+            >
+              <Calendar className="size-3.5" />
+              전체기간
+            </button>
+            <Badge variant="secondary" className="text-xs">
+              {searchQuery ? `검색 결과 ${totalResults}건` : `총 ${totalResults}건`}
+            </Badge>
+          </div>
+
+          {/* Second row: search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="업무명, 캠페인명, 담당자, 결과값으로 검색..."
+              className="h-8 pl-9 pr-8 text-sm"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -511,7 +623,6 @@ export default function ResultsViewPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Global Tab */}
             {/* All Tab */}
             <TabsContent value="all" className="space-y-4">
               {globalRows.length > 0 && (
@@ -519,10 +630,10 @@ export default function ResultsViewPage() {
                   <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
                     <ClipboardList className="size-3.5 text-blue-500" />
                     <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">전역 일일/주간 결과값</h3>
-                    <span className="text-[10px] text-blue-500/70">{date}</span>
+                    <span className="text-[10px] text-blue-500/70">{allPeriod ? '전체기간' : date}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{globalRows.length}건</Badge>
                   </div>
-                  <ResultTable rows={globalRows} showCampaign={false} />
+                  <ResultTable rows={globalRows} showCampaign={false} search={searchQuery} />
                 </div>
               )}
               {campaignRows.length > 0 && (
@@ -530,10 +641,10 @@ export default function ResultsViewPage() {
                   <div className="px-3 py-1.5 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
                     <CalendarDays className="size-3.5 text-violet-500" />
                     <h3 className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">캠페인별 일일 결과값</h3>
-                    <span className="text-[10px] text-violet-500/70">{date}</span>
+                    <span className="text-[10px] text-violet-500/70">{allPeriod ? '전체기간' : date}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{campaignRows.length}건</Badge>
                   </div>
-                  <ResultTable rows={campaignRows} showCampaign={true} />
+                  <ResultTable rows={campaignRows} showCampaign={true} search={searchQuery} />
                 </div>
               )}
               {monthlyRows.length > 0 && (
@@ -541,10 +652,10 @@ export default function ResultsViewPage() {
                   <div className="px-3 py-1.5 border-b bg-indigo-50 dark:bg-indigo-950/20 flex items-center gap-2">
                     <CalendarDays className="size-3.5 text-indigo-500" />
                     <h3 className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">월간/주기별 결과값</h3>
-                    <span className="text-[10px] text-indigo-500/70">{format(currentDate, 'yyyy년 MM월')} 기준</span>
+                    <span className="text-[10px] text-indigo-500/70">{allPeriod ? '전체기간' : `${format(currentDate, 'yyyy년 MM월')} 기준`}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{monthlyRows.length}건</Badge>
                   </div>
-                  <ResultTable rows={monthlyRows} showCampaign={true} />
+                  <ResultTable rows={monthlyRows} showCampaign={true} search={searchQuery} />
                 </div>
               )}
               {projectResultRows.length > 0 && (
@@ -554,13 +665,15 @@ export default function ResultsViewPage() {
                     <h3 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">프로젝트 업무 결과값</h3>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{projectResultRows.length}건</Badge>
                   </div>
-                  <ProjectResultTable rows={projectResultRows} />
+                  <ProjectResultTable rows={projectResultRows} search={searchQuery} />
                 </div>
               )}
               {totalResults === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                   <FileText className="size-8 opacity-30" />
-                  <span className="text-sm">입력된 결과값이 없습니다.</span>
+                  <span className="text-sm">
+                    {searchQuery ? `"${searchQuery}"에 대한 검색 결과가 없습니다.` : '입력된 결과값이 없습니다.'}
+                  </span>
                 </div>
               )}
             </TabsContent>
@@ -573,12 +686,12 @@ export default function ResultsViewPage() {
                   <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
                     전역 일일/주간 결과값
                   </h3>
-                  <span className="text-[10px] text-blue-500/70">{date}</span>
+                  <span className="text-[10px] text-blue-500/70">{allPeriod ? '전체기간' : date}</span>
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
                     {globalRows.length}건
                   </Badge>
                 </div>
-                <ResultTable rows={globalRows} showCampaign={false} />
+                <ResultTable rows={globalRows} showCampaign={false} search={searchQuery} />
               </div>
             </TabsContent>
 
@@ -590,12 +703,12 @@ export default function ResultsViewPage() {
                   <h3 className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">
                     캠페인별 일일 결과값
                   </h3>
-                  <span className="text-[10px] text-violet-500/70">{date}</span>
+                  <span className="text-[10px] text-violet-500/70">{allPeriod ? '전체기간' : date}</span>
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
                     {campaignRows.length}건
                   </Badge>
                 </div>
-                <ResultTable rows={campaignRows} showCampaign={true} />
+                <ResultTable rows={campaignRows} showCampaign={true} search={searchQuery} />
               </div>
             </TabsContent>
 
@@ -608,13 +721,13 @@ export default function ResultsViewPage() {
                     월간/주기별 결과값
                   </h3>
                   <span className="text-[10px] text-indigo-500/70">
-                    {format(currentDate, 'yyyy년 MM월')} 기준
+                    {allPeriod ? '전체기간' : `${format(currentDate, 'yyyy년 MM월')} 기준`}
                   </span>
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
                     {monthlyRows.length}건
                   </Badge>
                 </div>
-                <ResultTable rows={monthlyRows} showCampaign={true} />
+                <ResultTable rows={monthlyRows} showCampaign={true} search={searchQuery} />
               </div>
             </TabsContent>
 
@@ -630,7 +743,7 @@ export default function ResultsViewPage() {
                     {projectResultRows.length}건
                   </Badge>
                 </div>
-                <ProjectResultTable rows={projectResultRows} />
+                <ProjectResultTable rows={projectResultRows} search={searchQuery} />
               </div>
             </TabsContent>
           </Tabs>

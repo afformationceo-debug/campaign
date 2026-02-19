@@ -22,6 +22,8 @@ export const queryKeys = {
     resultsByDateAndUser: (date: string, userId: string) => ['checks', 'results', date, userId] as const,
     periodicResultsByMonth: (yearMonth: string) => ['checks', 'results', 'periodic', yearMonth] as const,
     periodicResultsByMonthAndUser: (yearMonth: string, userId: string) => ['checks', 'results', 'periodic', yearMonth, userId] as const,
+    allResults: (userId?: string) => userId ? ['checks', 'results', 'all', userId] as const : ['checks', 'results', 'all'] as const,
+    allPeriodicResults: (userId?: string) => userId ? ['checks', 'results', 'all-periodic', userId] as const : ['checks', 'results', 'all-periodic'] as const,
   },
   taskConfig: {
     all: ['taskConfig'] as const,

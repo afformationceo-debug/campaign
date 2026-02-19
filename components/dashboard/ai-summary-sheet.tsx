@@ -12,6 +12,7 @@ import {
   X,
   User,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useAuth } from '@/hooks/use-auth';
 import type { SummaryDimension } from '@/lib/ai/types';
 
 interface ChatMessage {
@@ -31,15 +33,27 @@ interface ChatMessage {
   dimension?: SummaryDimension;
 }
 
-const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension }[] = [
-  { label: '전체 현황', message: '전체현황 알려줘', dimension: 'all' },
-  { label: '담당자별', message: '담당자별로 알려줘', dimension: 'assignee' },
-  { label: '캠페인별', message: '캠페인별로 알려줘', dimension: 'campaign' },
-  { label: '업무 결과', message: '업무 결과 알려줘', dimension: 'daily' },
-  { label: '프로젝트', message: '프로젝트별로 알려줘', dimension: 'project' },
-  { label: 'QA 관리', message: 'QA관리별로 알려줘', dimension: 'qa' },
-  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config' },
+const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string }[] = [
+  { label: '전체 현황', message: '전체현황 알려줘', dimension: 'all', emoji: '📊' },
+  { label: '담당자별', message: '담당자별로 알려줘', dimension: 'assignee', emoji: '👥' },
+  { label: '캠페인별', message: '캠페인별로 알려줘', dimension: 'campaign', emoji: '🏢' },
+  { label: '업무 결과', message: '업무 결과 알려줘', dimension: 'daily', emoji: '📋' },
+  { label: '프로젝트', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️' },
+  { label: 'QA 관리', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️' },
+  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️' },
 ];
+
+// Map user free-text to a dimension if it matches
+function detectDimension(text: string): SummaryDimension {
+  const lower = text.toLowerCase();
+  if (/담당자/.test(lower)) return 'assignee';
+  if (/캠페인.*세팅|세팅/.test(lower)) return 'config';
+  if (/캠페인/.test(lower)) return 'campaign';
+  if (/업무|결과|일일/.test(lower)) return 'daily';
+  if (/프로젝트|로드맵/.test(lower)) return 'project';
+  if (/qa|이슈|질문/.test(lower)) return 'qa';
+  return 'all';
+}
 
 export function AiSummarySheet({
   open,
@@ -48,23 +62,58 @@ export function AiSummarySheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const streamingRef = useRef('');
 
   const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
   }, []);
 
+  // Load chat history when sheet opens
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (open && userId && !historyLoaded) {
+      loadHistory();
+    }
+  }, [open, userId, historyLoaded]);
+
+  const loadHistory = async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/ai-summary?userId=${userId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.messages?.length > 0) {
+        const loaded: ChatMessage[] = data.messages.map((m: { id: string; role: 'user' | 'assistant'; content: string; dimension?: string; created_at: string }) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          dimension: m.dimension as SummaryDimension | undefined,
+          timestamp: new Date(m.created_at),
+        }));
+        setMessages(loaded);
+        setTimeout(scrollToBottom, 100);
+      }
+    } catch {
+      // Silently fail - chat still works without history
+    } finally {
+      setHistoryLoaded(true);
+    }
+  };
 
   const sendMessage = useCallback(async (userMessage: string, dimension: SummaryDimension) => {
     if (abortRef.current) abortRef.current.abort();
@@ -93,11 +142,21 @@ export function AiSummarySheet({
     setIsLoading(true);
     streamingRef.current = '';
 
+    // Build history from existing messages (excluding the ones we just added)
+    const history = messages
+      .filter((m) => m.content)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     try {
       const res = await fetch('/api/ai-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dimension }),
+        body: JSON.stringify({
+          dimension,
+          message: userMessage,
+          userId,
+          history,
+        }),
         signal: controller.signal,
       });
 
@@ -132,11 +191,26 @@ export function AiSummarySheet({
     } finally {
       setIsLoading(false);
     }
-  }, [scrollToBottom]);
+  }, [messages, userId, scrollToBottom]);
 
   const handleQuickAction = (action: typeof QUICK_ACTIONS[number]) => {
     if (isLoading) return;
     sendMessage(action.message, action.dimension);
+  };
+
+  const handleSendInput = () => {
+    const text = inputValue.trim();
+    if (!text || isLoading) return;
+    const dimension = detectDimension(text);
+    setInputValue('');
+    sendMessage(text, dimension);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendInput();
+    }
   };
 
   const handleCopy = async (content: string, id: string) => {
@@ -145,17 +219,24 @@ export function AiSummarySheet({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     if (abortRef.current) abortRef.current.abort();
     setMessages([]);
     setError(null);
     setIsLoading(false);
+    // Delete from DB
+    if (userId) {
+      fetch(`/api/ai-summary?userId=${userId}`, { method: 'DELETE' }).catch(() => {});
+    }
   };
 
-  const handleOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open && abortRef.current) {
+  const handleOpenChange = (val: boolean) => {
+    onOpenChange(val);
+    if (!val && abortRef.current) {
       abortRef.current.abort();
+    }
+    if (val) {
+      setTimeout(() => inputRef.current?.focus(), 300);
     }
   };
 
@@ -185,10 +266,10 @@ export function AiSummarySheet({
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleClearChat}
-                  className="size-7 text-muted-foreground hover:text-foreground"
+                  className="size-7 text-muted-foreground hover:text-destructive"
                   title="대화 초기화"
                 >
-                  <RotateCcw className="size-3.5" />
+                  <Trash2 className="size-3.5" />
                 </Button>
               )}
             </div>
@@ -249,12 +330,7 @@ export function AiSummarySheet({
                           ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
                           : 'bg-muted-foreground/10 text-muted-foreground'
                       )}>
-                        {action.dimension === 'all' ? '📊' :
-                         action.dimension === 'assignee' ? '👥' :
-                         action.dimension === 'campaign' ? '🏢' :
-                         action.dimension === 'daily' ? '📋' :
-                         action.dimension === 'project' ? '🗺️' :
-                         action.dimension === 'qa' ? '⚠️' : '⚙️'}
+                        {action.emoji}
                       </div>
                       <span>{action.message}</span>
                     </button>
@@ -342,7 +418,7 @@ export function AiSummarySheet({
           ))}
         </div>
 
-        {/* Bottom Quick Actions (when messages exist) */}
+        {/* Bottom Quick Actions (scrollable when messages exist) */}
         {hasMessages && (
           <div className="px-4 py-2 border-t shrink-0 bg-background/80 backdrop-blur-sm">
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -366,17 +442,51 @@ export function AiSummarySheet({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="px-4 py-2 border-t shrink-0 flex items-center justify-between bg-muted/30">
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-            <Sparkles className="size-3" />
-            Powered by GPT-4o-mini
-          </span>
-          {hasMessages && (
-            <span className="text-[10px] text-muted-foreground">
-              {messages.filter((m) => m.role === 'assistant').length}개 응답
+        {/* Input Area */}
+        <div className="px-4 py-3 border-t shrink-0 bg-muted/30">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="질문을 입력하세요..."
+                disabled={isLoading}
+                className={cn(
+                  'w-full px-3.5 py-2 rounded-xl text-sm bg-background border border-border',
+                  'focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400',
+                  'placeholder:text-muted-foreground/50',
+                  'disabled:opacity-50'
+                )}
+              />
+            </div>
+            <Button
+              size="icon-sm"
+              onClick={handleSendInput}
+              disabled={!inputValue.trim() || isLoading}
+              className={cn(
+                'size-9 rounded-xl shrink-0 transition-all',
+                inputValue.trim()
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              <Send className="size-4" />
+            </Button>
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="size-3" />
+              GPT-4o-mini · 대화 기록 저장됨
             </span>
-          )}
+            {hasMessages && (
+              <span className="text-[10px] text-muted-foreground">
+                {messages.filter((m) => m.role === 'assistant').length}개 응답
+              </span>
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
