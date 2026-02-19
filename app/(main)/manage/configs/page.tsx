@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -20,6 +20,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConfigMatrix } from '@/components/manage/config-matrix';
+import { ConfigDashboard } from '@/components/manage/config-dashboard';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -125,6 +127,7 @@ export default function ConfigsPage() {
   // Realtime: sync config changes across all open tabs/PCs
   useRealtimeConfigs();
 
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -976,8 +979,17 @@ export default function ConfigsPage() {
         </motion.div>
       )}
 
-      <Tabs defaultValue="individual" className="space-y-2">
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        if (v === 'individual' && !selectedCampaignId && campaigns.length > 0) {
+          setSelectedCampaignId(campaigns[0].id);
+        }
+      }} className="space-y-2">
         <TabsList>
+          <TabsTrigger value="dashboard" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            대시보드
+          </TabsTrigger>
           <TabsTrigger value="individual" className="gap-1.5">
             <List className="h-3.5 w-3.5" />
             개별 세팅
@@ -987,6 +999,13 @@ export default function ConfigsPage() {
             매트릭스 뷰
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard">
+          <ConfigDashboard onSelectCampaign={(id) => {
+            setSelectedCampaignId(id);
+            setActiveTab('individual');
+          }} />
+        </TabsContent>
 
         <TabsContent value="matrix">
           <ConfigMatrix />
@@ -1070,6 +1089,26 @@ export default function ConfigsPage() {
           </>
         )}
       </div>
+
+      {/* Campaign progress summary */}
+      {selectedCampaignId && configs.length > 0 && (() => {
+        const done = configs.filter((c) => c.status === '완료').length;
+        const pct = Math.round((done / configs.length) * 100);
+        return (
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg border bg-muted/20">
+            <span className="text-[11px] text-muted-foreground shrink-0">세팅 진행률</span>
+            <Progress value={pct} className="h-2 flex-1" />
+            <span className={cn(
+              'text-xs font-semibold shrink-0',
+              pct === 100 && 'text-emerald-600',
+              pct > 0 && pct < 100 && 'text-amber-600',
+              pct === 0 && 'text-red-500',
+            )}>
+              {done}/{configs.length} ({pct}%)
+            </span>
+          </div>
+        );
+      })()}
 
       {/* CSV upload result */}
       {csvResult && (
@@ -1249,11 +1288,33 @@ export default function ConfigsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {groupedConfigs.map(([configType, items]) => (
+          {groupedConfigs.map(([configType, items]) => {
+            const groupDone = items.filter((i) => i.status === '완료').length;
+            const groupPct = items.length > 0 ? Math.round((groupDone / items.length) * 100) : 0;
+            const groupIcon = configType === 'CRM' ? <BarChart3 className="size-3 text-muted-foreground" />
+              : configType === 'CS어드민' ? <Globe className="size-3 text-muted-foreground" />
+              : configType === '지식베이스' ? <FileText className="size-3 text-muted-foreground" />
+              : configType === '인플루언서 관련' ? <Link2 className="size-3 text-muted-foreground" />
+              : <Settings className="size-3 text-muted-foreground" />;
+
+            return (
             <div key={configType} className="rounded-xl border bg-card shadow-sm overflow-hidden">
               <div className="px-3 py-1.5 border-b bg-muted/30 flex items-center gap-2">
+                {groupIcon}
                 <span className="text-xs font-semibold">{configType}</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">{items.length}개</Badge>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Progress value={groupPct} className="h-1 w-16" />
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      'text-[9px] px-1.5 py-0',
+                      groupPct === 100 && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
+                      groupPct > 0 && groupPct < 100 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                    )}
+                  >
+                    {groupDone}/{items.length}
+                  </Badge>
+                </div>
               </div>
               <table className="w-full table-fixed text-left">
                 <thead>
@@ -1319,11 +1380,11 @@ export default function ConfigsPage() {
                             }}
                           >
                             <SelectTrigger className={cn(
-                              'h-6 text-[11px] border-0 bg-transparent px-1 -mx-1',
-                              config.config_value === '세팅완료' && 'text-emerald-700',
-                              config.config_value === '불필요' || config.config_value === '해당없음' ? 'text-gray-500' : '',
-                              config.config_value === '미완료' && 'text-red-600',
-                              config.config_value === '진행필요' && 'text-amber-600',
+                              'h-6 text-[11px] border-0 bg-transparent px-1 -mx-1 font-medium',
+                              config.config_value === '세팅완료' && 'text-emerald-700 dark:text-emerald-400',
+                              (config.config_value === '불필요' || config.config_value === '해당없음') && 'text-gray-500',
+                              config.config_value === '미완료' && 'text-red-600 dark:text-red-400',
+                              config.config_value === '진행필요' && 'text-amber-600 dark:text-amber-400',
                             )}>
                               <SelectValue placeholder="선택..." />
                             </SelectTrigger>
@@ -1332,7 +1393,16 @@ export default function ConfigsPage() {
                                 <span className="text-muted-foreground/50">(비어있음)</span>
                               </SelectItem>
                               {STATUS_VALUE_OPTIONS.map((opt) => (
-                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                <SelectItem key={opt} value={opt}>
+                                  <span className={cn(
+                                    opt === '세팅완료' && 'text-emerald-700',
+                                    opt === '미완료' && 'text-red-600',
+                                    opt === '진행필요' && 'text-amber-600',
+                                    (opt === '불필요' || opt === '해당없음') && 'text-gray-500',
+                                  )}>
+                                    {opt === '세팅완료' ? '✓ ' : opt === '미완료' ? '✕ ' : opt === '진행필요' ? '◌ ' : ''}{opt}
+                                  </span>
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1342,8 +1412,8 @@ export default function ConfigsPage() {
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
                               className="h-6 text-[11px]"
-                              type="url"
                               autoFocus
+                              placeholder="URL 또는 세팅완료/불필요"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') saveEdit(config.id);
                                 if (e.key === 'Escape') cancelEditing();
@@ -1352,6 +1422,7 @@ export default function ConfigsPage() {
                             />
                           ) : config.config_value && /^https?:\/\//.test(config.config_value) ? (
                             <div className="flex items-center gap-1 min-w-0">
+                              <ExternalLink className="size-2.5 text-blue-500 shrink-0" />
                               <a
                                 href={config.config_value}
                                 target="_blank"
@@ -1369,6 +1440,14 @@ export default function ConfigsPage() {
                                 수정
                               </span>
                             </div>
+                          ) : config.config_value === '세팅완료' ? (
+                            <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">세팅완료</Badge>
+                            </span>
+                          ) : config.config_value === '불필요' ? (
+                            <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">불필요</Badge>
+                            </span>
                           ) : (
                             <span
                               className={cn(
@@ -1377,7 +1456,7 @@ export default function ConfigsPage() {
                               )}
                               onClick={() => startEditing(config)}
                             >
-                              {config.config_value || '(비어있음)'}
+                              {config.config_value || '클릭하여 입력'}
                             </span>
                           )
                         ) : (
@@ -1446,7 +1525,8 @@ export default function ConfigsPage() {
                 </tbody>
               </table>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
