@@ -469,7 +469,11 @@ export default function RoadmapPage() {
   const filteredProjects = useMemo(() => {
     let filtered = projects;
     if (stateFilter) filtered = filtered.filter((p) => p.state === stateFilter);
-    if (assigneeFilter) filtered = filtered.filter((p) => p.assignee_id === assigneeFilter);
+    if (assigneeFilter) filtered = filtered.filter((p) => {
+      if (p.assignee_id === assigneeFilter) return true;
+      const tasks = tasksByProject.get(p.id) || [];
+      return tasks.some((t) => t.assignee_id === assigneeFilter);
+    });
     if (searchText) {
       const lower = searchText.toLowerCase();
       filtered = filtered.filter((p) => p.project_name.toLowerCase().includes(lower) || (p.memo?.toLowerCase().includes(lower) ?? false));
@@ -478,18 +482,22 @@ export default function RoadmapPage() {
       filtered = filtered.filter((p) => p.state !== '완료');
     }
     return filtered;
-  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted]);
+  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted, tasksByProject]);
 
   const completedProjects = useMemo(() => {
     if (showCompleted || stateFilter) return [];
     let filtered = projects.filter((p) => p.state === '완료');
-    if (assigneeFilter) filtered = filtered.filter((p) => p.assignee_id === assigneeFilter);
+    if (assigneeFilter) filtered = filtered.filter((p) => {
+      if (p.assignee_id === assigneeFilter) return true;
+      const tasks = tasksByProject.get(p.id) || [];
+      return tasks.some((t) => t.assignee_id === assigneeFilter);
+    });
     if (searchText) {
       const lower = searchText.toLowerCase();
       filtered = filtered.filter((p) => p.project_name.toLowerCase().includes(lower) || (p.memo?.toLowerCase().includes(lower) ?? false));
     }
     return filtered;
-  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted]);
+  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted, tasksByProject]);
 
   // Group order for grouped view: 진행중 first, then 진행전, then 완료
   const GROUPED_ORDER: ProjectState[] = ['진행중', '진행전', '완료'];
