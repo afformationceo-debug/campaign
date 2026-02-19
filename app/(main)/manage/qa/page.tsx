@@ -718,14 +718,15 @@ export default function CampaignQaPage() {
                   <table className="w-full table-fixed text-left min-w-[800px]">
                     <thead>
                       <tr className="border-b bg-muted/10">
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">유형</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">우선순위</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[25%]">내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[19%]">해결 상세내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">작성자</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">기한</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[8%]">상태</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">등록일</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[12%]">캠페인</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">유형</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[22%]">내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[16%]">해결 상세내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">작성자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">기한</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">상태</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">등록일</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%] text-right">작업</th>
                       </tr>
                     </thead>
@@ -743,6 +744,29 @@ export default function CampaignQaPage() {
                               qa.status === '해결완료' && 'opacity-60'
                             )}
                           >
+                            {/* Campaign - inline select */}
+                            <td className="px-2 py-1">
+                              <Select
+                                value={qa.campaign_id}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'campaign_id', v)}
+                              >
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 max-w-full">
+                                  <span className="text-[10px] truncate">
+                                    {(() => {
+                                      const c = campaignMap.get(qa.campaign_id);
+                                      return c ? `${c.client_name}` : '-';
+                                    })()}
+                                  </span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {campaigns.map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                                      {c.client_name} - {c.campaign_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
                             {/* Type - inline select */}
                             <td className="px-2 py-1">
                               <Select
