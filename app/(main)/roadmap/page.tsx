@@ -29,6 +29,7 @@ import {
   Trophy,
   Eye,
   EyeOff,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -74,7 +75,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
 
-type ViewMode = 'cards' | 'kanban' | 'table';
+type ViewMode = 'cards' | 'kanban' | 'table' | 'grouped';
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; bg: string }> = {
   '진행전': { label: '진행전', color: 'text-gray-500', icon: CircleDashed, bg: 'bg-gray-100 dark:bg-gray-800' },
@@ -391,6 +392,7 @@ export default function RoadmapPage() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [searchText, setSearchText] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('');
@@ -488,6 +490,25 @@ export default function RoadmapPage() {
     }
     return filtered;
   }, [projects, stateFilter, assigneeFilter, searchText, showCompleted]);
+
+  // Group order for grouped view: 진행중 first, then 진행전, then 완료
+  const GROUPED_ORDER: ProjectState[] = ['진행중', '진행전', '완료'];
+
+  const groupedProjects = useMemo(() => {
+    return GROUPED_ORDER.map((state) => ({
+      state,
+      config: STATE_CONFIG[state],
+      projects: filteredProjects.filter((p) => p.state === state),
+    }));
+  }, [filteredProjects]);
+
+  const toggleGroupCollapse = useCallback((state: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(state)) next.delete(state); else next.add(state);
+      return next;
+    });
+  }, []);
 
   const stats = useMemo(() => {
     const total = projects.length;
@@ -777,6 +798,7 @@ export default function RoadmapPage() {
             { mode: 'cards' as ViewMode, icon: LayoutGrid, label: '카드' },
             { mode: 'kanban' as ViewMode, icon: Kanban, label: '칸반' },
             { mode: 'table' as ViewMode, icon: Table2, label: '테이블' },
+            { mode: 'grouped' as ViewMode, icon: Layers, label: '그룹화' },
           ]).map(({ mode, icon: Icon, label }) => (
             <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1', viewMode === mode && 'shadow-sm')} onClick={() => setViewMode(mode)}>
               <Icon className="size-3" /><span className="hidden sm:inline">{label}</span>
@@ -831,6 +853,313 @@ export default function RoadmapPage() {
                   </AnimatePresence>
                   {stateProjects.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-6">프로젝트 없음</p>}
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : viewMode === 'grouped' ? (
+        /* ═══════════════ GROUPED VIEW ═══════════════ */
+        <div className="space-y-4">
+          {groupedProjects.map(({ state, config: groupConfig, projects: groupProjects }) => {
+            const GroupIcon = groupConfig.icon;
+            const isGroupCollapsed = collapsedGroups.has(state);
+            const groupCompletedTasks = groupProjects.reduce((sum, p) => {
+              const tasks = tasksByProject.get(p.id) || [];
+              return sum + tasks.filter((t) => t.state === '완료').length;
+            }, 0);
+            const groupTotalTasks = groupProjects.reduce((sum, p) => {
+              return sum + (tasksByProject.get(p.id) || []).length;
+            }, 0);
+
+            return (
+              <div key={state} className={cn(
+                'rounded-xl border bg-card overflow-hidden',
+                state === '완료' && 'border-emerald-200 dark:border-emerald-800',
+              )}>
+                {/* Group Header */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroupCollapse(state)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 transition-colors',
+                    state === '완료'
+                      ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
+                      : state === '진행중'
+                        ? 'bg-gradient-to-r from-blue-50 to-blue-50/30 dark:from-blue-950/30 dark:to-transparent hover:from-blue-100/80 dark:hover:from-blue-950/40'
+                        : 'bg-muted/30 hover:bg-muted/50',
+                  )}
+                >
+                  {isGroupCollapsed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                  {state === '완료' ? <Trophy className={cn('size-4', groupConfig.color)} /> : <GroupIcon className={cn('size-4', groupConfig.color)} />}
+                  <span className={cn('text-sm font-semibold', groupConfig.color)}>{groupConfig.label}</span>
+                  <Badge variant="secondary" className={cn(
+                    'text-[10px] px-1.5 py-0',
+                    state === '완료' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+                    state === '진행중' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                  )}>
+                    {groupProjects.length}개
+                  </Badge>
+                  {groupTotalTasks > 0 && (
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      하위업무 {groupCompletedTasks}/{groupTotalTasks}
+                    </span>
+                  )}
+                </button>
+
+                {/* Group Table */}
+                {!isGroupCollapsed && groupProjects.length > 0 && (
+                  <div className="border-t overflow-x-auto">
+                    <table className="w-full table-fixed text-[12px] min-w-[980px]">
+                      <thead>
+                        <tr className="border-b bg-muted/40">
+                          <th className="w-[20px] px-1 py-1"></th>
+                          <th className="w-[24px] px-1 py-1"></th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px]">프로젝트</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[76px]">상태</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[76px]">담당자</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[68px]">진행률</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[86px]">시작일</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[86px]">마감일</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[120px]">결과값</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[120px]">메모</th>
+                          <th className="w-[32px] px-1 py-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupProjects.map((project) => {
+                          const tasks = tasksByProject.get(project.id) || [];
+                          const completed = tasks.filter((t) => t.state === '완료').length;
+                          const pct = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
+                          const assignee = users.find((u) => u.id === project.assignee_id);
+                          const pConfig = STATE_CONFIG[project.state];
+                          const PStateIcon = pConfig.icon;
+                          const isExpanded = expandedProjects.has(project.id);
+
+                          return (
+                            <React.Fragment key={project.id}>
+                              <tr
+                                className={cn(
+                                  'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
+                                  isExpanded && 'bg-accent/10',
+                                  project.state === '완료' && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:via-emerald-950/15 dark:to-transparent border-l-[3px] border-l-emerald-400',
+                                )}
+                              >
+                                {/* Expand */}
+                                <td className="px-1 py-1">
+                                  <button className="size-5 flex items-center justify-center rounded hover:bg-accent" onClick={() => toggleExpand(project.id)}>
+                                    {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
+                                  </button>
+                                </td>
+                                {/* Icon */}
+                                <td className="px-1 py-1">
+                                  {project.state === '완료' ? (
+                                    <span className="size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                                      <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                                    </span>
+                                  ) : null}
+                                </td>
+                                {/* Name */}
+                                <td className="px-2 py-1 max-w-0">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="min-w-0 flex-1">
+                                          <InlineTextCell
+                                            value={project.project_name}
+                                            isEditing={isEditing(project.id, 'project_name')}
+                                            onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
+                                            onSave={(v) => saveProjectField(project.id, 'project_name', v)}
+                                            className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}
+                                          />
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom"><p className="text-xs">{project.project_name}</p></TooltipContent>
+                                    </Tooltip>
+                                    {tasks.length > 0 && (
+                                      <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
+                                    )}
+                                    {project.url && (
+                                      <a href={project.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground/30 hover:text-primary shrink-0">
+                                        <ExternalLink className="size-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </td>
+                                {/* State */}
+                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                  <Select value={project.state} onValueChange={(v) => saveProjectField(project.id, 'state', v)}>
+                                    <SelectTrigger className={cn('h-6 w-[75px] text-[11px] border-0 bg-transparent px-1', pConfig.color)}>
+                                      <div className="flex items-center gap-1"><PStateIcon className="size-3" /><span>{pConfig.label}</span></div>
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" className="min-w-[100px]">
+                                      {KANBAN_COLUMNS.map((s) => { const sc = STATE_CONFIG[s]; const SI = sc.icon; return (<SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SI className={cn('size-3', sc.color)} />{sc.label}</div></SelectItem>); })}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Assignee */}
+                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                  <Select value={project.assignee_id ?? 'none'} onValueChange={(v) => saveProjectField(project.id, 'assignee_id', v === 'none' ? null : v)}>
+                                    <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent px-1 text-muted-foreground">
+                                      <span className="truncate">{assignee?.name ?? '-'}</span>
+                                    </SelectTrigger>
+                                    <SelectContent position="popper">
+                                      <SelectItem value="none">미지정</SelectItem>
+                                      {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Progress */}
+                                <td className="px-2 py-1">
+                                  {pct === 100 && tasks.length > 0 ? (
+                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5">
+                                      <CheckCircle2 className="size-2.5" />{completed}/{tasks.length}
+                                    </Badge>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                                        <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-blue-500' : 'bg-gray-300')} style={{ width: `${pct}%` }} />
+                                      </div>
+                                      <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
+                                    </div>
+                                  )}
+                                </td>
+                                {/* Start Date */}
+                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                  <InlineDateCell value={project.start_date} isEditing={isEditing(project.id, 'start_date')} onStartEdit={() => startEdit(project.id, 'start_date', 'project')} onSave={(v) => saveProjectField(project.id, 'start_date', v)} />
+                                </td>
+                                {/* Due Date */}
+                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                  <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
+                                </td>
+                                {/* Result Value */}
+                                <td className="px-2 py-1"></td>
+                                {/* Memo */}
+                                <td className="px-2 py-1 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                  <InlineMemoCell value={project.memo} isEditing={isEditing(project.id, 'memo')} onStartEdit={() => startEdit(project.id, 'memo', 'project')} onSave={(v) => saveProjectField(project.id, 'memo', v)} />
+                                </td>
+                                {/* Actions */}
+                                <td className="px-1 py-1" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className="size-6 flex items-center justify-center rounded hover:bg-accent opacity-0 group-hover/row:opacity-100 transition-opacity"><MoreHorizontal className="size-3.5" /></button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openEditDialog(project)}><Pencil className="size-3.5 mr-2" />수정</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive"><Trash2 className="size-3.5 mr-2" />삭제</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </td>
+                              </tr>
+
+                              {/* Sub-tasks */}
+                              {isExpanded && tasks.map((task, idx) => {
+                                const taskConfig = STATE_CONFIG[task.state];
+                                const TaskIcon = taskConfig.icon;
+                                const taskAssignee = users.find((u) => u.id === task.assignee_id);
+                                return (
+                                  <tr key={task.id} className={cn('border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap bg-muted/5')}>
+                                    <td className="px-1 py-0.5"></td>
+                                    <td className="px-1 py-0.5"></td>
+                                    <td className="px-2 py-0.5 pl-8 max-w-0">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="text-[9px] text-muted-foreground/40 w-3.5 shrink-0 text-right">{idx + 1}</span>
+                                        <div className="w-px h-3 bg-border/60 shrink-0" />
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="min-w-0 flex-1">
+                                              <InlineTextCell
+                                                value={task.title}
+                                                isEditing={isEditing(task.id, 'title')}
+                                                onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
+                                                onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
+                                                className={cn('text-[11px]', task.state === '완료' && 'line-through text-muted-foreground/60')}
+                                              />
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="bottom"><p className="text-xs">{task.title}</p></TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <Select value={task.state} onValueChange={(v) => saveTaskField(task.id, project.id, 'state', v)}>
+                                        <SelectTrigger className={cn('h-5 w-[70px] text-[10px] border-0 bg-transparent px-1', taskConfig.color)}>
+                                          <div className="flex items-center gap-0.5"><TaskIcon className="size-2.5" /><span>{taskConfig.label}</span></div>
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" className="min-w-[100px]">
+                                          {KANBAN_COLUMNS.map((s) => { const sc = STATE_CONFIG[s]; const SI = sc.icon; return (<SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SI className={cn('size-3', sc.color)} />{sc.label}</div></SelectItem>); })}
+                                        </SelectContent>
+                                      </Select>
+                                    </td>
+                                    <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <Select value={task.assignee_id ?? 'none'} onValueChange={(v) => saveTaskField(task.id, project.id, 'assignee_id', v === 'none' ? null : v)}>
+                                        <SelectTrigger className="h-5 w-[68px] text-[10px] border-0 bg-transparent px-1 text-muted-foreground">
+                                          <span className="truncate">{taskAssignee?.name ?? '-'}</span>
+                                        </SelectTrigger>
+                                        <SelectContent position="popper">
+                                          <SelectItem value="none">미지정</SelectItem>
+                                          {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
+                                        </SelectContent>
+                                      </Select>
+                                    </td>
+                                    <td className="px-2 py-0.5"></td>
+                                    <td className="px-2 py-0.5"></td>
+                                    <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
+                                    </td>
+                                    <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                      <InlineTextCell value={task.result_value ?? ''} isEditing={isEditing(task.id, 'result_value')} onStartEdit={() => startEdit(task.id, 'result_value', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} className="text-[11px]" placeholder="결과값 입력..." />
+                                    </td>
+                                    <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                      <InlineMemoCell value={task.memo} isEditing={isEditing(task.id, 'memo')} onStartEdit={() => startEdit(task.id, 'memo', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)} />
+                                    </td>
+                                    <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <button className="size-5 flex items-center justify-center rounded hover:bg-destructive/10 opacity-0 group-hover/task:opacity-100 transition-opacity" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
+                                        <Trash2 className="size-3 text-muted-foreground/50 hover:text-destructive" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              {/* Add sub-task */}
+                              {isExpanded && (
+                                <tr className="border-b border-border/30 bg-muted/5">
+                                  <td className="px-1 py-0.5"></td>
+                                  <td className="px-1 py-0.5"></td>
+                                  <td className="px-2 py-0.5 pl-8" colSpan={9}>
+                                    <div className="flex items-center gap-1.5">
+                                      <Plus className="size-3 text-muted-foreground/30 shrink-0" />
+                                      <input
+                                        className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
+                                        placeholder="새 하위업무 추가..."
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            const input = e.currentTarget;
+                                            const title = input.value.trim();
+                                            if (title) {
+                                              createTask({ project_id: project.id, title, state: '진행전' as ProjectState, sort_order: tasks.length });
+                                              input.value = '';
+                                            }
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!isGroupCollapsed && groupProjects.length === 0 && (
+                  <div className="border-t px-4 py-6 text-center text-xs text-muted-foreground/50">
+                    {state === '완료' ? '완료된 프로젝트가 없습니다' : state === '진행중' ? '진행중인 프로젝트가 없습니다' : '진행전 프로젝트가 없습니다'}
+                  </div>
+                )}
               </div>
             );
           })}
