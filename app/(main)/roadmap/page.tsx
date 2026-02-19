@@ -1044,7 +1044,7 @@ export default function RoadmapPage() {
         </div>
       ) : viewMode === 'grouped' ? (
         /* ═══════════════ GROUPED VIEW (Multi-level) ═══════════════ */
-        <div className="space-y-2">
+        <div className="space-y-3">
           {(() => {
             // Helper: get all leaf projects from a group (recursive)
             const getAllProjects = (g: GroupDefinition): Project[] =>
@@ -1057,14 +1057,14 @@ export default function RoadmapPage() {
                   <colgroup>
                     <col style={{ width: 28 }} />
                     <col style={{ width: 28 }} />
-                    <col />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: 72 }} />
+                    <col style={{ width: 64 }} />
+                    <col style={{ width: 52 }} />
                     <col style={{ width: 76 }} />
-                    <col style={{ width: 68 }} />
-                    <col style={{ width: 56 }} />
-                    <col style={{ width: 80 }} />
-                    <col style={{ width: 80 }} />
-                    <col style={{ width: 120 }} />
-                    <col style={{ width: 130 }} />
+                    <col style={{ width: 76 }} />
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '16%' }} />
                     <col style={{ width: 28 }} />
                   </colgroup>
                   <thead>
@@ -1329,6 +1329,7 @@ export default function RoadmapPage() {
                 const lastSegment = group.key.split('/').pop() ?? group.key;
                 const isCompletedState = lastSegment === '완료';
                 const isActiveState = lastSegment === '진행중';
+                const isPendingState = lastSegment === '진행전';
                 const projectCount = leafProjects.length;
 
                 // Determine content when expanded
@@ -1341,17 +1342,24 @@ export default function RoadmapPage() {
                 if (depth === 0) {
                   // Top-level: full card
                   return (
-                    <div key={group.key} className={cn('rounded-xl border bg-card overflow-hidden', isCompletedState && 'border-emerald-200 dark:border-emerald-800')}>
+                    <div key={group.key} className={cn(
+                      'rounded-xl border bg-card overflow-hidden shadow-sm',
+                      isCompletedState && 'border-emerald-200 dark:border-emerald-800',
+                      isActiveState && 'border-blue-200 dark:border-blue-800',
+                      isPendingState && 'border-gray-200 dark:border-gray-700',
+                    )}>
                       <button
                         type="button"
                         onClick={() => toggleGroupCollapse(group.key)}
                         className={cn(
-                          'w-full flex items-center gap-3 px-4 py-1.5 transition-colors',
+                          'w-full flex items-center gap-3 px-4 py-2 transition-colors',
                           isCompletedState
                             ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
                             : isActiveState
                               ? 'bg-gradient-to-r from-blue-50 to-blue-50/30 dark:from-blue-950/30 dark:to-transparent hover:from-blue-100/80 dark:hover:from-blue-950/40'
-                              : 'bg-muted/30 hover:bg-muted/50',
+                              : isPendingState
+                                ? 'bg-gradient-to-r from-gray-50 to-gray-50/30 dark:from-gray-800/30 dark:to-transparent hover:from-gray-100/80 dark:hover:from-gray-800/40'
+                                : 'bg-muted/30 hover:bg-muted/50',
                         )}
                       >
                         {isGroupCollapsed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -1361,6 +1369,7 @@ export default function RoadmapPage() {
                           'text-[10px] px-1.5 py-0',
                           isCompletedState && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
                           isActiveState && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                          isPendingState && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
                         )}>
                           {projectCount}개
                         </Badge>
@@ -1374,22 +1383,42 @@ export default function RoadmapPage() {
                     </div>
                   );
                 } else {
-                  // Nested sub-group: lighter header inside parent card
+                  // Nested sub-group: colored left border + tinted background
+                  const subBorderColor = isCompletedState
+                    ? 'border-l-emerald-400 dark:border-l-emerald-600'
+                    : isActiveState
+                      ? 'border-l-blue-400 dark:border-l-blue-600'
+                      : isPendingState
+                        ? 'border-l-gray-400 dark:border-l-gray-500'
+                        : 'border-l-violet-300 dark:border-l-violet-600';
+                  const subBg = isCompletedState
+                    ? 'bg-emerald-50/40 dark:bg-emerald-950/15'
+                    : isActiveState
+                      ? 'bg-blue-50/40 dark:bg-blue-950/15'
+                      : isPendingState
+                        ? 'bg-gray-50/40 dark:bg-gray-800/15'
+                        : 'bg-violet-50/30 dark:bg-violet-950/10';
                   return (
-                    <div key={group.key} className="border-t">
+                    <div key={group.key} className={cn('border-t border-l-[3px]', subBorderColor)}>
                       <button
                         type="button"
                         onClick={() => toggleGroupCollapse(group.key)}
                         className={cn(
-                          'w-full flex items-center gap-2 px-4 py-1 transition-colors hover:bg-muted/40',
-                          depth === 1 ? 'pl-6' : 'pl-10',
+                          'w-full flex items-center gap-2 px-4 py-1.5 transition-colors hover:bg-muted/40',
+                          subBg,
+                          depth === 1 ? 'pl-5' : 'pl-9',
                         )}
                       >
                         {isGroupCollapsed ? <ChevronRight className="size-3.5 text-muted-foreground/60" /> : <ChevronDown className="size-3.5 text-muted-foreground/60" />}
                         <GroupIcon className={cn('size-3.5', group.color)} />
-                        <span className={cn('text-[12px] font-medium', group.color)}>{group.label}</span>
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
-                          {projectCount}
+                        <span className={cn('text-[12px] font-semibold', group.color)}>{group.label}</span>
+                        <Badge variant="secondary" className={cn(
+                          'text-[9px] px-1.5 py-0 h-4',
+                          isCompletedState && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+                          isActiveState && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+                          isPendingState && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+                        )}>
+                          {projectCount}개
                         </Badge>
                         {groupTotalTasks > 0 && (
                           <span className="text-[9px] text-muted-foreground/60 ml-auto">
@@ -1428,14 +1457,14 @@ export default function RoadmapPage() {
               <col style={{ width: 20 }} />
               <col style={{ width: 28 }} />
               <col style={{ width: 24 }} />
-              <col />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 64 }} />
+              <col style={{ width: 52 }} />
               <col style={{ width: 76 }} />
-              <col style={{ width: 68 }} />
-              <col style={{ width: 56 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 120 }} />
-              <col style={{ width: 130 }} />
+              <col style={{ width: 76 }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '16%' }} />
               <col style={{ width: 28 }} />
             </colgroup>
             <thead>
