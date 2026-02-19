@@ -127,6 +127,7 @@ export interface Project {
   due_date: string | null;
   state: ProjectState;
   memo: string | null;
+  result_value: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -138,6 +139,7 @@ export interface ProjectTask {
   title: string;
   state: ProjectState;
   assignee_id: string | null;
+  start_date: string | null;
   due_date: string | null;
   sort_order: number;
   memo: string | null;
