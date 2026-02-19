@@ -11,8 +11,8 @@ import {
   Sparkles,
   X,
   User,
-  RotateCcw,
   Trash2,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -33,17 +33,16 @@ interface ChatMessage {
   dimension?: SummaryDimension;
 }
 
-const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string }[] = [
-  { label: '전체 현황', message: '전체현황 알려줘', dimension: 'all', emoji: '📊' },
-  { label: '담당자별', message: '담당자별로 알려줘', dimension: 'assignee', emoji: '👥' },
-  { label: '캠페인별', message: '캠페인별로 알려줘', dimension: 'campaign', emoji: '🏢' },
-  { label: '업무 결과', message: '업무 결과 알려줘', dimension: 'daily', emoji: '📋' },
-  { label: '프로젝트', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️' },
-  { label: 'QA 관리', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️' },
-  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️' },
+const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string; color: string }[] = [
+  { label: '전체 현황 요약', message: '전체현황 알려줘', dimension: 'all', emoji: '📊', color: 'from-violet-500 to-indigo-500' },
+  { label: '담당자별 현황', message: '담당자별로 알려줘', dimension: 'assignee', emoji: '👥', color: 'from-blue-500 to-cyan-500' },
+  { label: '캠페인별 현황', message: '캠페인별로 알려줘', dimension: 'campaign', emoji: '🏢', color: 'from-emerald-500 to-teal-500' },
+  { label: '업무 결과 현황', message: '업무 결과 알려줘', dimension: 'daily', emoji: '📋', color: 'from-amber-500 to-orange-500' },
+  { label: '프로젝트 현황', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️', color: 'from-pink-500 to-rose-500' },
+  { label: 'QA 관리 현황', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️', color: 'from-red-500 to-orange-500' },
+  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️', color: 'from-gray-500 to-slate-500' },
 ];
 
-// Map user free-text to a dimension if it matches
 function detectDimension(text: string): SummaryDimension {
   const lower = text.toLowerCase();
   if (/담당자/.test(lower)) return 'assignee';
@@ -53,6 +52,10 @@ function detectDimension(text: string): SummaryDimension {
   if (/프로젝트|로드맵/.test(lower)) return 'project';
   if (/qa|이슈|질문/.test(lower)) return 'qa';
   return 'all';
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 }
 
 export function AiSummarySheet({
@@ -84,7 +87,6 @@ export function AiSummarySheet({
     });
   }, []);
 
-  // Load chat history when sheet opens
   useEffect(() => {
     if (open && userId && !historyLoaded) {
       loadHistory();
@@ -109,7 +111,7 @@ export function AiSummarySheet({
         setTimeout(scrollToBottom, 100);
       }
     } catch {
-      // Silently fail - chat still works without history
+      // silent
     } finally {
       setHistoryLoaded(true);
     }
@@ -142,7 +144,6 @@ export function AiSummarySheet({
     setIsLoading(true);
     streamingRef.current = '';
 
-    // Build history from existing messages (excluding the ones we just added)
     const history = messages
       .filter((m) => m.content)
       .map((m) => ({ role: m.role, content: m.content }));
@@ -151,12 +152,7 @@ export function AiSummarySheet({
       const res = await fetch('/api/ai-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dimension,
-          message: userMessage,
-          userId,
-          history,
-        }),
+        body: JSON.stringify({ dimension, message: userMessage, userId, history }),
         signal: controller.signal,
       });
 
@@ -167,26 +163,21 @@ export function AiSummarySheet({
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No response body');
-
       const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         streamingRef.current += decoder.decode(value, { stream: true });
         const currentText = streamingRef.current;
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, content: currentText } : m
-          )
+          prev.map((m) => m.id === assistantId ? { ...m, content: currentText } : m)
         );
         scrollToBottom();
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
-      const errorMsg = err instanceof Error ? err.message : '요약 생성에 실패했습니다.';
-      setError(errorMsg);
+      setError(err instanceof Error ? err.message : '요약 생성에 실패했습니다.');
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
     } finally {
       setIsLoading(false);
@@ -201,9 +192,8 @@ export function AiSummarySheet({
   const handleSendInput = () => {
     const text = inputValue.trim();
     if (!text || isLoading) return;
-    const dimension = detectDimension(text);
     setInputValue('');
-    sendMessage(text, dimension);
+    sendMessage(text, detectDimension(text));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -224,7 +214,6 @@ export function AiSummarySheet({
     setMessages([]);
     setError(null);
     setIsLoading(false);
-    // Delete from DB
     if (userId) {
       fetch(`/api/ai-summary?userId=${userId}`, { method: 'DELETE' }).catch(() => {});
     }
@@ -232,84 +221,81 @@ export function AiSummarySheet({
 
   const handleOpenChange = (val: boolean) => {
     onOpenChange(val);
-    if (!val && abortRef.current) {
-      abortRef.current.abort();
-    }
-    if (val) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-    }
+    if (!val && abortRef.current) abortRef.current.abort();
+    if (val) setTimeout(() => inputRef.current?.focus(), 300);
   };
 
   const hasMessages = messages.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-[540px] flex flex-col gap-0 p-0">
-        {/* Header */}
-        <SheetHeader className="px-4 py-3 border-b shrink-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
+      <SheetContent className="w-full sm:max-w-[560px] flex flex-col gap-0 p-0 border-l-0 sm:border-l">
+        {/* ─── Header ─── */}
+        <SheetHeader className="px-5 py-3.5 border-b shrink-0 bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-indigo-950">
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2.5 text-base">
+            <SheetTitle className="flex items-center gap-3 text-base">
               <div className="relative">
-                <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <Bot className="size-4.5 text-white" />
+                <div className="size-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center ring-2 ring-white/20">
+                  <Bot className="size-5 text-white" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-gray-950" />
+                <div className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-400 border-2 border-slate-900 dark:border-slate-950" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold">AI Agent</span>
-                <span className="text-[10px] text-muted-foreground font-normal">어포메이션 휴먼인더루프</span>
+                <span className="text-[13px] font-bold text-white">어포메이션 AI Agent</span>
+                <span className="text-[10px] text-white/50 font-normal">Human-in-the-Loop · 온라인</span>
               </div>
             </SheetTitle>
-            <div className="flex items-center gap-1">
-              {hasMessages && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleClearChat}
-                  className="size-7 text-muted-foreground hover:text-destructive"
-                  title="대화 초기화"
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              )}
-            </div>
+            {hasMessages && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleClearChat}
+                className="size-8 text-white/40 hover:text-white/80 hover:bg-white/10"
+                title="대화 초기화"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
           </div>
         </SheetHeader>
 
-        {/* Chat Messages Area */}
+        {/* ─── Messages ─── */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+          className="flex-1 overflow-y-auto bg-[#f0f2f5] dark:bg-gray-950/50"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
         >
-          {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-sm">
-              <X className="size-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+          <div className="px-4 py-4 space-y-3 min-h-full">
+            {error && (
+              <div className="mx-2 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm shadow-sm">
+                <X className="size-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {/* Welcome Screen */}
-          {!hasMessages && !isLoading && (
-            <div className="flex flex-col items-center justify-center py-8 gap-5">
-              <div className="relative">
-                <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/25">
-                  <Sparkles className="size-8 text-white" />
+            {/* ─── Welcome ─── */}
+            {!hasMessages && !isLoading && (
+              <div className="flex flex-col gap-4 pt-4">
+                {/* Welcome card */}
+                <div className="mx-auto max-w-[340px] rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-6 text-center">
+                    <div className="size-14 mx-auto rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
+                      <Sparkles className="size-7 text-white" />
+                    </div>
+                    <h3 className="text-[15px] font-bold text-white">어포메이션 AI Agent</h3>
+                    <p className="text-[11px] text-white/70 mt-1">
+                      캠페인 운영 데이터를 실시간 분석합니다
+                    </p>
+                  </div>
+                  <div className="px-4 py-3 text-center">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      아래 버튼을 누르거나 직접 질문을 입력해주세요
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="text-center space-y-1.5">
-                <h3 className="text-sm font-semibold">어포메이션 AI Agent</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed max-w-[280px]">
-                  캠페인 운영 현황을 실시간으로 분석하고<br />
-                  인사이트를 제공합니다
-                </p>
-              </div>
 
-              {/* Quick Actions Grid */}
-              <div className="w-full space-y-2">
-                <p className="text-[10px] text-muted-foreground text-center font-medium uppercase tracking-wider">
-                  빠른 분석
-                </p>
-                <div className="grid grid-cols-2 gap-2">
+                {/* Quick actions */}
+                <div className="space-y-1.5">
                   {QUICK_ACTIONS.map((action) => (
                     <button
                       key={action.dimension}
@@ -317,111 +303,122 @@ export function AiSummarySheet({
                       onClick={() => handleQuickAction(action)}
                       disabled={isLoading}
                       className={cn(
-                        'flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all',
-                        'bg-muted/50 hover:bg-muted border border-transparent hover:border-border',
-                        'text-xs font-medium text-foreground/80 hover:text-foreground',
-                        'disabled:opacity-50 disabled:cursor-not-allowed',
-                        action.dimension === 'all' && 'col-span-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/15 hover:to-purple-500/15 border-indigo-200/50 dark:border-indigo-800/50'
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all',
+                        'bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5',
+                        'hover:shadow-md hover:scale-[1.01] active:scale-[0.99]',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
                       )}
                     >
                       <div className={cn(
-                        'size-6 rounded-lg flex items-center justify-center shrink-0 text-[10px]',
-                        action.dimension === 'all'
-                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
-                          : 'bg-muted-foreground/10 text-muted-foreground'
+                        'size-9 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 text-sm shadow-sm',
+                        action.color
                       )}>
-                        {action.emoji}
+                        <span>{action.emoji}</span>
                       </div>
-                      <span>{action.message}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[13px] font-semibold text-foreground block">{action.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{action.message}</span>
+                      </div>
+                      <Send className="size-3.5 text-muted-foreground/40 shrink-0" />
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Message Bubbles */}
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={cn(
-                'flex gap-2.5',
-                msg.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {/* Assistant Avatar */}
-              {msg.role === 'assistant' && (
-                <div className="shrink-0 mt-1">
-                  <div className="size-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                    <Bot className="size-3.5 text-white" />
-                  </div>
-                </div>
-              )}
+            {/* ─── Chat Bubbles ─── */}
+            {messages.map((msg, idx) => {
+              const isUser = msg.role === 'user';
+              const showTime = idx === messages.length - 1 ||
+                messages[idx + 1]?.role !== msg.role;
 
-              {/* Message Bubble */}
-              <div
-                className={cn(
-                  'relative group max-w-[85%] rounded-2xl px-3.5 py-2.5',
-                  msg.role === 'user'
-                    ? 'bg-indigo-600 text-white rounded-br-md'
-                    : 'bg-muted/70 border border-border/50 rounded-bl-md'
-                )}
-              >
-                {msg.role === 'user' ? (
-                  <p className="text-sm">{msg.content}</p>
-                ) : msg.content ? (
-                  <div className="relative">
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1.5 prose-p:text-[13px] prose-li:text-[13px] prose-p:leading-relaxed prose-li:leading-relaxed prose-p:my-1 prose-ul:my-1 prose-ol:my-1">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.content}
-                      </ReactMarkdown>
-                    </div>
-                    {isLoading && msg.id === messages[messages.length - 1]?.id && (
-                      <span className="inline-block w-1.5 h-4 bg-indigo-500 animate-pulse rounded-sm ml-0.5" />
+              return (
+                <div key={msg.id} className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+                  <div className={cn('flex gap-2 max-w-[88%]', isUser ? 'flex-row-reverse' : 'flex-row')}>
+                    {/* Avatar */}
+                    {!isUser && (
+                      <div className="shrink-0 self-end mb-5">
+                        <div className="size-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
+                          <Bot className="size-4 text-white" />
+                        </div>
+                      </div>
                     )}
-                    {/* Copy button */}
-                    {!isLoading && msg.content && (
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(msg.content, msg.id)}
-                        className="absolute -bottom-6 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                      >
-                        {copiedId === msg.id ? (
-                          <><Check className="size-3 text-emerald-500" /> 복사됨</>
-                        ) : (
-                          <><Copy className="size-3" /> 복사</>
+
+                    {/* Bubble */}
+                    <div className="flex flex-col gap-0.5">
+                      <div
+                        className={cn(
+                          'relative group rounded-2xl shadow-sm',
+                          isUser
+                            ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md px-4 py-2.5'
+                            : 'bg-white dark:bg-gray-900 border border-black/5 dark:border-white/5 rounded-bl-md px-4 py-3'
                         )}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 py-1">
-                    <div className="flex gap-1">
-                      <div className="size-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="size-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="size-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      >
+                        {isUser ? (
+                          <p className="text-[13px] leading-relaxed">{msg.content}</p>
+                        ) : msg.content ? (
+                          <div className="relative">
+                            <div className="prose prose-sm dark:prose-invert max-w-none
+                              prose-headings:text-[13px] prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1
+                              prose-p:text-[12.5px] prose-li:text-[12.5px]
+                              prose-p:leading-[1.7] prose-li:leading-[1.7]
+                              prose-p:my-1 prose-ul:my-1 prose-ol:my-1
+                              prose-strong:text-foreground
+                              prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
+                            {isLoading && msg.id === messages[messages.length - 1]?.id && (
+                              <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
+                            )}
+                            {!isLoading && msg.content && (
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(msg.content, msg.id)}
+                                className="absolute -bottom-5 right-0 opacity-0 group-hover:opacity-100 transition-opacity
+                                  flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                              >
+                                {copiedId === msg.id ? (
+                                  <><Check className="size-3 text-emerald-500" /> 복사됨</>
+                                ) : (
+                                  <><Copy className="size-3" /> 복사</>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2.5 py-0.5">
+                            <div className="flex gap-1">
+                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                            <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Timestamp */}
+                      {showTime && msg.content && (
+                        <span className={cn(
+                          'text-[9px] text-muted-foreground/60 px-1',
+                          isUser ? 'text-right' : 'text-left'
+                        )}>
+                          {formatTime(msg.timestamp)}
+                        </span>
+                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground">분석 중...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* User Avatar */}
-              {msg.role === 'user' && (
-                <div className="shrink-0 mt-1">
-                  <div className="size-7 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-600 dark:to-gray-800 flex items-center justify-center">
-                    <User className="size-3.5 text-white" />
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Bottom Quick Actions (scrollable when messages exist) */}
+        {/* ─── Quick Actions (in-chat) ─── */}
         {hasMessages && (
-          <div className="px-4 py-2 border-t shrink-0 bg-background/80 backdrop-blur-sm">
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="px-3 py-2 border-t shrink-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action.dimension}
@@ -429,12 +426,13 @@ export function AiSummarySheet({
                   onClick={() => handleQuickAction(action)}
                   disabled={isLoading}
                   className={cn(
-                    'shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
-                    'bg-muted/50 hover:bg-muted border border-border/50 hover:border-border',
-                    'text-muted-foreground hover:text-foreground',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
+                    'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700',
+                    'text-gray-600 dark:text-gray-300',
+                    'disabled:opacity-40 disabled:cursor-not-allowed'
                   )}
                 >
+                  <span className="text-[10px]">{action.emoji}</span>
                   {action.label}
                 </button>
               ))}
@@ -442,8 +440,8 @@ export function AiSummarySheet({
           </div>
         )}
 
-        {/* Input Area */}
-        <div className="px-4 py-3 border-t shrink-0 bg-muted/30">
+        {/* ─── Input ─── */}
+        <div className="px-3 py-2.5 border-t shrink-0 bg-white dark:bg-gray-950">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
               <input
@@ -452,40 +450,36 @@ export function AiSummarySheet({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="질문을 입력하세요..."
+                placeholder="메시지를 입력하세요..."
                 disabled={isLoading}
                 className={cn(
-                  'w-full px-3.5 py-2 rounded-xl text-sm bg-background border border-border',
-                  'focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400',
-                  'placeholder:text-muted-foreground/50',
+                  'w-full px-4 py-2.5 rounded-full text-[13px]',
+                  'bg-gray-100 dark:bg-gray-800 border-0',
+                  'focus:outline-none focus:ring-2 focus:ring-indigo-500/30',
+                  'placeholder:text-gray-400 dark:placeholder:text-gray-500',
                   'disabled:opacity-50'
                 )}
               />
             </div>
-            <Button
-              size="icon-sm"
+            <button
+              type="button"
               onClick={handleSendInput}
               disabled={!inputValue.trim() || isLoading}
               className={cn(
-                'size-9 rounded-xl shrink-0 transition-all',
+                'size-10 rounded-full flex items-center justify-center shrink-0 transition-all',
                 inputValue.trim()
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-95'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
               )}
             >
-              <Send className="size-4" />
-            </Button>
+              <Send className={cn('size-4', inputValue.trim() && 'translate-x-[1px] -translate-y-[1px]')} />
+            </button>
           </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <Sparkles className="size-3" />
-              GPT-4o-mini · 대화 기록 저장됨
+          <div className="flex items-center justify-center mt-1.5">
+            <span className="text-[9px] text-gray-400 flex items-center gap-1">
+              <MessageCircle className="size-2.5" />
+              GPT-4o-mini · 대화 내용은 자동 저장됩니다
             </span>
-            {hasMessages && (
-              <span className="text-[10px] text-muted-foreground">
-                {messages.filter((m) => m.role === 'assistant').length}개 응답
-              </span>
-            )}
           </div>
         </div>
       </SheetContent>

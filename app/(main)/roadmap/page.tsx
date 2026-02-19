@@ -122,7 +122,7 @@ function InlineTextCell({
     return (
       <span
         className={cn(
-          'cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors truncate block min-h-[20px]',
+          'cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors truncate block min-h-[16px] leading-tight',
           !value && 'text-muted-foreground/30',
           className,
         )}
@@ -174,7 +174,7 @@ function InlineDateCell({
   if (!isEditing) {
     return (
       <span
-        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs min-h-[20px] block"
+        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs min-h-[16px] leading-tight block"
         onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
       >
         {value || '-'}
@@ -219,7 +219,7 @@ function InlineMemoCell({
   if (!isEditing) {
     return (
       <span
-        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs truncate block min-h-[20px]"
+        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs truncate block min-h-[16px] leading-tight"
         onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
         title={value ?? ''}
       >
@@ -390,9 +390,9 @@ export default function RoadmapPage() {
   const { profile } = useAuth();
   useRealtimeProjects();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [viewMode, setViewMode] = useState<ViewMode>('grouped');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(['완료']));
   const [searchText, setSearchText] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('');
@@ -762,53 +762,18 @@ export default function RoadmapPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {/* 상위 프로젝트 */}
-        <div className="rounded-lg border bg-card px-3 py-2">
-          <p className="text-[10px] text-muted-foreground font-medium">상위 프로젝트</p>
-          <p className="text-lg font-bold leading-tight">{stats.total}</p>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[9px] text-gray-500">{stats.notStarted} 진행전</span>
-            <span className="text-[9px] text-blue-600">{stats.inProgress} 진행중</span>
-            <span className="text-[9px] text-emerald-600">{stats.completed} 완료</span>
-          </div>
+      {/* Stats - Compact inline */}
+      <div className="flex flex-wrap items-center gap-3 px-1 text-[11px]">
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">프로젝트</span>
+          <span className="font-bold text-sm">{stats.total}</span>
+          <span className="text-gray-400">({stats.notStarted} 진행전 · <span className="text-blue-600">{stats.inProgress} 진행중</span> · <span className="text-emerald-600">{stats.completed} 완료</span>)</span>
         </div>
-        {/* 하위 업무 */}
-        <div className="rounded-lg border bg-card px-3 py-2">
-          <p className="text-[10px] text-muted-foreground font-medium">하위 업무</p>
-          <p className="text-lg font-bold leading-tight">{stats.totalTasks}</p>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[9px] text-gray-500">{stats.tasksNotStarted} 진행전</span>
-            <span className="text-[9px] text-blue-600">{stats.tasksInProgress} 진행중</span>
-            <span className="text-[9px] text-emerald-600">{stats.tasksCompleted} 완료</span>
-          </div>
-        </div>
-        {/* 진행중 */}
-        <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-card px-3 py-2">
-          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">진행중</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-lg font-bold leading-tight text-blue-600">{stats.inProgress}</p>
-            <span className="text-[9px] text-muted-foreground">프로젝트</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <p className="text-sm font-semibold text-blue-500">{stats.tasksInProgress}</p>
-            <span className="text-[9px] text-muted-foreground">하위업무</span>
-          </div>
-        </div>
-        {/* 완료 */}
-        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 px-3 py-2">
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-            <Trophy className="size-2.5" />완료
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-lg font-bold leading-tight text-emerald-600">{stats.completed}</p>
-            <span className="text-[9px] text-muted-foreground">프로젝트</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <p className="text-sm font-semibold text-emerald-500">{stats.tasksCompleted}</p>
-            <span className="text-[9px] text-muted-foreground">하위업무</span>
-          </div>
+        <span className="text-muted-foreground/30">|</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">하위업무</span>
+          <span className="font-bold text-sm">{stats.totalTasks}</span>
+          <span className="text-gray-400">({stats.tasksNotStarted} 진행전 · <span className="text-blue-600">{stats.tasksInProgress} 진행중</span> · <span className="text-emerald-600">{stats.tasksCompleted} 완료</span>)</span>
         </div>
       </div>
 
@@ -903,7 +868,7 @@ export default function RoadmapPage() {
         </div>
       ) : viewMode === 'grouped' ? (
         /* ═══════════════ GROUPED VIEW ═══════════════ */
-        <div className="space-y-4">
+        <div className="space-y-2">
           {groupedProjects.map(({ state, config: groupConfig, projects: groupProjects }) => {
             const GroupIcon = groupConfig.icon;
             const isGroupCollapsed = collapsedGroups.has(state);
@@ -925,7 +890,7 @@ export default function RoadmapPage() {
                   type="button"
                   onClick={() => toggleGroupCollapse(state)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-2 transition-colors',
+                    'w-full flex items-center gap-3 px-4 py-1.5 transition-colors',
                     state === '완료'
                       ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
                       : state === '진행중'
@@ -956,17 +921,17 @@ export default function RoadmapPage() {
                     <table className="w-full table-fixed text-[12px] min-w-[980px]">
                       <thead>
                         <tr className="border-b bg-muted/40">
-                          <th className="w-[20px] px-1 py-1"></th>
-                          <th className="w-[24px] px-1 py-1"></th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px]">프로젝트</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[76px]">상태</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[76px]">담당자</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[68px]">진행률</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[86px]">시작일</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[86px]">마감일</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[120px]">결과값</th>
-                          <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[11px] w-[120px]">메모</th>
-                          <th className="w-[32px] px-1 py-1"></th>
+                          <th className="w-[20px] px-1 py-0.5"></th>
+                          <th className="w-[24px] px-1 py-0.5"></th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">담당자</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[68px]">진행률</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">시작일</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">마감일</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">결과값</th>
+                          <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">메모</th>
+                          <th className="w-[32px] px-1 py-0.5"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1207,7 +1172,7 @@ export default function RoadmapPage() {
 
                 {/* Empty state */}
                 {!isGroupCollapsed && groupProjects.length === 0 && (
-                  <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground/50">
+                  <div className="border-t px-4 py-1.5 text-center text-[11px] text-muted-foreground/50">
                     {state === '완료' ? '완료된 프로젝트가 없습니다' : state === '진행중' ? '진행중인 프로젝트가 없습니다' : '진행전 프로젝트가 없습니다'}
                   </div>
                 )}
@@ -1234,24 +1199,24 @@ export default function RoadmapPage() {
           <table className="w-full table-fixed text-[12px] min-w-[980px]">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="w-[20px] px-1 py-1"></th>
-                <th className="w-[32px] px-2 py-1">
+                <th className="w-[20px] px-1 py-0.5"></th>
+                <th className="w-[32px] px-2 py-0.5">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={(checked) => { if (checked) selectAll(); else clearSelection(); }}
                     className="size-3.5"
                   />
                 </th>
-                <th className="w-[24px] px-1 py-1"></th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground">프로젝트</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[76px]">상태</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[76px]">담당자</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[68px]">진행률</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[86px]">시작일</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[86px]">마감일</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[120px]">결과값</th>
-                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[120px]">메모</th>
-                <th className="w-[32px] px-1 py-1"></th>
+                <th className="w-[24px] px-1 py-0.5"></th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">담당자</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[68px]">진행률</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">시작일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">마감일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">결과값</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">메모</th>
+                <th className="w-[32px] px-1 py-0.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -1641,7 +1606,7 @@ export default function RoadmapPage() {
       {completedProjects.length > 0 && (
         <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-transparent dark:from-emerald-950/20 overflow-hidden">
           <button
-            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors"
             onClick={() => setShowCompleted(true)}
           >
             <Trophy className="size-4 text-emerald-500" />

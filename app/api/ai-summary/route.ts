@@ -1,9 +1,48 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import { buildContext } from '@/lib/ai/build-context';
+import { buildContext, DateRange } from '@/lib/ai/build-context';
 import { SYSTEM_PROMPT, DIMENSION_PROMPTS } from '@/lib/ai/system-prompt';
 import type { SummaryDimension } from '@/lib/ai/types';
+
+function detectDateRange(text: string): DateRange | undefined {
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+
+  // "일주일" / "7일" / "최근 7일" / "지난 일주일"
+  if (/일주일|7일|최근\s*7|지난\s*7/i.test(text)) {
+    const from = new Date(today);
+    from.setDate(from.getDate() - 6);
+    return { from: fmt(from), to: fmt(today) };
+  }
+  // "이번 주" / "금주"
+  if (/이번\s*주|금주/.test(text)) {
+    const day = today.getDay();
+    const mon = new Date(today);
+    mon.setDate(mon.getDate() - (day === 0 ? 6 : day - 1));
+    return { from: fmt(mon), to: fmt(today) };
+  }
+  // "지난 3일" / "최근 3일"
+  const shortDays = text.match(/(?:지난|최근)\s*(\d+)\s*일/);
+  if (shortDays) {
+    const n = parseInt(shortDays[1], 10);
+    const from = new Date(today);
+    from.setDate(from.getDate() - (n - 1));
+    return { from: fmt(from), to: fmt(today) };
+  }
+  // "이번 달" / "이달" / "한달"
+  if (/이번\s*달|이달|한\s*달|1개월/.test(text)) {
+    const from = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { from: fmt(from), to: fmt(today) };
+  }
+  // "어제"
+  if (/어제/.test(text)) {
+    const y = new Date(today);
+    y.setDate(y.getDate() - 1);
+    return { from: fmt(y), to: fmt(y) };
+  }
+  return undefined;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +66,11 @@ export async function POST(req: NextRequest) {
     const previousMessages: { role: 'user' | 'assistant'; content: string }[] =
       body.history ?? [];
 
+    // Detect date range from user message
+    const dateRange = userMessage ? detectDateRange(userMessage) : undefined;
+
     // Build context from database
-    const context = await buildContext(dimension);
+    const context = await buildContext(dimension, dateRange);
 
     if (!context) {
       return new Response(

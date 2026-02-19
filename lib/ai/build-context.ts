@@ -1,6 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { SummaryDimension } from './types';
 
+export interface DateRange {
+  from: string; // YYYY-MM-DD
+  to: string;   // YYYY-MM-DD
+}
+
 function getSupabase(): SupabaseClient {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,17 +17,32 @@ function today() {
   return new Date().toISOString().split('T')[0];
 }
 
-async function fetchAssigneeContext() {
+function defaultRange(): DateRange {
+  const t = today();
+  return { from: t, to: t };
+}
+
+function formatRange(range: DateRange): string {
+  if (range.from === range.to) return range.from;
+  return `${range.from} ~ ${range.to}`;
+}
+
+async function fetchAssigneeContext(range: DateRange) {
   const supabase = getSupabase();
   const { data: users } = await supabase
     .from('users')
     .select('id, name, position, role')
     .eq('is_active', true);
 
-  const { data: checks } = await supabase
+  let checksQuery = supabase
     .from('daily_checks')
-    .select('assigned_user_id, status, task_id, campaign_id, note, result_value')
-    .eq('check_date', today());
+    .select('assigned_user_id, status, task_id, campaign_id, note, result_value');
+  if (range.from === range.to) {
+    checksQuery = checksQuery.eq('check_date', range.from);
+  } else {
+    checksQuery = checksQuery.gte('check_date', range.from).lte('check_date', range.to);
+  }
+  const { data: checks } = await checksQuery;
 
   const { data: tasks } = await supabase
     .from('tasks')
@@ -45,6 +65,12 @@ async function fetchAssigneeContext() {
     const pending = userChecks.filter((c) => c.status === '미완료').length;
     const na = userChecks.filter((c) => c.status === '해당없음').length;
 
+    // Campaigns this user is assigned to
+    const assignedCampaignIds = [...new Set(userChecks.filter((c) => c.campaign_id).map((c) => c.campaign_id))];
+    const assignedCampaigns = assignedCampaignIds
+      .map((id) => campMap.get(id)?.client_name)
+      .filter(Boolean);
+
     // Top pending tasks
     const pendingTasks = userChecks
       .filter((c) => c.status === '미완료')
@@ -61,32 +87,36 @@ async function fetchAssigneeContext() {
 
     return {
       name: u.name,
-      position: u.position,
-      role: u.role,
       total,
       completed,
       inProgress,
       pending,
       na,
       rate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      assignedCampaigns,
       pendingTasks,
     };
   }).filter((u) => u.total > 0);
 
-  return { date: today(), assignees: byUser };
+  return { date: formatRange(range), assignees: byUser };
 }
 
-async function fetchCampaignContext() {
+async function fetchCampaignContext(range: DateRange) {
   const supabase = getSupabase();
   const { data: campaigns } = await supabase
     .from('campaigns')
     .select('id, client_name, campaign_name, campaign_type, status, phase, target_country, monthly_fixed_cost, cost_per_influencer, influencer_fee_budget')
     .order('campaign_name');
 
-  const { data: checks } = await supabase
+  let checksQuery = supabase
     .from('daily_checks')
-    .select('campaign_id, status, assigned_user_id')
-    .eq('check_date', today());
+    .select('campaign_id, status, assigned_user_id');
+  if (range.from === range.to) {
+    checksQuery = checksQuery.eq('check_date', range.from);
+  } else {
+    checksQuery = checksQuery.gte('check_date', range.from).lte('check_date', range.to);
+  }
+  const { data: checks } = await checksQuery;
 
   const { data: users } = await supabase
     .from('users')
@@ -138,12 +168,17 @@ async function fetchCampaignContext() {
   };
 }
 
-async function fetchDailyContext() {
+async function fetchDailyContext(range: DateRange) {
   const supabase = getSupabase();
-  const { data: checks } = await supabase
+  let checksQuery = supabase
     .from('daily_checks')
-    .select('status, task_id, campaign_id, assigned_user_id, note, result_value')
-    .eq('check_date', today());
+    .select('status, task_id, campaign_id, assigned_user_id, note, result_value');
+  if (range.from === range.to) {
+    checksQuery = checksQuery.eq('check_date', range.from);
+  } else {
+    checksQuery = checksQuery.gte('check_date', range.from).lte('check_date', range.to);
+  }
+  const { data: checks } = await checksQuery;
 
   const { data: tasks } = await supabase
     .from('tasks')
@@ -208,7 +243,7 @@ async function fetchDailyContext() {
     });
 
   return {
-    date: today(),
+    date: formatRange(range),
     total,
     completed,
     inProgress,
@@ -386,22 +421,24 @@ async function fetchConfigContext() {
   };
 }
 
-export async function buildContext(dimension: SummaryDimension): Promise<string> {
-  const parts: string[] = [];
+export async function buildContext(dimension: SummaryDimension, range?: DateRange): Promise<string> {
+  const r = range ?? defaultRange();
+  const rangeLabel = formatRange(r);
+  const parts: string[] = [`# 분석 기준: ${rangeLabel}`];
 
   if (dimension === 'all' || dimension === 'assignee') {
-    const data = await fetchAssigneeContext();
-    if (data) parts.push(`## 담당자별 현황 (${data.date})\n${JSON.stringify(data.assignees, null, 1)}`);
+    const data = await fetchAssigneeContext(r);
+    if (data) parts.push(`## 담당자별 현황 (${rangeLabel})\n${JSON.stringify(data.assignees, null, 1)}`);
   }
 
   if (dimension === 'all' || dimension === 'campaign') {
-    const data = await fetchCampaignContext();
-    if (data) parts.push(`## 캠페인별 현황\n전체: ${data.total}개, 상태: ${JSON.stringify(data.byStatus)}, 단계: ${JSON.stringify(data.byPhase)}, 유형: ${JSON.stringify(data.byType)}\n${JSON.stringify(data.campaigns, null, 1)}`);
+    const data = await fetchCampaignContext(r);
+    if (data) parts.push(`## 캠페인별 현황 (${rangeLabel})\n전체: ${data.total}개, 상태: ${JSON.stringify(data.byStatus)}, 단계: ${JSON.stringify(data.byPhase)}, 유형: ${JSON.stringify(data.byType)}\n${JSON.stringify(data.campaigns, null, 1)}`);
   }
 
   if (dimension === 'all' || dimension === 'daily') {
-    const data = await fetchDailyContext();
-    if (data) parts.push(`## 오늘의 업무 결과 (${data.date})\n전체: ${data.total}건, 완료: ${data.completed}, 진행중: ${data.inProgress}, 미완료: ${data.pending}, 해당없음: ${data.na}, 완료율: ${data.rate}%\n카테고리별: ${JSON.stringify(data.byCategory, null, 1)}\n미완료 상세(담당자 포함): ${JSON.stringify(data.pendingDetails, null, 1)}\n결과값: ${JSON.stringify(data.withResults, null, 1)}`);
+    const data = await fetchDailyContext(r);
+    if (data) parts.push(`## 업무 결과 (${rangeLabel})\n전체: ${data.total}건, 완료: ${data.completed}, 진행중: ${data.inProgress}, 미완료: ${data.pending}, 해당없음: ${data.na}, 완료율: ${data.rate}%\n카테고리별: ${JSON.stringify(data.byCategory, null, 1)}\n미완료 상세(담당자 포함): ${JSON.stringify(data.pendingDetails, null, 1)}\n결과값: ${JSON.stringify(data.withResults, null, 1)}`);
   }
 
   if (dimension === 'all' || dimension === 'project') {
