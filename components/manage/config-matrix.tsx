@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X } from 'lucide-react';
+import { Check, X, CheckCircle2, Trophy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -232,19 +232,30 @@ export function ConfigMatrix() {
                 : 0;
 
             return (
-              <tr key={campaign.id} className="hover:bg-muted/30 transition-colors">
+              <tr key={campaign.id} className={cn(
+                'hover:bg-muted/30 transition-colors',
+                pct === 100 && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+              )}>
                 {/* Campaign name (sticky left) */}
                 <td
                   className={cn(
                     'sticky left-0 z-10',
-                    'bg-background border-b border-r px-3 py-1.5',
+                    'border-b border-r px-3 py-1.5',
                     'text-xs font-medium text-foreground',
-                    'min-w-[200px] max-w-[260px]'
+                    'min-w-[200px] max-w-[260px]',
+                    pct === 100
+                      ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
+                      : 'bg-background'
                   )}
                 >
-                  <div className="truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
-                    <span className="font-semibold">{campaign.client_name}</span>
-                    <span className="text-muted-foreground ml-1">
+                  <div className="flex items-center gap-1.5 truncate" title={`${campaign.client_name} - ${campaign.campaign_name}`}>
+                    {pct === 100 && (
+                      <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                        <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                    )}
+                    <span className={cn('font-semibold', pct === 100 && 'text-emerald-800 dark:text-emerald-300')}>{campaign.client_name}</span>
+                    <span className={cn('ml-1', pct === 100 ? 'text-emerald-600/70 dark:text-emerald-400/70' : 'text-muted-foreground')}>
                       {campaign.campaign_name}
                     </span>
                   </div>
@@ -339,25 +350,37 @@ export function ConfigMatrix() {
                 <td
                   className={cn(
                     'sticky right-0 z-10',
-                    'bg-background border-b border-l px-2 py-1.5',
-                    'text-center'
+                    'border-b border-l px-2 py-1.5',
+                    'text-center',
+                    pct === 100
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
+                      : 'bg-background'
                   )}
                 >
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {completion?.completed ?? 0}/{completion?.total ?? 0}
                     </span>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        'text-[9px] px-1.5 py-0',
-                        pct === 100 && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                        pct > 0 && pct < 100 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                        pct === 0 && 'bg-gray-100 text-gray-500'
-                      )}
-                    >
-                      {pct}%
-                    </Badge>
+                    {pct === 100 ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
+                      >
+                        <CheckCircle2 className="size-2.5" />
+                        100%
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'text-[9px] px-1.5 py-0',
+                          pct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                          pct === 0 && 'bg-gray-100 text-gray-500'
+                        )}
+                      >
+                        {pct}%
+                      </Badge>
+                    )}
                   </div>
                 </td>
               </tr>

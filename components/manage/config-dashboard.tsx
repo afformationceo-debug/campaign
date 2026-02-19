@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, CheckCircle2, AlertCircle, MinusCircle } from 'lucide-react';
+import { BarChart3, CheckCircle2, AlertCircle, MinusCircle, Trophy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -112,8 +112,11 @@ export function ConfigDashboard({ onSelectCampaign }: ConfigDashboardProps) {
           <div className="text-[10px] text-muted-foreground font-medium">전체 캠페인</div>
           <div className="text-2xl font-bold mt-1">{summary.totalCampaigns}</div>
         </div>
-        <div className="rounded-xl border bg-card p-3 shadow-sm">
-          <div className="text-[10px] text-muted-foreground font-medium">세팅 완료</div>
+        <div className="rounded-xl border bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-3 shadow-sm">
+          <div className="flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+            <Trophy className="size-3" />
+            세팅 완료
+          </div>
           <div className="text-2xl font-bold mt-1 text-emerald-600">{summary.completedCampaigns}</div>
         </div>
         <div className="rounded-xl border bg-card p-3 shadow-sm">
@@ -156,10 +159,25 @@ export function ConfigDashboard({ onSelectCampaign }: ConfigDashboardProps) {
               return (
                 <tr
                   key={campaign.id}
-                  className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer"
+                  className={cn(
+                    'border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer',
+                    statusLabel === '완료' && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                  )}
                   onClick={() => onSelectCampaign(campaign.id)}
                 >
-                  <td className="px-3 py-1.5 text-[11px] font-medium">{campaign.campaign_name}</td>
+                  <td className={cn(
+                    'px-3 py-1.5 text-[11px] font-medium',
+                    statusLabel === '완료' && 'border-l-[3px] border-l-emerald-400'
+                  )}>
+                    <div className="flex items-center gap-1.5">
+                      {statusLabel === '완료' && (
+                        <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                          <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      )}
+                      <span className={cn(statusLabel === '완료' && 'text-emerald-800 dark:text-emerald-300')}>{campaign.campaign_name}</span>
+                    </div>
+                  </td>
                   <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{campaign.client_name}</td>
                   <td className="px-3 py-1.5 text-[11px] text-muted-foreground">{campaign.target_country ?? '-'}</td>
                   <td className="px-3 py-1.5">

@@ -12,6 +12,7 @@ import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
 import { useAuth } from '@/hooks/use-auth';
 import { StatusCell } from '@/components/views/status-cell';
 import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, Trophy } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -325,7 +326,8 @@ export function CampaignGrid({
                 key={campaign.id}
                 className={cn(
                   'hover:bg-muted/30 transition-colors',
-                  onCampaignClick && 'cursor-pointer'
+                  onCampaignClick && 'cursor-pointer',
+                  pct === 100 && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
                 )}
                 onClick={() => onCampaignClick?.(campaign.id)}
               >
@@ -333,16 +335,24 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky left-0 z-10',
-                    'bg-background border-b border-r px-3 py-0.5',
+                    'border-b border-r px-3 py-0.5',
                     'text-[11px] font-medium text-foreground',
-                    'min-w-[200px] max-w-[260px]'
+                    'min-w-[200px] max-w-[260px]',
+                    pct === 100
+                      ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
+                      : 'bg-background'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1.5 truncate cursor-default">
-                        <span className="font-semibold truncate">{campaign.client_name}</span>
-                        <span className="text-muted-foreground truncate text-[10px]">
+                        {pct === 100 && (
+                          <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                            <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                        )}
+                        <span className={cn('font-semibold truncate', pct === 100 && 'text-emerald-800 dark:text-emerald-300')}>{campaign.client_name}</span>
+                        <span className={cn('truncate text-[10px]', pct === 100 ? 'text-emerald-600/70 dark:text-emerald-400/70' : 'text-muted-foreground')}>
                           {campaign.campaign_name}
                         </span>
                         {campaign.target_country && (
@@ -399,8 +409,11 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky right-0 z-10',
-                    'bg-background border-b border-l px-2 py-0.5',
-                    'text-center'
+                    'border-b border-l px-2 py-0.5',
+                    'text-center',
+                    pct === 100
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
+                      : 'bg-background'
                   )}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -408,20 +421,26 @@ export function CampaignGrid({
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {summary?.completed ?? 0}/{summary?.applicable ?? 0}
                     </span>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        'text-[9px] px-1.5 py-0',
-                        pct === 100 &&
-                          'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                        pct > 0 &&
-                          pct < 100 &&
-                          'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                        pct === 0 && 'bg-gray-100 text-gray-500'
-                      )}
-                    >
-                      {pct}%
-                    </Badge>
+                    {pct === 100 ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
+                      >
+                        <CheckCircle2 className="size-2.5" />
+                        100%
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'text-[9px] px-1.5 py-0',
+                          pct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                          pct === 0 && 'bg-gray-100 text-gray-500'
+                        )}
+                      >
+                        {pct}%
+                      </Badge>
+                    )}
                   </div>
                 </td>
               </tr>

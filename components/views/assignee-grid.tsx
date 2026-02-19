@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -532,20 +532,31 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       : 0;
 
                   return (
-                    <tr key={task.id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={task.id} className={cn(
+                      'hover:bg-muted/30 transition-colors',
+                      pct === 100 && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                    )}>
                       {/* Task Name (sticky left) */}
                       <td
                         className={cn(
                           'sticky left-0 z-10',
-                          'bg-background border-b border-r px-3 py-0.5',
+                          'border-b border-r px-3 py-0.5',
                           'text-[11px] font-medium text-foreground',
-                          'min-w-[180px] max-w-[220px]'
+                          'min-w-[180px] max-w-[220px]',
+                          pct === 100
+                            ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
+                            : 'bg-background'
                         )}
                       >
                         <div className="flex items-center gap-1.5">
+                          {pct === 100 && (
+                            <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="truncate cursor-default">{task.task_name}</span>
+                              <span className={cn('truncate cursor-default', pct === 100 && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[300px]">
                               <p className="text-xs font-medium">{task.task_name}</p>
@@ -605,25 +616,37 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       <td
                         className={cn(
                           'sticky right-0 z-10',
-                          'bg-background border-b border-l px-2 py-0.5',
-                          'text-center'
+                          'border-b border-l px-2 py-0.5',
+                          'text-center',
+                          pct === 100
+                            ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
+                            : 'bg-background'
                         )}
                       >
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] font-medium text-muted-foreground">
                             {summary?.completed ?? 0}/{summary?.total ?? 0}
                           </span>
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              'text-[9px] px-1.5 py-0',
-                              pct === 100 && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                              pct > 0 && pct < 100 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                              pct === 0 && 'bg-gray-100 text-gray-500'
-                            )}
-                          >
-                            {pct}%
-                          </Badge>
+                          {pct === 100 ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
+                            >
+                              <CheckCircle2 className="size-2.5" />
+                              100%
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                'text-[9px] px-1.5 py-0',
+                                pct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                                pct === 0 && 'bg-gray-100 text-gray-500'
+                              )}
+                            >
+                              {pct}%
+                            </Badge>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -646,7 +669,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
             </td>
             {filteredCampaigns.map((campaign) => {
               const summary = campaignSummary.get(campaign.id);
-              const pct =
+              const cPct =
                 summary && summary.total > 0
                   ? Math.round((summary.completed / summary.total) * 100)
                   : 0;
@@ -654,23 +677,37 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
               return (
                 <td
                   key={campaign.id}
-                  className="bg-muted/50 border-t-2 px-1 py-1 text-center"
+                  className={cn(
+                    'border-t-2 px-1 py-1 text-center',
+                    cPct === 100
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
+                      : 'bg-muted/50'
+                  )}
                 >
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {summary?.completed ?? 0}/{summary?.total ?? 0}
                     </span>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        'text-[9px] px-1.5 py-0',
-                        pct === 100 && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                        pct > 0 && pct < 100 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                        pct === 0 && 'bg-gray-100 text-gray-500'
-                      )}
-                    >
-                      {pct}%
-                    </Badge>
+                    {cPct === 100 ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
+                      >
+                        <CheckCircle2 className="size-2.5" />
+                        100%
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'text-[9px] px-1.5 py-0',
+                          cPct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                          cPct === 0 && 'bg-gray-100 text-gray-500'
+                        )}
+                      >
+                        {cPct}%
+                      </Badge>
+                    )}
                   </div>
                 </td>
               );
