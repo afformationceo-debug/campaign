@@ -851,7 +851,7 @@ export default function RoadmapPage() {
                       <ProjectCard key={project.id} project={project} tasks={tasksByProject.get(project.id) || []} users={users} onEdit={() => openEditDialog(project)} onDelete={() => openDeleteDialog(project.id)} />
                     ))}
                   </AnimatePresence>
-                  {stateProjects.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-6">프로젝트 없음</p>}
+                  {stateProjects.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-3">프로젝트 없음</p>}
                 </div>
               </div>
             );
@@ -881,7 +881,7 @@ export default function RoadmapPage() {
                   type="button"
                   onClick={() => toggleGroupCollapse(state)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 transition-colors',
+                    'w-full flex items-center gap-3 px-4 py-2 transition-colors',
                     state === '완료'
                       ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
                       : state === '진행중'
@@ -945,13 +945,13 @@ export default function RoadmapPage() {
                                 )}
                               >
                                 {/* Expand */}
-                                <td className="px-1 py-1">
+                                <td className="px-1 py-0.5">
                                   <button className="size-5 flex items-center justify-center rounded hover:bg-accent" onClick={() => toggleExpand(project.id)}>
                                     {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
                                   </button>
                                 </td>
                                 {/* Icon */}
-                                <td className="px-1 py-1">
+                                <td className="px-1 py-0.5">
                                   {project.state === '완료' ? (
                                     <span className="size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
                                       <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
@@ -959,7 +959,7 @@ export default function RoadmapPage() {
                                   ) : null}
                                 </td>
                                 {/* Name */}
-                                <td className="px-2 py-1 max-w-0">
+                                <td className="px-2 py-0.5 max-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -986,7 +986,7 @@ export default function RoadmapPage() {
                                   </div>
                                 </td>
                                 {/* State */}
-                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                   <Select value={project.state} onValueChange={(v) => saveProjectField(project.id, 'state', v)}>
                                     <SelectTrigger className={cn('h-6 w-[75px] text-[11px] border-0 bg-transparent px-1', pConfig.color)}>
                                       <div className="flex items-center gap-1"><PStateIcon className="size-3" /><span>{pConfig.label}</span></div>
@@ -997,7 +997,7 @@ export default function RoadmapPage() {
                                   </Select>
                                 </td>
                                 {/* Assignee */}
-                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                   <Select value={project.assignee_id ?? 'none'} onValueChange={(v) => saveProjectField(project.id, 'assignee_id', v === 'none' ? null : v)}>
                                     <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent px-1 text-muted-foreground">
                                       <span className="truncate">{assignee?.name ?? '-'}</span>
@@ -1009,7 +1009,7 @@ export default function RoadmapPage() {
                                   </Select>
                                 </td>
                                 {/* Progress */}
-                                <td className="px-2 py-1">
+                                <td className="px-2 py-0.5">
                                   {pct === 100 && tasks.length > 0 ? (
                                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5">
                                       <CheckCircle2 className="size-2.5" />{completed}/{tasks.length}
@@ -1024,21 +1024,21 @@ export default function RoadmapPage() {
                                   )}
                                 </td>
                                 {/* Start Date */}
-                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                   <InlineDateCell value={project.start_date} isEditing={isEditing(project.id, 'start_date')} onStartEdit={() => startEdit(project.id, 'start_date', 'project')} onSave={(v) => saveProjectField(project.id, 'start_date', v)} />
                                 </td>
                                 {/* Due Date */}
-                                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                   <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
                                 </td>
                                 {/* Result Value */}
-                                <td className="px-2 py-1"></td>
+                                <td className="px-2 py-0.5"></td>
                                 {/* Memo */}
-                                <td className="px-2 py-1 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                   <InlineMemoCell value={project.memo} isEditing={isEditing(project.id, 'memo')} onStartEdit={() => startEdit(project.id, 'memo', 'project')} onSave={(v) => saveProjectField(project.id, 'memo', v)} />
                                 </td>
                                 {/* Actions */}
-                                <td className="px-1 py-1" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button className="size-6 flex items-center justify-center rounded hover:bg-accent opacity-0 group-hover/row:opacity-100 transition-opacity"><MoreHorizontal className="size-3.5" /></button>
@@ -1156,7 +1156,7 @@ export default function RoadmapPage() {
 
                 {/* Empty state */}
                 {!isGroupCollapsed && groupProjects.length === 0 && (
-                  <div className="border-t px-4 py-6 text-center text-xs text-muted-foreground/50">
+                  <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground/50">
                     {state === '완료' ? '완료된 프로젝트가 없습니다' : state === '진행중' ? '진행중인 프로젝트가 없습니다' : '진행전 프로젝트가 없습니다'}
                   </div>
                 )}
@@ -1183,24 +1183,24 @@ export default function RoadmapPage() {
           <table className="w-full table-fixed text-[12px] min-w-[980px]">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="w-[20px] px-1 py-1.5"></th>
-                <th className="w-[32px] px-2 py-1.5">
+                <th className="w-[20px] px-1 py-1"></th>
+                <th className="w-[32px] px-2 py-1">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={(checked) => { if (checked) selectAll(); else clearSelection(); }}
                     className="size-3.5"
                   />
                 </th>
-                <th className="w-[24px] px-1 py-1.5"></th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">프로젝트</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[76px]">상태</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[76px]">담당자</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[68px]">진행률</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">시작일</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[86px]">마감일</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[120px]">결과값</th>
-                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[120px]">메모</th>
-                <th className="w-[32px] px-1 py-1.5"></th>
+                <th className="w-[24px] px-1 py-1"></th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground">프로젝트</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[76px]">상태</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[76px]">담당자</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[68px]">진행률</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[86px]">시작일</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[86px]">마감일</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[120px]">결과값</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground w-[120px]">메모</th>
+                <th className="w-[32px] px-1 py-1"></th>
               </tr>
             </thead>
             <tbody>
@@ -1233,11 +1233,11 @@ export default function RoadmapPage() {
                       )}
                     >
                       {/* Drag handle */}
-                      <td className="px-1 py-1 cursor-grab active:cursor-grabbing">
+                      <td className="px-1 py-0.5 cursor-grab active:cursor-grabbing">
                         <GripVertical className="size-3.5 text-muted-foreground/30 group-hover/row:text-muted-foreground/60 transition-colors" />
                       </td>
                       {/* Checkbox */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleProjectSelection(project.id)}
@@ -1245,7 +1245,7 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Expand */}
-                      <td className="px-1 py-1">
+                      <td className="px-1 py-0.5">
                         <button
                           className="size-5 flex items-center justify-center rounded hover:bg-accent"
                           onClick={() => toggleExpand(project.id)}
@@ -1254,7 +1254,7 @@ export default function RoadmapPage() {
                         </button>
                       </td>
                       {/* Name */}
-                      <td className="px-2 py-1 max-w-0">
+                      <td className="px-2 py-0.5 max-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
                           {project.state === '완료' && (
                             <span className="shrink-0 size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
@@ -1288,7 +1288,7 @@ export default function RoadmapPage() {
                         </div>
                       </td>
                       {/* State */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <Select value={project.state} onValueChange={(v) => saveProjectField(project.id, 'state', v)}>
                           <SelectTrigger className={cn('h-6 w-[75px] text-[11px] border-0 bg-transparent px-1', config.color)}>
                             <div className="flex items-center gap-1">
@@ -1305,7 +1305,7 @@ export default function RoadmapPage() {
                         </Select>
                       </td>
                       {/* Assignee */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <Select value={project.assignee_id ?? 'none'} onValueChange={(v) => saveProjectField(project.id, 'assignee_id', v === 'none' ? null : v)}>
                           <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent px-1 text-muted-foreground">
                             <span className="truncate">{assignee?.name ?? '-'}</span>
@@ -1317,7 +1317,7 @@ export default function RoadmapPage() {
                         </Select>
                       </td>
                       {/* Progress */}
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-0.5">
                         {pct === 100 && tasks.length > 0 ? (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 gap-0.5">
                             <CheckCircle2 className="size-2.5" />
@@ -1333,7 +1333,7 @@ export default function RoadmapPage() {
                         )}
                       </td>
                       {/* Start Date */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <InlineDateCell
                           value={project.start_date}
                           isEditing={isEditing(project.id, 'start_date')}
@@ -1342,7 +1342,7 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Due Date */}
-                      <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <InlineDateCell
                           value={project.due_date}
                           isEditing={isEditing(project.id, 'due_date')}
@@ -1351,9 +1351,9 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Result Value - empty for projects */}
-                      <td className="px-2 py-1"></td>
+                      <td className="px-2 py-0.5"></td>
                       {/* Memo */}
-                      <td className="px-2 py-1 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         <InlineMemoCell
                           value={project.memo}
                           isEditing={isEditing(project.id, 'memo')}
@@ -1362,7 +1362,7 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Actions */}
-                      <td className="px-1 py-1" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="size-6 flex items-center justify-center rounded hover:bg-accent opacity-0 group-hover/row:opacity-100 transition-opacity">
@@ -1514,10 +1514,10 @@ export default function RoadmapPage() {
                     {/* Empty state for no tasks */}
                     {isExpanded && tasks.length === 0 && (
                       <tr className="border-b border-border/30 bg-muted/5">
-                        <td className="px-1 py-2"></td>
-                        <td className="px-2 py-2"></td>
-                        <td className="px-1 py-2"></td>
-                        <td className="px-2 py-2 pl-8" colSpan={9}>
+                        <td className="px-1 py-0.5"></td>
+                        <td className="px-2 py-0.5"></td>
+                        <td className="px-1 py-0.5"></td>
+                        <td className="px-2 py-0.5 pl-8" colSpan={9}>
                           <span className="text-[11px] text-muted-foreground/40 italic">하위 업무가 없습니다. 아래에서 추가해보세요.</span>
                         </td>
                       </tr>
@@ -1554,12 +1554,12 @@ export default function RoadmapPage() {
               })}
               {/* ── Inline Add Project Row ── */}
               <tr className="border-b border-border/30 hover:bg-accent/10">
-                <td className="px-1 py-1.5"></td>
-                <td className="px-2 py-1.5"></td>
-                <td className="px-1 py-1.5">
+                <td className="px-1 py-1"></td>
+                <td className="px-2 py-1"></td>
+                <td className="px-1 py-1">
                   <Plus className="size-3.5 text-muted-foreground/30" />
                 </td>
-                <td className="px-2 py-1.5" colSpan={9}>
+                <td className="px-2 py-1" colSpan={9}>
                   <input
                     className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
                     placeholder="새 프로젝트 추가... (Enter로 생성)"
