@@ -408,7 +408,7 @@ export default function RoadmapPage() {
   useRealtimeProjects();
 
   const [viewMode, setViewMode] = useState<ViewMode>('grouped');
-  const [groupBys, setGroupBys] = useState<GroupBy[]>(['state']);
+  const [groupBys, setGroupBys] = useState<GroupBy[]>(['state', 'assignee']);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(['완료']));
   const [searchText, setSearchText] = useState('');
@@ -800,7 +800,10 @@ export default function RoadmapPage() {
     selectedProjects.forEach((id) => {
       updateProject({ id, start_date: date } as Parameters<typeof updateProject>[0]);
     });
-    // Note: project_tasks don't have start_date field, only projects do
+    selectedTasks.forEach((taskId) => {
+      const task = allTasks.find((t) => t.id === taskId);
+      if (task) updateTask({ id: taskId, project_id: task.project_id, start_date: date });
+    });
     clearSelection();
     setBulkStartDateOpen(false);
   };
@@ -1050,20 +1053,20 @@ export default function RoadmapPage() {
             // Helper: render project table rows (leaf level)
             const renderProjectRows = (projectList: Project[]) => (
               <div className="border-t overflow-x-auto">
-                <table className="w-full table-fixed text-[12px] min-w-[980px]">
+                <table className="w-full table-fixed text-[12px] min-w-[900px]">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="w-[20px] px-1 py-0.5"></th>
-                      <th className="w-[24px] px-1 py-0.5"></th>
+                      <th className="w-[28px] px-1 py-0.5"></th>
+                      <th className="w-[28px] px-1 py-0.5"></th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">담당자</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[68px]">진행률</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">시작일</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">마감일</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">결과값</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">메모</th>
-                      <th className="w-[32px] px-1 py-0.5"></th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[72px]">담당자</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[60px]">진행률</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">시작일</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">마감일</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">결과값</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">메모</th>
+                      <th className="w-[28px] px-1 py-0.5"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1089,11 +1092,11 @@ export default function RoadmapPage() {
                               </button>
                             </td>
                             <td className="px-1 py-0.5">
-                              {project.state === '완료' ? (
-                                <span className="size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                                  <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
-                                </span>
-                              ) : null}
+                              <Checkbox
+                                checked={selectedProjects.has(project.id)}
+                                onCheckedChange={() => toggleProjectSelection(project.id)}
+                                className="size-3.5"
+                              />
                             </td>
                             <td className="px-2 py-0.5 max-w-0">
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -1195,7 +1198,13 @@ export default function RoadmapPage() {
                                 isFilteredAssignee && !isTaskCompleted && 'bg-gradient-to-r from-blue-50/60 via-blue-50/20 to-transparent dark:from-blue-950/20 dark:via-blue-950/10 dark:to-transparent border-l-[3px] border-l-blue-400',
                               )}>
                                 <td className="px-1 py-0.5"></td>
-                                <td className="px-1 py-0.5"></td>
+                                <td className="px-1 py-0.5">
+                                  <Checkbox
+                                    checked={selectedTasks.has(task.id)}
+                                    onCheckedChange={() => toggleTaskSelection(task.id)}
+                                    className="size-3.5"
+                                  />
+                                </td>
                                 <td className="px-2 py-0.5 pl-8 max-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="text-[9px] text-muted-foreground/40 w-3.5 shrink-0 text-right">{idx + 1}</span>
@@ -1401,11 +1410,11 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full table-fixed text-[12px] min-w-[980px]">
+          <table className="w-full table-fixed text-[12px] min-w-[900px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="w-[20px] px-1 py-0.5"></th>
-                <th className="w-[32px] px-2 py-0.5">
+                <th className="w-[28px] px-2 py-0.5">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={(checked) => { if (checked) selectAll(); else clearSelection(); }}
@@ -1415,13 +1424,13 @@ export default function RoadmapPage() {
                 <th className="w-[24px] px-1 py-0.5"></th>
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">상태</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[76px]">담당자</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[68px]">진행률</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">시작일</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[86px]">마감일</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">결과값</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[120px]">메모</th>
-                <th className="w-[32px] px-1 py-0.5"></th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[72px]">담당자</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[60px]">진행률</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">시작일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[82px]">마감일</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">결과값</th>
+                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px] w-[100px]">메모</th>
+                <th className="w-[28px] px-1 py-0.5"></th>
               </tr>
             </thead>
             <tbody>
