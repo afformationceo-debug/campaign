@@ -1,16 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { SummaryDimension } from './types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase(): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 function today() {
   return new Date().toISOString().split('T')[0];
 }
 
 async function fetchAssigneeContext() {
+  const supabase = getSupabase();
   const { data: users } = await supabase
     .from('users')
     .select('id, name, position, role')
@@ -44,6 +47,7 @@ async function fetchAssigneeContext() {
 }
 
 async function fetchCampaignContext() {
+  const supabase = getSupabase();
   const { data: campaigns } = await supabase
     .from('campaigns')
     .select('id, client_name, campaign_name, campaign_type, status, phase, target_country, monthly_fixed_cost, cost_per_influencer, influencer_fee_budget')
@@ -91,6 +95,7 @@ async function fetchCampaignContext() {
 }
 
 async function fetchDailyContext() {
+  const supabase = getSupabase();
   const { data: checks } = await supabase
     .from('daily_checks')
     .select('status, task_id, campaign_id, assigned_user_id, note, result_value')
@@ -153,6 +158,7 @@ async function fetchDailyContext() {
 }
 
 async function fetchProjectContext() {
+  const supabase = getSupabase();
   const { data: projects } = await supabase
     .from('projects')
     .select('id, project_name, state, due_date, assignee_id')
@@ -193,6 +199,7 @@ async function fetchProjectContext() {
 }
 
 async function fetchQaContext() {
+  const supabase = getSupabase();
   const { data: qas } = await supabase
     .from('campaign_qa')
     .select('id, campaign_id, qa_type, content, status, priority, due_date');
@@ -227,6 +234,7 @@ async function fetchQaContext() {
 }
 
 async function fetchConfigContext() {
+  const supabase = getSupabase();
   const { data: configs } = await supabase
     .from('campaign_configs')
     .select('campaign_id, config_type, config_key, status');

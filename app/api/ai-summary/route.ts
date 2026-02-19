@@ -4,12 +4,14 @@ import { buildContext } from '@/lib/ai/build-context';
 import { SYSTEM_PROMPT, DIMENSION_PROMPTS } from '@/lib/ai/system-prompt';
 import type { SummaryDimension } from '@/lib/ai/types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const body = await req.json();
     const dimension: SummaryDimension = body.dimension ?? 'all';
 
