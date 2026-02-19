@@ -17,6 +17,8 @@ import {
   PanelLeftOpen,
   Pencil,
   MoreHorizontal,
+  ArrowUp,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,14 +56,14 @@ interface ChatRoom {
 
 /* ─── Constants ─── */
 
-const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string; color: string }[] = [
-  { label: '전체 현황 요약', message: '전체현황 알려줘', dimension: 'all', emoji: '📊', color: 'from-violet-500 to-indigo-500' },
-  { label: '담당자별 현황', message: '담당자별로 알려줘', dimension: 'assignee', emoji: '👥', color: 'from-blue-500 to-cyan-500' },
-  { label: '캠페인별 현황', message: '캠페인별로 알려줘', dimension: 'campaign', emoji: '🏢', color: 'from-emerald-500 to-teal-500' },
-  { label: '업무 결과 현황', message: '업무 결과 알려줘', dimension: 'daily', emoji: '📋', color: 'from-amber-500 to-orange-500' },
-  { label: '프로젝트 현황', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️', color: 'from-pink-500 to-rose-500' },
-  { label: 'QA 관리 현황', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️', color: 'from-red-500 to-orange-500' },
-  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️', color: 'from-gray-500 to-slate-500' },
+const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimension; emoji: string }[] = [
+  { label: '전체 현황 요약', message: '전체현황 알려줘', dimension: 'all', emoji: '📊' },
+  { label: '담당자별 현황', message: '담당자별로 알려줘', dimension: 'assignee', emoji: '👥' },
+  { label: '캠페인별 현황', message: '캠페인별로 알려줘', dimension: 'campaign', emoji: '🏢' },
+  { label: '업무 결과 현황', message: '업무 결과 알려줘', dimension: 'daily', emoji: '📋' },
+  { label: '프로젝트 현황', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️' },
+  { label: 'QA 관리 현황', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️' },
+  { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️' },
 ];
 
 function detectDimension(text: string): SummaryDimension {
@@ -93,6 +95,28 @@ function formatRoomDate(dateStr: string) {
   return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
+/* ─── Typing Indicator ─── */
+function TypingIndicator() {
+  return (
+    <div className="flex items-start gap-3 px-5 py-4">
+      <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
+        <Bot className="size-3.5 text-white" />
+      </div>
+      <div className="flex flex-col gap-1 pt-1">
+        <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">AI Agent</span>
+        <div className="flex items-center gap-2 bg-muted/50 rounded-2xl px-4 py-2.5">
+          <div className="flex gap-1">
+            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
+          </div>
+          <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Component ─── */
 
 export function AiSummarySheet({
@@ -119,11 +143,10 @@ export function AiSummarySheet({
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const streamingRef = useRef('');
+  const prevOpenRef = useRef(open);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -174,7 +197,6 @@ export function AiSummarySheet({
       if (activeRoomId === roomId) {
         setActiveRoomId(null);
         setMessages([]);
-        setHistoryLoaded(false);
       }
     } catch {
       // silent
@@ -219,12 +241,10 @@ export function AiSummarySheet({
       }
     } catch {
       // silent
-    } finally {
-      setHistoryLoaded(true);
     }
   }, [userId, scrollToBottom]);
 
-  // Load rooms on open
+  // Load rooms on first open
   useEffect(() => {
     if (open && userId && !roomsLoaded) {
       loadRooms();
@@ -233,17 +253,23 @@ export function AiSummarySheet({
 
   // Load history when room changes
   useEffect(() => {
-    if (open && userId) {
-      setHistoryLoaded(false);
+    if (userId && !isLoading) {
       loadHistory(activeRoomId);
     }
-  }, [activeRoomId, open, userId, loadHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoomId, userId]);
+
+  // Reload history when sheet reopens (in case streaming finished in background)
+  useEffect(() => {
+    if (open && !prevOpenRef.current && userId && !isLoading) {
+      loadHistory(activeRoomId);
+      loadRooms();
+    }
+    prevOpenRef.current = open;
+    if (open) setTimeout(() => inputRef.current?.focus(), 300);
+  }, [open, userId, isLoading, activeRoomId, loadHistory, loadRooms]);
 
   const sendMessage = useCallback(async (userMessage: string, dimension: SummaryDimension) => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
     // Auto-create room if none selected
     let roomId = activeRoomId;
     if (!roomId) {
@@ -286,7 +312,7 @@ export function AiSummarySheet({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dimension, message: userMessage, userId, roomId, history }),
-        signal: controller.signal,
+        // NO abort signal - let it finish even if sheet closes
       });
 
       if (!res.ok) {
@@ -317,7 +343,6 @@ export function AiSummarySheet({
         );
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : '요약 생성에 실패했습니다.');
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
     } finally {
@@ -335,6 +360,8 @@ export function AiSummarySheet({
     if (!text || isLoading) return;
     setInputValue('');
     sendMessage(text, detectDimension(text));
+    // Reset textarea height
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -351,10 +378,8 @@ export function AiSummarySheet({
   };
 
   const handleClearChat = async () => {
-    if (abortRef.current) abortRef.current.abort();
     setMessages([]);
     setError(null);
-    setIsLoading(false);
     if (userId) {
       const params = new URLSearchParams({ userId });
       if (activeRoomId) params.set('roomId', activeRoomId);
@@ -362,27 +387,22 @@ export function AiSummarySheet({
     }
   };
 
-  const handleNewChat = async () => {
-    if (abortRef.current) abortRef.current.abort();
+  const handleNewChat = () => {
     setActiveRoomId(null);
     setMessages([]);
     setError(null);
-    setIsLoading(false);
-    setHistoryLoaded(false);
   };
 
   const handleSelectRoom = (roomId: string) => {
     if (roomId === activeRoomId) return;
-    if (abortRef.current) abortRef.current.abort();
-    setIsLoading(false);
+    if (isLoading) return; // Don't switch while streaming
     setError(null);
     setActiveRoomId(roomId);
   };
 
   const handleOpenChange = (val: boolean) => {
+    // NEVER abort streaming on close - let it finish in background
     onOpenChange(val);
-    if (!val && abortRef.current) abortRef.current.abort();
-    if (val) setTimeout(() => inputRef.current?.focus(), 300);
   };
 
   const handleRenameSubmit = (roomId: string) => {
@@ -391,144 +411,149 @@ export function AiSummarySheet({
     setEditingRoomId(null);
   };
 
+  // Auto-resize textarea
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  };
+
   const hasMessages = messages.length > 0;
   const activeRoom = rooms.find((r) => r.id === activeRoomId);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-[720px] flex flex-row gap-0 p-0 border-l-0 sm:border-l">
+      <SheetContent
+        className="w-full sm:max-w-[780px] flex flex-row gap-0 p-0 border-l-0 sm:border-l"
+        onInteractOutside={(e) => {
+          // Prevent sheet from closing when interacting with dropdown portals
+          if ((e.target as HTMLElement)?.closest?.('[role="menu"]')) {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* ─── Sidebar ─── */}
-        {sidebarOpen && (
-          <div className="w-[220px] shrink-0 flex flex-col bg-slate-950 border-r border-white/5">
-            {/* Sidebar Header */}
-            <div className="px-3 py-3 flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">대화 목록</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  className="size-7 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                  title="새 대화"
-                >
-                  <Plus className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(false)}
-                  className="size-7 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                  title="사이드바 닫기"
-                >
-                  <PanelLeftClose className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Room List */}
-            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
-              {/* New Chat option */}
-              <button
-                type="button"
-                onClick={handleNewChat}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all text-[12px]',
-                  !activeRoomId
-                    ? 'bg-indigo-600/30 text-white'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                )}
-              >
-                <Sparkles className="size-3.5 shrink-0" />
-                <span className="truncate font-medium">새 대화</span>
-              </button>
-
-              {/* Rooms */}
-              {rooms.map((room) => (
-                <div
-                  key={room.id}
-                  className={cn(
-                    'group relative flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all cursor-pointer',
-                    activeRoomId === room.id
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                  )}
-                  onClick={() => handleSelectRoom(room.id)}
-                >
-                  <MessageCircle className="size-3.5 shrink-0 opacity-50" />
-                  {editingRoomId === room.id ? (
-                    <input
-                      autoFocus
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onBlur={() => handleRenameSubmit(room.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                          e.preventDefault();
-                          handleRenameSubmit(room.id);
-                        }
-                        if (e.key === 'Escape') setEditingRoomId(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 min-w-0 bg-transparent border-b border-white/30 text-[12px] text-white outline-none py-0"
-                    />
-                  ) : (
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[12px] block truncate">{room.title}</span>
-                      <span className="text-[9px] text-white/30">{formatRoomDate(room.updated_at)}</span>
-                    </div>
-                  )}
-
-                  {/* Room actions */}
-                  {editingRoomId !== room.id && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          className="size-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-white/40 hover:text-white hover:bg-white/10 transition-all"
-                        >
-                          <MoreHorizontal className="size-3.5" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditTitle(room.title);
-                            setEditingRoomId(room.id);
-                          }}
-                        >
-                          <Pencil className="size-3 mr-2" />
-                          이름 변경
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteRoom(room.id);
-                          }}
-                          className="text-red-500 focus:text-red-500"
-                        >
-                          <Trash2 className="size-3 mr-2" />
-                          삭제
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div
+          className={cn(
+            'shrink-0 flex flex-col bg-gradient-to-b from-slate-950 to-slate-900 border-r border-white/[0.06] transition-all duration-300 overflow-hidden',
+            sidebarOpen ? 'w-[240px]' : 'w-0'
+          )}
+        >
+          {/* Sidebar Header */}
+          <div className="px-3 pt-4 pb-2 flex items-center justify-between">
+            <span className="text-[11px] font-medium text-white/40 uppercase tracking-[0.08em]">대화 목록</span>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="size-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/5 transition-colors"
+              title="사이드바 닫기"
+            >
+              <PanelLeftClose className="size-3.5" />
+            </button>
           </div>
-        )}
+
+          {/* New Chat Button */}
+          <div className="px-2 pb-2">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium text-white/70 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+            >
+              <Plus className="size-3.5" />
+              새 대화
+            </button>
+          </div>
+
+          {/* Room List */}
+          <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5 scrollbar-none">
+            {rooms.map((room) => (
+              <div
+                key={room.id}
+                className={cn(
+                  'group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all cursor-pointer',
+                  activeRoomId === room.id
+                    ? 'bg-white/[0.08] text-white'
+                    : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]'
+                )}
+                onClick={() => handleSelectRoom(room.id)}
+              >
+                <MessageCircle className="size-3.5 shrink-0 opacity-40" />
+                {editingRoomId === room.id ? (
+                  <input
+                    autoFocus
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => handleRenameSubmit(room.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        handleRenameSubmit(room.id);
+                      }
+                      if (e.key === 'Escape') setEditingRoomId(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 min-w-0 bg-white/5 border border-white/20 rounded px-1.5 py-0.5 text-[12px] text-white outline-none"
+                  />
+                ) : (
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[12px] block truncate leading-tight">{room.title}</span>
+                    <span className="text-[9px] text-white/25 leading-tight">{formatRoomDate(room.updated_at)}</span>
+                  </div>
+                )}
+
+                {/* Room actions */}
+                {editingRoomId !== room.id && (
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="size-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                      >
+                        <MoreHorizontal className="size-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32" sideOffset={4}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditTitle(room.title);
+                          setEditingRoomId(room.id);
+                        }}
+                      >
+                        <Pencil className="size-3 mr-2" />
+                        이름 변경
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteRoom(room.id);
+                        }}
+                        className="text-red-500 focus:text-red-500"
+                      >
+                        <Trash2 className="size-3 mr-2" />
+                        삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ─── Main Chat Area ─── */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-background">
           {/* ─── Header ─── */}
-          <SheetHeader className="px-4 py-3 border-b shrink-0 bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-indigo-950">
+          <SheetHeader className="px-4 py-3 border-b shrink-0 bg-background/95 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 {!sidebarOpen && (
                   <button
                     type="button"
                     onClick={() => setSidebarOpen(true)}
-                    className="size-8 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                    className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     title="사이드바 열기"
                   >
                     <PanelLeftOpen className="size-4" />
@@ -536,16 +561,22 @@ export function AiSummarySheet({
                 )}
                 <SheetTitle className="flex items-center gap-2.5 text-base">
                   <div className="relative">
-                    <div className="size-9 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center ring-2 ring-white/20">
-                      <Bot className="size-4.5 text-white" />
+                    <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm shadow-indigo-500/20">
+                      <Bot className="size-4 text-white" />
                     </div>
-                    <div className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                    <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-[1.5px] border-background" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[13px] font-bold text-white truncate max-w-[200px]">
-                      {activeRoom ? activeRoom.title : '어포메이션 AI Agent'}
+                    <span className="text-[13px] font-semibold text-foreground truncate max-w-[220px]">
+                      {activeRoom ? activeRoom.title : '어포메이션 AI'}
                     </span>
-                    <span className="text-[10px] text-white/50 font-normal">GPT-4o-mini · 온라인</span>
+                    <span className="text-[10px] text-muted-foreground/60 font-normal flex items-center gap-1">
+                      {isLoading ? (
+                        <><Loader2 className="size-2.5 animate-spin" /> 분석 중...</>
+                      ) : (
+                        <>GPT-4o-mini · 온라인</>
+                      )}
+                    </span>
                   </div>
                 </SheetTitle>
               </div>
@@ -555,131 +586,144 @@ export function AiSummarySheet({
                     variant="ghost"
                     size="icon-sm"
                     onClick={handleClearChat}
-                    className="size-8 text-white/40 hover:text-white/80 hover:bg-white/10"
+                    className="size-8 text-muted-foreground hover:text-foreground"
                     title="대화 초기화"
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="size-3.5" />
                   </Button>
                 )}
               </div>
             </div>
           </SheetHeader>
 
+          {/* ─── Streaming indicator bar ─── */}
+          {isLoading && (
+            <div className="h-0.5 w-full bg-muted overflow-hidden shrink-0">
+              <div className="h-full w-1/3 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 animate-shimmer rounded-full" />
+            </div>
+          )}
+
           {/* ─── Messages ─── */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto bg-[#f0f2f5] dark:bg-gray-950/50"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
+            className="flex-1 overflow-y-auto"
           >
-            <div className="px-4 py-4 space-y-3 min-h-full">
-              {error && (
-                <div className="mx-2 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm shadow-sm">
-                  <X className="size-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+            {error && (
+              <div className="mx-4 mt-3 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
+                <X className="size-4 shrink-0" />
+                <span className="text-[12px]">{error}</span>
+              </div>
+            )}
 
-              {/* ─── Welcome ─── */}
-              {!hasMessages && !isLoading && (
-                <div className="flex flex-col gap-4 pt-4">
-                  <div className="mx-auto max-w-[340px] rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
-                    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-5 py-6 text-center">
-                      <div className="size-14 mx-auto rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-                        <Sparkles className="size-7 text-white" />
-                      </div>
-                      <h3 className="text-[15px] font-bold text-white">어포메이션 AI Agent</h3>
-                      <p className="text-[11px] text-white/70 mt-1">
-                        캠페인 운영 데이터를 실시간 분석합니다
-                      </p>
-                    </div>
-                    <div className="px-4 py-3 text-center">
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        아래 버튼을 누르거나 직접 질문을 입력해주세요
-                      </p>
-                    </div>
+            {/* ─── Welcome ─── */}
+            {!hasMessages && !isLoading && (
+              <div className="flex flex-col items-center justify-center gap-6 pt-12 pb-6 px-5">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <Sparkles className="size-8 text-white" />
                   </div>
-
-                  <div className="space-y-1.5">
-                    {QUICK_ACTIONS.map((action) => (
-                      <button
-                        key={action.dimension}
-                        type="button"
-                        onClick={() => handleQuickAction(action)}
-                        disabled={isLoading}
-                        className={cn(
-                          'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all',
-                          'bg-white dark:bg-gray-900 shadow-sm border border-black/5 dark:border-white/5',
-                          'hover:shadow-md hover:scale-[1.01] active:scale-[0.99]',
-                          'disabled:opacity-50 disabled:cursor-not-allowed'
-                        )}
-                      >
-                        <div className={cn(
-                          'size-9 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 text-sm shadow-sm',
-                          action.color
-                        )}>
-                          <span>{action.emoji}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-semibold text-foreground block">{action.label}</span>
-                          <span className="text-[10px] text-muted-foreground">{action.message}</span>
-                        </div>
-                        <Send className="size-3.5 text-muted-foreground/40 shrink-0" />
-                      </button>
-                    ))}
+                  <div className="text-center">
+                    <h3 className="text-[16px] font-bold text-foreground">무엇이든 물어보세요</h3>
+                    <p className="text-[12px] text-muted-foreground mt-1 max-w-[280px]">
+                      캠페인, 담당자, 프로젝트 등 실시간 데이터를 분석합니다
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* ─── Chat Bubbles ─── */}
-              {messages.map((msg, idx) => {
-                const isUser = msg.role === 'user';
-                const showTime = idx === messages.length - 1 ||
-                  messages[idx + 1]?.role !== msg.role;
+                <div className="w-full max-w-[420px] grid grid-cols-2 gap-2">
+                  {QUICK_ACTIONS.map((action) => (
+                    <button
+                      key={action.dimension}
+                      type="button"
+                      onClick={() => handleQuickAction(action)}
+                      disabled={isLoading}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-left transition-all',
+                        'bg-muted/50 hover:bg-muted border border-transparent hover:border-border/50',
+                        'hover:shadow-sm active:scale-[0.98]',
+                        'disabled:opacity-50 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      <span className="text-base">{action.emoji}</span>
+                      <span className="text-[12px] font-medium text-foreground/80">{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                return (
-                  <div key={msg.id} className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
-                    <div className={cn('flex gap-2 max-w-[88%]', isUser ? 'flex-row-reverse' : 'flex-row')}>
-                      {!isUser && (
-                        <div className="shrink-0 self-end mb-5">
-                          <div className="size-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
-                            <Bot className="size-4 text-white" />
-                          </div>
+            {/* ─── Chat Messages (ChatGPT-style full width) ─── */}
+            {messages.map((msg, idx) => {
+              const isUser = msg.role === 'user';
+              const isLast = idx === messages.length - 1;
+              const isStreaming = isLoading && isLast && !isUser;
+              const isEmpty = !msg.content;
+
+              // Show typing indicator for empty streaming message
+              if (!isUser && isEmpty && isStreaming) {
+                return <TypingIndicator key={msg.id} />;
+              }
+              if (!isUser && isEmpty) return null;
+
+              return (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    'px-5 py-4',
+                    isUser && 'bg-transparent',
+                    !isUser && 'bg-muted/30'
+                  )}
+                >
+                  <div className="max-w-[620px] mx-auto">
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      {isUser ? (
+                        <div className="size-7 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shrink-0 shadow-sm text-[11px] font-bold text-white">
+                          {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      ) : (
+                        <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
+                          <Bot className="size-3.5 text-white" />
                         </div>
                       )}
 
-                      <div className="flex flex-col gap-0.5">
-                        <div
-                          className={cn(
-                            'relative group rounded-2xl shadow-sm',
-                            isUser
-                              ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-br-md px-4 py-2.5'
-                              : 'bg-white dark:bg-gray-900 border border-black/5 dark:border-white/5 rounded-bl-md px-4 py-3'
-                          )}
-                        >
-                          {isUser ? (
-                            <p className="text-[13px] leading-relaxed">{msg.content}</p>
-                          ) : msg.content ? (
-                            <div className="relative">
-                              <div className="prose prose-sm dark:prose-invert max-w-none
-                                prose-headings:text-[13px] prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1
-                                prose-p:text-[12.5px] prose-li:text-[12.5px]
-                                prose-p:leading-[1.7] prose-li:leading-[1.7]
-                                prose-p:my-1 prose-ul:my-1 prose-ol:my-1
-                                prose-strong:text-foreground
-                                prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {msg.content}
-                                </ReactMarkdown>
-                              </div>
-                              {isLoading && msg.id === messages[messages.length - 1]?.id && (
-                                <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
-                              )}
-                              {!isLoading && msg.content && (
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 group">
+                        <span className={cn(
+                          'text-[11px] font-semibold block mb-1',
+                          isUser ? 'text-blue-600 dark:text-blue-400' : 'text-indigo-600 dark:text-indigo-400'
+                        )}>
+                          {isUser ? '나' : 'AI Agent'}
+                        </span>
+
+                        {isUser ? (
+                          <p className="text-[13px] leading-[1.7] text-foreground">{msg.content}</p>
+                        ) : (
+                          <div className="relative">
+                            <div className="prose prose-sm dark:prose-invert max-w-none
+                              prose-headings:text-[13px] prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-1.5
+                              prose-p:text-[13px] prose-li:text-[13px]
+                              prose-p:leading-[1.8] prose-li:leading-[1.8]
+                              prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5
+                              prose-strong:text-foreground prose-strong:font-semibold
+                              prose-a:text-indigo-600 dark:prose-a:text-indigo-400
+                              prose-code:text-[12px] prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-normal
+                              prose-pre:bg-slate-900 prose-pre:rounded-xl prose-pre:shadow-sm">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
+                            {/* Streaming cursor */}
+                            {isStreaming && (
+                              <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
+                            )}
+                            {/* Copy button */}
+                            {!isLoading && msg.content && (
+                              <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   type="button"
                                   onClick={() => handleCopy(msg.content, msg.id)}
-                                  className="absolute -bottom-5 right-0 opacity-0 group-hover:opacity-100 transition-opacity
-                                    flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                 >
                                   {copiedId === msg.id ? (
                                     <><Check className="size-3 text-emerald-500" /> 복사됨</>
@@ -687,39 +731,27 @@ export function AiSummarySheet({
                                     <><Copy className="size-3" /> 복사</>
                                   )}
                                 </button>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2.5 py-0.5">
-                              <div className="flex gap-1">
-                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="size-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                               </div>
-                              <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
-                            </div>
-                          )}
-                        </div>
-                        {showTime && msg.content && (
-                          <span className={cn(
-                            'text-[9px] text-muted-foreground/60 px-1',
-                            isUser ? 'text-right' : 'text-left'
-                          )}>
-                            {formatTime(msg.timestamp)}
-                          </span>
+                            )}
+                          </div>
                         )}
+
+                        {/* Timestamp */}
+                        <span className="text-[9px] text-muted-foreground/40 mt-1 block">
+                          {formatTime(msg.timestamp)}
+                        </span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* ─── Quick Actions (in-chat) ─── */}
-          {hasMessages && (
-            <div className="px-3 py-2 border-t shrink-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
-              <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+          {hasMessages && !isLoading && (
+            <div className="px-4 py-2 border-t shrink-0 bg-background/80 backdrop-blur-sm">
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none max-w-[620px] mx-auto">
                 {QUICK_ACTIONS.map((action) => (
                   <button
                     key={action.dimension}
@@ -727,13 +759,13 @@ export function AiSummarySheet({
                     onClick={() => handleQuickAction(action)}
                     disabled={isLoading}
                     className={cn(
-                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
-                      'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700',
-                      'text-gray-600 dark:text-gray-300',
+                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all',
+                      'bg-muted/50 hover:bg-muted border border-transparent hover:border-border/50',
+                      'text-muted-foreground hover:text-foreground',
                       'disabled:opacity-40 disabled:cursor-not-allowed'
                     )}
                   >
-                    <span className="text-[10px]">{action.emoji}</span>
+                    <span className="text-xs">{action.emoji}</span>
                     {action.label}
                   </button>
                 ))}
@@ -741,46 +773,49 @@ export function AiSummarySheet({
             </div>
           )}
 
-          {/* ─── Input ─── */}
-          <div className="px-3 py-2.5 border-t shrink-0 bg-white dark:bg-gray-950">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <input
+          {/* ─── Input Area ─── */}
+          <div className="px-4 pt-2 pb-3 shrink-0 bg-background border-t">
+            <div className="max-w-[620px] mx-auto">
+              <div className={cn(
+                'relative flex items-end gap-2 rounded-2xl border bg-muted/30 px-4 py-2 transition-all',
+                'focus-within:border-indigo-300 focus-within:bg-background focus-within:shadow-sm focus-within:shadow-indigo-500/5',
+                'dark:focus-within:border-indigo-700'
+              )}>
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={handleTextareaInput}
                   onKeyDown={handleKeyDown}
-                  placeholder="메시지를 입력하세요..."
+                  placeholder={isLoading ? '분석 중입니다. 잠시 기다려주세요...' : '무엇이든 질문해 보세요...'}
                   disabled={isLoading}
+                  rows={1}
                   className={cn(
-                    'w-full px-4 py-2.5 rounded-full text-[13px]',
-                    'bg-gray-100 dark:bg-gray-800 border-0',
-                    'focus:outline-none focus:ring-2 focus:ring-indigo-500/30',
-                    'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-                    'disabled:opacity-50'
+                    'flex-1 resize-none bg-transparent text-[13px] leading-[1.6] outline-none min-h-[24px] max-h-[120px] py-1',
+                    'placeholder:text-muted-foreground/50',
+                    'disabled:opacity-60'
                   )}
                 />
+                <button
+                  type="button"
+                  onClick={handleSendInput}
+                  disabled={!inputValue.trim() || isLoading}
+                  className={cn(
+                    'size-8 rounded-xl flex items-center justify-center shrink-0 transition-all mb-0.5',
+                    inputValue.trim() && !isLoading
+                      ? 'bg-foreground text-background hover:opacity-80 active:scale-95'
+                      : 'bg-muted text-muted-foreground/40 cursor-not-allowed'
+                  )}
+                >
+                  {isLoading ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <ArrowUp className="size-4" />
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleSendInput}
-                disabled={!inputValue.trim() || isLoading}
-                className={cn(
-                  'size-10 rounded-full flex items-center justify-center shrink-0 transition-all',
-                  inputValue.trim()
-                    ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-95'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
-                )}
-              >
-                <Send className={cn('size-4', inputValue.trim() && 'translate-x-[1px] -translate-y-[1px]')} />
-              </button>
-            </div>
-            <div className="flex items-center justify-center mt-1.5">
-              <span className="text-[9px] text-gray-400 flex items-center gap-1">
-                <MessageCircle className="size-2.5" />
-                GPT-4o-mini · 대화 내용은 자동 저장됩니다
-              </span>
+              <p className="text-center text-[9px] text-muted-foreground/40 mt-1.5">
+                GPT-4o-mini · 대화는 자동 저장됩니다
+              </p>
             </div>
           </div>
         </div>

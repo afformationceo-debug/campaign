@@ -306,23 +306,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     return filteredTasks.filter((t) => t.scope === 'global');
   }, [filteredTasks]);
 
-  // Group global tasks by assignee for better visibility
+  // Group global tasks by assignee combo for better visibility
+  // e.g. ['강상우','심윤우','쇼코'] → one group "강상우, 심윤우, 쇼코"
   const globalTasksByAssignee = useMemo(() => {
     const groups: { assignee: string; tasks: Task[] }[] = [];
     const assigneeMap = new Map<string, Task[]>();
 
     globalTasks.forEach((task) => {
-      if (!task.default_assignees || task.default_assignees.length === 0) {
-        const key = '전체';
-        if (!assigneeMap.has(key)) assigneeMap.set(key, []);
-        assigneeMap.get(key)!.push(task);
-      } else {
-        task.default_assignees.forEach((name) => {
-          const key = name.trim();
-          if (!assigneeMap.has(key)) assigneeMap.set(key, []);
-          assigneeMap.get(key)!.push(task);
-        });
-      }
+      // Group by the FULL assignee combo, not individual names
+      const key = (!task.default_assignees || task.default_assignees.length === 0)
+        ? '전체'
+        : task.default_assignees.map((n) => n.trim()).sort((a, b) => a.localeCompare(b, 'ko')).join(', ');
+      if (!assigneeMap.has(key)) assigneeMap.set(key, []);
+      assigneeMap.get(key)!.push(task);
     });
 
     // '전체' first, then alphabetical
@@ -486,10 +482,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                       className="px-2 py-1 bg-violet-50/50 dark:bg-violet-950/10 border-b border-violet-100 dark:border-violet-900/30"
                     >
                       <div className="flex items-center gap-1.5">
-                        <div className="size-4 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-                          <span className="text-[9px] font-bold text-violet-600 dark:text-violet-400">
-                            {group.assignee === '전체' ? 'A' : group.assignee.charAt(0)}
-                          </span>
+                        <div className="flex items-center -space-x-1">
+                          {(group.assignee === '전체' ? ['전'] : group.assignee.split(', ')).map((name, i) => (
+                            <div key={i} className="size-4 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center border border-white dark:border-slate-900" style={{ zIndex: 10 - i }}>
+                              <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400">
+                                {name.charAt(0)}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                         <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">
                           {group.assignee}
