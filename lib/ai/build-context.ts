@@ -18,6 +18,13 @@ function today() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 }
 
+function lastDayOfMonth(dateStr: string): string {
+  const [y, m] = dateStr.split('-').map(Number);
+  // Day 0 of next month = last day of current month
+  const last = new Date(y, m, 0);
+  return last.toISOString().split('T')[0];
+}
+
 function defaultRange(): DateRange {
   const t = today();
   return { from: t, to: t };
@@ -50,7 +57,7 @@ async function fetchAssigneeContext(range: DateRange) {
 
   // 3) 이번 달 전체 월간/주간/once 체크 (기간과 별도)
   const monthStart = range.from.substring(0, 7) + '-01';
-  const monthEnd = range.to.substring(0, 7) + '-31';
+  const monthEnd = lastDayOfMonth(range.to);
   const { data: monthlyChecks } = await supabase
     .from('daily_checks')
     .select('assigned_user_id, status, task_id, campaign_id')
@@ -116,6 +123,11 @@ async function fetchAssigneeContext(range: DateRange) {
       .filter((t) => t.scope === 'global' && t.default_assignees?.includes(u.id))
       .map((t) => ({ task: t.task_name, category: t.category, frequency: t.frequency }));
 
+    // 캠페인 업무 중 default_assignees에 포함된 것
+    const campaignDefaultTasks = (tasks ?? [])
+      .filter((t) => t.scope === 'campaign' && t.default_assignees?.includes(u.id))
+      .map((t) => ({ task: t.task_name, category: t.category, frequency: t.frequency }));
+
     // 배정된 캠페인 업무 (빈도별)
     const assignedByFreq: Record<string, number> = {};
     for (const cfg of userConfigs) {
@@ -139,7 +151,7 @@ async function fetchAssigneeContext(range: DateRange) {
       });
 
     // 아무 업무도 없는 사용자는 제외
-    const hasWork = total > 0 || monthlyTotal > 0 || globalTasks.length > 0 || userConfigs.length > 0;
+    const hasWork = total > 0 || monthlyTotal > 0 || globalTasks.length > 0 || campaignDefaultTasks.length > 0 || userConfigs.length > 0;
     if (!hasWork) return null;
 
     return {
@@ -150,6 +162,7 @@ async function fetchAssigneeContext(range: DateRange) {
       assignedTaskCount: userConfigs.length,
       assignedByFrequency: Object.keys(assignedByFreq).length > 0 ? assignedByFreq : undefined,
       globalTasks: globalTasks.length > 0 ? globalTasks : undefined,
+      campaignDefaultTasks: campaignDefaultTasks.length > 0 ? campaignDefaultTasks : undefined,
       pendingTasks: pendingTasks.length > 0 ? pendingTasks : undefined,
     };
   }).filter(Boolean);
@@ -240,7 +253,7 @@ async function fetchDailyContext(range: DateRange) {
 
   // 이번 달 전체 체크 (월간/주간 업무 포함)
   const monthStart = range.from.substring(0, 7) + '-01';
-  const monthEnd = range.to.substring(0, 7) + '-31';
+  const monthEnd = lastDayOfMonth(range.to);
   const { data: monthlyChecks } = await supabase
     .from('daily_checks')
     .select('status, task_id, campaign_id, assigned_user_id, result_value')
