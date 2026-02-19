@@ -26,6 +26,9 @@ import {
   CalendarDays,
   Check,
   GripVertical,
+  Trophy,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -270,22 +273,30 @@ function ProjectCard({
       className={cn(
         'group relative rounded-xl border bg-card p-4 transition-all duration-200',
         'hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20',
+        project.state === '완료' && 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50/50 via-card to-card dark:from-emerald-950/20 shadow-emerald-100/50 dark:shadow-emerald-900/20',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 shrink-0', stateConfig.color, stateConfig.bg)}>
-              <StateIcon className="size-3 mr-0.5" />
-              {stateConfig.label}
-            </Badge>
+            {project.state === '완료' ? (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 gap-0.5">
+                <Trophy className="size-3" />
+                완료
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 shrink-0', stateConfig.color, stateConfig.bg)}>
+                <StateIcon className="size-3 mr-0.5" />
+                {stateConfig.label}
+              </Badge>
+            )}
             {project.url && (
               <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground/50 hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>
                 <ExternalLink className="size-3" />
               </a>
             )}
           </div>
-          <h3 className="font-semibold text-sm truncate">{project.project_name}</h3>
+          <h3 className={cn('font-semibold text-sm truncate', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}>{project.project_name}</h3>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -383,6 +394,7 @@ export default function RoadmapPage() {
   const [searchText, setSearchText] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('');
+  const [showCompleted, setShowCompleted] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -460,8 +472,22 @@ export default function RoadmapPage() {
       const lower = searchText.toLowerCase();
       filtered = filtered.filter((p) => p.project_name.toLowerCase().includes(lower) || (p.memo?.toLowerCase().includes(lower) ?? false));
     }
+    if (!showCompleted && !stateFilter) {
+      filtered = filtered.filter((p) => p.state !== '완료');
+    }
     return filtered;
-  }, [projects, stateFilter, assigneeFilter, searchText]);
+  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted]);
+
+  const completedProjects = useMemo(() => {
+    if (showCompleted || stateFilter) return [];
+    let filtered = projects.filter((p) => p.state === '완료');
+    if (assigneeFilter) filtered = filtered.filter((p) => p.assignee_id === assigneeFilter);
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      filtered = filtered.filter((p) => p.project_name.toLowerCase().includes(lower) || (p.memo?.toLowerCase().includes(lower) ?? false));
+    }
+    return filtered;
+  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted]);
 
   const stats = useMemo(() => {
     const total = projects.length;
@@ -706,13 +732,16 @@ export default function RoadmapPage() {
       {/* Stats - more compact */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { label: '전체', value: stats.total, color: 'text-foreground', border: 'border-border' },
-          { label: '진행전', value: stats.notStarted, color: 'text-gray-500', border: 'border-gray-200 dark:border-gray-700' },
-          { label: '진행중', value: stats.inProgress, color: 'text-blue-600', border: 'border-blue-200 dark:border-blue-800' },
-          { label: '완료', value: stats.completed, color: 'text-emerald-600', border: 'border-emerald-200 dark:border-emerald-800' },
+          { label: '전체', value: stats.total, color: 'text-foreground', border: 'border-border', bg: '' },
+          { label: '진행전', value: stats.notStarted, color: 'text-gray-500', border: 'border-gray-200 dark:border-gray-700', bg: '' },
+          { label: '진행중', value: stats.inProgress, color: 'text-blue-600', border: 'border-blue-200 dark:border-blue-800', bg: '' },
+          { label: '완료', value: stats.completed, color: 'text-emerald-600', border: 'border-emerald-200 dark:border-emerald-800', bg: 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20' },
         ].map((s) => (
-          <div key={s.label} className={cn('rounded-lg border bg-card px-3 py-2', s.border)}>
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+          <div key={s.label} className={cn('rounded-lg border bg-card px-3 py-2', s.border, s.bg)}>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              {s.label === '완료' && <Trophy className="size-2.5 text-emerald-500" />}
+              {s.label}
+            </p>
             <p className={cn('text-lg font-bold leading-tight', s.color)}>{s.value}</p>
           </div>
         ))}
@@ -732,6 +761,17 @@ export default function RoadmapPage() {
           <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="담당자" /></SelectTrigger>
           <SelectContent>{[<SelectItem key="all" value="all">전체 담당자</SelectItem>, ...users.filter((u) => u.is_active).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)]}</SelectContent>
         </Select>
+        {!stateFilter && stats.completed > 0 && (
+          <Button
+            variant={showCompleted ? 'outline' : 'secondary'}
+            size="sm"
+            className={cn('h-8 text-xs gap-1.5', !showCompleted && 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800')}
+            onClick={() => setShowCompleted(!showCompleted)}
+          >
+            {showCompleted ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+            완료 {showCompleted ? '숨기기' : `보기 (${stats.completed})`}
+          </Button>
+        )}
         <div className="ml-auto flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
           {([
             { mode: 'cards' as ViewMode, icon: LayoutGrid, label: '카드' },
@@ -774,9 +814,12 @@ export default function RoadmapPage() {
             const config = STATE_CONFIG[state];
             const StateIcon = config.icon;
             return (
-              <div key={state} className="rounded-xl border bg-muted/30 p-3">
+              <div key={state} className={cn(
+                'rounded-xl border p-3',
+                state === '완료' ? 'bg-emerald-50/30 border-emerald-200 dark:bg-emerald-950/10 dark:border-emerald-800' : 'bg-muted/30',
+              )}>
                 <div className="flex items-center gap-2 mb-3 px-1">
-                  <StateIcon className={cn('size-4', config.color)} />
+                  {state === '완료' ? <Trophy className={cn('size-4', config.color)} /> : <StateIcon className={cn('size-4', config.color)} />}
                   <h3 className={cn('text-sm font-semibold', config.color)}>{config.label}</h3>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">{stateProjects.length}</Badge>
                 </div>
@@ -855,6 +898,7 @@ export default function RoadmapPage() {
                         'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
                         isExpanded && 'bg-accent/10',
                         isSelected && 'bg-primary/5',
+                        project.state === '완료' && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:via-emerald-950/15 dark:to-transparent border-l-[3px] border-l-emerald-400',
                         dragItem?.type === 'project' && dragItem.id === project.id && 'opacity-40',
                         dragOverItem?.type === 'project' && dragOverItem.id === project.id && 'border-t-2 border-t-primary',
                       )}
@@ -883,6 +927,11 @@ export default function RoadmapPage() {
                       {/* Name */}
                       <td className="px-2 py-1 max-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
+                          {project.state === '완료' && (
+                            <span className="shrink-0 size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                            </span>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="min-w-0 flex-1">
@@ -891,7 +940,7 @@ export default function RoadmapPage() {
                                   isEditing={isEditing(project.id, 'project_name')}
                                   onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
                                   onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                  className="font-semibold text-[12px]"
+                                  className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}
                                 />
                               </div>
                             </TooltipTrigger>
@@ -940,12 +989,19 @@ export default function RoadmapPage() {
                       </td>
                       {/* Progress */}
                       <td className="px-2 py-1">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
-                            <div className={cn('h-full rounded-full', pct === 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-blue-500' : 'bg-gray-300')} style={{ width: `${pct}%` }} />
+                        {pct === 100 && tasks.length > 0 ? (
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 gap-0.5">
+                            <CheckCircle2 className="size-2.5" />
+                            {completed}/{tasks.length}
+                          </Badge>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-blue-500' : 'bg-gray-300')} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
-                        </div>
+                        )}
                       </td>
                       {/* Start Date */}
                       <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
@@ -1193,6 +1249,28 @@ export default function RoadmapPage() {
               </tr>
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ═══════════════ COMPLETED PROJECTS SECTION ═══════════════ */}
+      {completedProjects.length > 0 && (
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-transparent dark:from-emerald-950/20 overflow-hidden">
+          <button
+            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors"
+            onClick={() => setShowCompleted(true)}
+          >
+            <Trophy className="size-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              완료된 프로젝트
+            </span>
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              {completedProjects.length}개
+            </Badge>
+            <span className="ml-auto text-[11px] text-emerald-600/60 dark:text-emerald-400/60">
+              클릭하여 보기
+            </span>
+            <Eye className="size-3.5 text-emerald-500/50" />
+          </button>
         </div>
       )}
 
