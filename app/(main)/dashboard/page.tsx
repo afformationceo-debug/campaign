@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { format, subDays, isAfter, isBefore, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -45,8 +45,10 @@ import {
   ChevronRight,
   DollarSign,
   Globe,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AiSummarySheet } from '@/components/dashboard/ai-summary-sheet';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
@@ -137,6 +139,7 @@ export default function DashboardPage() {
     profile ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url ?? undefined } : undefined
   );
   useRealtimeChecks(today);
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
 
   // ─── View & Filter State ─────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>('overview');
@@ -537,6 +540,7 @@ export default function DashboardPage() {
   // ═══════════════════════════════════════════════════════
 
   return (
+    <>
     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-5">
       {/* ─── Header ─── */}
       <motion.div variants={fadeUpItem} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -546,7 +550,16 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">{format(new Date(), 'yyyy년 MM월 dd일')} 기준 실시간 현황</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-200 dark:border-indigo-800 hover:from-indigo-500/20 hover:to-purple-500/20"
+            onClick={() => setAiSheetOpen(true)}
+          >
+            <Bot className="size-4 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">AI 현황 요약</span>
+          </Button>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{onlineUsers.length}명 접속 중</span>
@@ -1443,5 +1456,8 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
     </motion.div>
+
+    <AiSummarySheet open={aiSheetOpen} onOpenChange={setAiSheetOpen} />
+    </>
   );
 }
