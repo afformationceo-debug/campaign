@@ -269,6 +269,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
   const effectiveUserId = userId ?? profile?.id ?? '';
   const [expanded, setExpanded] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedSubTasks, setExpandedSubTasks] = useState<Set<string>>(new Set());
   const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
   const { mutate: bulkCreateCheck } = useCreateCheck();
 
@@ -554,6 +555,14 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     });
   };
 
+  const toggleSubTask = (subTaskId: string) => {
+    setExpandedSubTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(subTaskId)) next.delete(subTaskId); else next.add(subTaskId);
+      return next;
+    });
+  };
+
   // Bulk complete: mark all uncompleted rows in a group as '완료'
   const handleBulkComplete = useCallback((rows: RowData[]) => {
     for (const row of rows) {
@@ -765,22 +774,71 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         </tr>
 
                         {/* Expanded content: differs for parent vs standalone */}
-                        {!isCollapsed && group.isParent && group.subTasks.map((subGroup) => (
+                        {!isCollapsed && group.isParent && group.subTasks.map((subGroup) => {
+                          const isSubExpanded = expandedSubTasks.has(subGroup.task.id);
+                          const subAllDone = subGroup.completedCount === subGroup.rows.length && subGroup.rows.length > 0;
+                          const subPct = subGroup.rows.length > 0 ? Math.round((subGroup.completedCount / subGroup.rows.length) * 100) : 0;
+                          return (
                           <Fragment key={subGroup.task.id}>
-                            {/* Sub-Task Header Row */}
-                            <tr className="bg-muted/10">
-                              <td colSpan={6} className="px-4 py-1.5 pl-10">
-                                <div className="flex items-center gap-2">
-                                  <CornerDownRight className="size-3 text-muted-foreground/50" />
-                                  <span className="text-xs font-medium">{subGroup.task.task_name}</span>
-                                  <Badge variant="secondary" className="text-[9px]">
+                            {/* Sub-Task Header Row (clickable toggle) */}
+                            <tr
+                              className={cn(
+                                'bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors',
+                                subAllDone && 'bg-emerald-50/30 dark:bg-emerald-950/10',
+                              )}
+                              onClick={() => toggleSubTask(subGroup.task.id)}
+                            >
+                              <td className="px-2 py-1">
+                                <div className="pl-6">
+                                  {isSubExpanded
+                                    ? <ChevronDown className="size-3 text-muted-foreground/60" />
+                                    : <ChevronRight className="size-3 text-muted-foreground/60" />
+                                  }
+                                </div>
+                              </td>
+                              <td className="px-2 py-1" colSpan={2}>
+                                <div className="flex items-center gap-2 pl-2">
+                                  <CornerDownRight className="size-3 text-muted-foreground/50 shrink-0" />
+                                  {subAllDone && (
+                                    <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                      <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
+                                    </div>
+                                  )}
+                                  <span className={cn(
+                                    'text-xs font-medium',
+                                    subAllDone && 'text-emerald-700 dark:text-emerald-300',
+                                  )}>
+                                    {subGroup.task.task_name}
+                                  </span>
+                                  <Badge variant="secondary" className={cn(
+                                    'text-[9px] px-1.5 py-0',
+                                    subAllDone && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
+                                    subPct > 0 && !subAllDone && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
+                                  )}>
                                     {subGroup.completedCount}/{subGroup.rows.length}
                                   </Badge>
                                 </div>
                               </td>
+                              <td className="px-2 py-1">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={cn(
+                                        'h-full rounded-full transition-all',
+                                        subAllDone ? 'bg-emerald-500' : subPct > 0 ? 'bg-amber-400' : 'bg-transparent'
+                                      )}
+                                      style={{ width: `${subPct}%` }}
+                                    />
+                                  </div>
+                                  <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', subAllDone ? 'text-emerald-600' : 'text-muted-foreground')}>
+                                    {subPct}%
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-2 py-1" colSpan={2}></td>
                             </tr>
-                            {/* Sub-Task Campaign Rows */}
-                            {subGroup.rows.map((row) => {
+                            {/* Sub-Task Campaign Rows (only when expanded) */}
+                            {isSubExpanded && subGroup.rows.map((row) => {
                               const rowCompleted = row.check?.status === '완료' || row.onceCompleted;
                               return (
                                 <tr
@@ -870,7 +928,8 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               );
                             })}
                           </Fragment>
-                        ))}
+                          );
+                        })}
 
                         {/* Standalone task Campaign Rows (same as original) */}
                         {!isCollapsed && !group.isParent && group.rows.map((row) => {
