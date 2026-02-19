@@ -47,6 +47,7 @@ const CONFIG_TYPE_OPTIONS = [
   '지식베이스',
   'CS어드민',
   'CRM',
+  '국내챗닥',
   '기타',
 ];
 

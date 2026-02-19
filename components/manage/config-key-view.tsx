@@ -17,6 +17,7 @@ import {
   Pencil,
   Save,
   X,
+  Hospital,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -47,10 +48,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { Campaign, CampaignConfig, ConfigValueType } from '@/lib/types/database';
+import type { Campaign, CampaignConfig, ConfigValueType, CampaignType } from '@/lib/types/database';
 
 // Value type mapping for each config key
 const VALUE_TYPE_MAP: Record<string, ConfigValueType> = {
+  // 해외마케팅
   '인스타그램 URL': 'url',
   '페이스북 URL': 'url',
   '트위터 URL': 'url',
@@ -72,14 +74,26 @@ const VALUE_TYPE_MAP: Record<string, ConfigValueType> = {
   '메신저 채널 연동 여부': 'status',
   'CRM 연동설정 여부': 'status',
   'CRM 등록여부': 'status',
+  // 국내챗닥
+  '국내챗닥 어드민 등록': 'status',
+  '예약페이지 등록': 'status',
 };
 
 const STATUS_VALUE_OPTIONS = ['세팅완료', '완료', '진행중', '미완료', '진행필요', '불필요', '해당없음'];
 
-const CONFIG_GROUPS: { type: string; icon: React.ElementType; keys: string[] }[] = [
+interface ConfigGroup {
+  type: string;
+  icon: React.ElementType;
+  keys: string[];
+  campaignType: CampaignType;
+}
+
+const CONFIG_GROUPS: ConfigGroup[] = [
+  // ── 해외마케팅 전용 ──
   {
     type: '세팅 관련',
     icon: Settings,
+    campaignType: '해외마케팅',
     keys: [
       '인스타그램 URL', '페이스북 URL', '트위터 URL', '틱톡 URL',
       '플랫폼별 ID/PW', '고객전용 라인', '고객전용 왓츠앱 링크',
@@ -89,6 +103,7 @@ const CONFIG_GROUPS: { type: string; icon: React.ElementType; keys: string[] }[]
   {
     type: '인플루언서 관련',
     icon: Link2,
+    campaignType: '해외마케팅',
     keys: [
       '인플루언서 전용 라인 세팅', '인플루언서 전용 왓츠앱 세팅',
       '스카웃매니저 라인 메신저 연동', '스카웃매니저 왓츠앱 메신저 연동', '스카웃매니저 캠페인 등록',
@@ -97,17 +112,27 @@ const CONFIG_GROUPS: { type: string; icon: React.ElementType; keys: string[] }[]
   {
     type: '지식베이스',
     icon: FileText,
+    campaignType: '해외마케팅',
     keys: ['고객전용 지식베이스 세팅여부', '인플전용 지식베이스 세팅여부'],
   },
   {
     type: 'CS어드민',
     icon: Globe,
+    campaignType: '해외마케팅',
     keys: ['메신저 채널 연동 여부', 'CRM 연동설정 여부'],
   },
   {
     type: 'CRM',
     icon: BarChart3,
+    campaignType: '해외마케팅',
     keys: ['CRM 등록여부'],
+  },
+  // ── 국내챗닥 전용 ──
+  {
+    type: '국내챗닥',
+    icon: Hospital,
+    campaignType: '국내챗닥',
+    keys: ['국내챗닥 어드민 등록', '예약페이지 등록'],
   },
 ];
 
@@ -272,7 +297,7 @@ export function ConfigKeyView() {
     return map;
   }, [allConfigs]);
 
-  // Build stats for each config key
+  // Build stats for each config key (filtered by campaign type)
   const keyStats = useMemo(() => {
     const stats: KeyStats[] = [];
     const activeGroups = filterType === 'all'
@@ -280,11 +305,16 @@ export function ConfigKeyView() {
       : CONFIG_GROUPS.filter((g) => g.type === filterType);
 
     for (const group of activeGroups) {
+      // Only include campaigns matching this group's campaign type
+      const targetCampaigns = campaigns.filter(
+        (c) => c.campaign_type === group.campaignType
+      );
+
       for (const key of group.keys) {
         const completed: KeyStats['completed'] = [];
         const incomplete: KeyStats['incomplete'] = [];
 
-        for (const campaign of campaigns) {
+        for (const campaign of targetCampaigns) {
           const config = configMap.get(`${campaign.id}:${key}`);
           if (config && config.status === '완료') {
             completed.push({ campaign, config });
@@ -293,7 +323,7 @@ export function ConfigKeyView() {
           }
         }
 
-        const total = campaigns.length;
+        const total = targetCampaigns.length;
         const pct = total > 0 ? Math.round((completed.length / total) * 100) : 0;
 
         stats.push({
@@ -432,15 +462,25 @@ export function ConfigKeyView() {
     );
   }
 
-  // Group stats by configType (must be below early return)
+  // Group stats by configType with campaignType info (must be below early return)
   const grouped = (() => {
-    const map = new Map<string, KeyStats[]>();
+    const map = new Map<string, { stats: KeyStats[]; campaignType: CampaignType }>();
     for (const stat of keyStats) {
-      const list = map.get(stat.configType) || [];
-      list.push(stat);
-      map.set(stat.configType, list);
+      const group = CONFIG_GROUPS.find((g) => g.type === stat.configType);
+      const existing = map.get(stat.configType);
+      if (existing) {
+        existing.stats.push(stat);
+      } else {
+        map.set(stat.configType, {
+          stats: [stat],
+          campaignType: group?.campaignType ?? '해외마케팅',
+        });
+      }
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).map(([type, data]) => ({
+      groupType: type,
+      ...data,
+    }));
   })();
 
   // Overall stats
@@ -475,33 +515,79 @@ export function ConfigKeyView() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="size-4 text-muted-foreground" />
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
+            <SelectTrigger className="w-[180px] h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 유형</SelectItem>
               {CONFIG_GROUPS.map((g) => (
-                <SelectItem key={g.type} value={g.type}>{g.type}</SelectItem>
+                <SelectItem key={g.type} value={g.type}>
+                  <span className="flex items-center gap-1.5">
+                    {g.type}
+                    <span className="text-[9px] text-muted-foreground">
+                      ({g.campaignType === '해외마케팅' ? '해외' : '국내'})
+                    </span>
+                  </span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Badge variant="secondary" className="text-xs ml-auto">
-            {campaigns.length}개 캠페인
-          </Badge>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Badge variant="secondary" className="text-[10px]">
+              해외 {campaigns.filter((c) => c.campaign_type === '해외마케팅').length}
+            </Badge>
+            <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              챗닥 {campaigns.filter((c) => c.campaign_type === '국내챗닥').length}
+            </Badge>
+          </div>
         </div>
 
         {/* Config Key Groups */}
         <div className="space-y-4">
-          {grouped.map(([groupType, stats]) => {
-            const GroupIcon = CONFIG_GROUPS.find((g) => g.type === groupType)?.icon ?? Settings;
-            const groupComplete = stats.filter((s) => s.pct === 100).length;
-            const groupPct = stats.length > 0 ? Math.round((groupComplete / stats.length) * 100) : 0;
+          {/* Section headers for campaign types */}
+          {(() => {
+            let lastCampaignType: CampaignType | null = null;
+            return grouped.map(({ groupType, stats, campaignType }) => {
+              const showSectionHeader = campaignType !== lastCampaignType;
+              lastCampaignType = campaignType;
+              const GroupIcon = CONFIG_GROUPS.find((g) => g.type === groupType)?.icon ?? Settings;
+              const groupComplete = stats.filter((s) => s.pct === 100).length;
+              const groupPct = stats.length > 0 ? Math.round((groupComplete / stats.length) * 100) : 0;
+              const sectionCampaignCount = campaigns.filter(
+                (c) => c.campaign_type === campaignType
+              ).length;
 
-            return (
-              <div key={groupType} className="rounded-xl border bg-card shadow-sm overflow-hidden">
+              return (
+                <div key={groupType} className="space-y-3">
+                  {showSectionHeader && (
+                    <div className={cn(
+                      'flex items-center gap-2 px-1 pt-2',
+                      campaignType === '국내챗닥' && 'border-t mt-2'
+                    )}>
+                      <div className={cn(
+                        'size-2 rounded-full',
+                        campaignType === '해외마케팅' ? 'bg-blue-500' : 'bg-purple-500'
+                      )} />
+                      <span className="text-xs font-bold text-foreground">
+                        {campaignType === '해외마케팅' ? '해외마케팅 세팅' : '국내챗닥 세팅'}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'text-[9px] px-1.5 py-0',
+                          campaignType === '국내챗닥'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        )}
+                      >
+                        {sectionCampaignCount}개 캠페인
+                      </Badge>
+                    </div>
+                  )}
+                  <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
                 {/* Group Header */}
                 <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2">
                   <GroupIcon className="size-4 text-muted-foreground" />
@@ -804,8 +890,10 @@ export function ConfigKeyView() {
                   })}
                 </div>
               </div>
-            );
-          })}
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
     </TooltipProvider>
