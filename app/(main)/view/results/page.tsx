@@ -470,7 +470,21 @@ export default function ResultsViewPage() {
   }, [periodicChecks, periodicTaskIds, taskMap, campaignMap, searchQuery, allPeriod]);
 
   const projectResultRows = useMemo((): ProjectResultRow[] => {
-    return projectTasks.map((pt) => {
+    // Project-level results (from projects table)
+    const projectRows: ProjectResultRow[] = projects
+      .filter((p) => p.result_value)
+      .map((p) => ({
+        id: `project-${p.id}`,
+        projectName: p.project_name,
+        taskTitle: '(프로젝트 결과)',
+        assignee: p.assignee_id ? (userMap.get(p.assignee_id) ?? '-') : '-',
+        state: p.state,
+        resultValue: p.result_value!,
+        dueDate: p.due_date,
+      }));
+
+    // Sub-task level results (from project_tasks table)
+    const taskRows: ProjectResultRow[] = projectTasks.map((pt) => {
       const project = projectMap.get(pt.project_id);
       return {
         id: pt.id,
@@ -481,9 +495,11 @@ export default function ResultsViewPage() {
         resultValue: pt.result_value!,
         dueDate: pt.due_date,
       };
-    }).filter(matchesProjectSearch);
+    });
+
+    return [...projectRows, ...taskRows].filter(matchesProjectSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectTasks, projectMap, userMap, searchQuery]);
+  }, [projects, projectTasks, projectMap, userMap, searchQuery]);
 
   const isLoading = dailyLoading || periodicLoading || projectTasksLoading;
 
