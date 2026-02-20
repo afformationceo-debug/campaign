@@ -406,6 +406,9 @@ export default function ResultsViewPage() {
     );
   }, [tasks]);
 
+  // Resolve selected user's name for client-side filtering
+  const selectedUserName = selectedUserId ? userMap.get(selectedUserId) ?? null : null;
+
   // Helper: convert check to ResultRow
   const toRow = (c: DailyCheck): ResultRow => {
     const task = taskMap.get(c.task_id);
@@ -417,7 +420,7 @@ export default function ResultsViewPage() {
       taskCategory: task?.category ?? '',
       frequency: task?.frequency ?? '',
       loopOrder: task?.loop_order ?? 999,
-      assignee: actualAssignee ?? task?.default_assignees?.join(', ') ?? '-',
+      assignee: actualAssignee ?? '-',
       campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
       resultValue: c.result_value || `(${c.status})`,
     };
@@ -487,6 +490,11 @@ export default function ResultsViewPage() {
   const projectResultRows = useMemo((): ProjectResultRow[] => {
     const projectRows: ProjectResultRow[] = projects
       .filter((p) => p.result_value || p.state === '완료')
+      .filter((p) => {
+        // Filter by selected user
+        if (!selectedUserId) return true;
+        return p.assignee_id === selectedUserId;
+      })
       .map((p) => ({
         id: `project-${p.id}`,
         projectName: p.project_name,
@@ -497,24 +505,32 @@ export default function ResultsViewPage() {
         dueDate: p.due_date,
       }));
 
-    const taskRows: ProjectResultRow[] = projectTasks.map((pt) => {
-      const project = projectMap.get(pt.project_id);
-      return {
-        id: pt.id,
-        projectName: project?.project_name ?? '-',
-        taskTitle: pt.title,
-        assignee: pt.assignee_id ? (userMap.get(pt.assignee_id) ?? '-') : (project?.assignee_id ? (userMap.get(project.assignee_id) ?? '-') : '-'),
-        state: pt.state,
-        resultValue: pt.result_value || `(${pt.state})`,
-        dueDate: pt.due_date,
-      };
-    });
+    const taskRows: ProjectResultRow[] = projectTasks
+      .filter((pt) => {
+        // Filter by selected user
+        if (!selectedUserId) return true;
+        const project = projectMap.get(pt.project_id);
+        const taskAssignee = pt.assignee_id ?? project?.assignee_id ?? null;
+        return taskAssignee === selectedUserId;
+      })
+      .map((pt) => {
+        const project = projectMap.get(pt.project_id);
+        return {
+          id: pt.id,
+          projectName: project?.project_name ?? '-',
+          taskTitle: pt.title,
+          assignee: pt.assignee_id ? (userMap.get(pt.assignee_id) ?? '-') : (project?.assignee_id ? (userMap.get(project.assignee_id) ?? '-') : '-'),
+          state: pt.state,
+          resultValue: pt.result_value || `(${pt.state})`,
+          dueDate: pt.due_date,
+        };
+      });
 
     return [...projectRows, ...taskRows]
       .filter(matchesProjectSearch)
       .sort((a, b) => a.assignee.localeCompare(b.assignee, 'ko'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, projectTasks, projectMap, userMap, searchQuery]);
+  }, [projects, projectTasks, projectMap, userMap, searchQuery, selectedUserId]);
 
   const isLoading = dailyLoading || periodicLoading || projectTasksLoading;
 
