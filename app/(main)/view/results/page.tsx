@@ -145,6 +145,10 @@ function ResultTable({
                     >
                       <HighlightText text={row.resultValue} search={search} />
                     </a>
+                  ) : row.resultValue.startsWith('(') && row.resultValue.endsWith(')') ? (
+                    <span className="truncate block text-muted-foreground/60 italic text-[11px]">
+                      {row.resultValue}
+                    </span>
                   ) : (
                     <span className="truncate block">
                       <HighlightText text={row.resultValue} search={search} />
@@ -217,6 +221,10 @@ function ProjectResultTable({ rows, search }: { rows: ProjectResultRow[]; search
                     >
                       <HighlightText text={row.resultValue} search={search} />
                     </a>
+                  ) : row.resultValue.startsWith('(') && row.resultValue.endsWith(')') ? (
+                    <span className="truncate block text-muted-foreground/60 italic text-[11px]">
+                      {row.resultValue}
+                    </span>
                   ) : (
                     <span className="truncate block">
                       <HighlightText text={row.resultValue} search={search} />
@@ -300,7 +308,7 @@ export default function ResultsViewPage() {
     return map;
   }, [campaigns]);
 
-  // Daily/weekly results: exact date match or all period
+  // Daily/weekly results: include checks with result_value OR status='완료'
   const { data: dailyChecks = [], isLoading: dailyLoading } = useQuery({
     queryKey: allPeriod
       ? queryKeys.checks.allResults(selectedUserId ?? undefined)
@@ -311,7 +319,7 @@ export default function ResultsViewPage() {
       let query = supabase
         .from('daily_checks')
         .select('*')
-        .not('result_value', 'is', null);
+        .or('result_value.not.is.null,status.eq.완료');
       if (!allPeriod) {
         query = query.eq('check_date', date);
       }
@@ -325,7 +333,7 @@ export default function ResultsViewPage() {
     },
   });
 
-  // Periodic results: exact date match (same as daily) or all period
+  // Periodic results: include checks with result_value OR status='완료'
   const { data: periodicChecks = [], isLoading: periodicLoading } = useQuery({
     queryKey: allPeriod
       ? queryKeys.checks.allPeriodicResults(selectedUserId ?? undefined)
@@ -336,7 +344,7 @@ export default function ResultsViewPage() {
       let query = supabase
         .from('daily_checks')
         .select('*')
-        .not('result_value', 'is', null);
+        .or('result_value.not.is.null,status.eq.완료');
       if (!allPeriod) {
         query = query.eq('check_date', date);
       }
@@ -369,7 +377,7 @@ export default function ResultsViewPage() {
       const { data, error } = await supabase
         .from('project_tasks')
         .select('*')
-        .not('result_value', 'is', null)
+        .or('result_value.not.is.null,state.eq.완료')
         .order('sort_order');
       if (error) throw error;
       return data as ProjectTask[];
@@ -406,7 +414,7 @@ export default function ResultsViewPage() {
       loopOrder: task?.loop_order ?? 999,
       assignee: actualAssignee ?? task?.default_assignees?.join(', ') ?? '-',
       campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
-      resultValue: c.result_value!,
+      resultValue: c.result_value || `(${c.status})`,
     };
   };
 
@@ -436,7 +444,7 @@ export default function ResultsViewPage() {
   // ── Filtered rows ──
   const globalRows = useMemo(() => {
     return dailyChecks
-      .filter((c) => c.result_value && !c.campaign_id && !periodicTaskIds.has(c.task_id))
+      .filter((c) => (c.result_value || c.status === '완료') && !c.campaign_id && !periodicTaskIds.has(c.task_id))
       .map(toRow)
       .filter(matchesSearch)
       .sort((a, b) => allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder);
@@ -445,7 +453,7 @@ export default function ResultsViewPage() {
 
   const campaignRows = useMemo(() => {
     return dailyChecks
-      .filter((c) => c.result_value && c.campaign_id && !periodicTaskIds.has(c.task_id))
+      .filter((c) => (c.result_value || c.status === '완료') && c.campaign_id && !periodicTaskIds.has(c.task_id))
       .map(toRow)
       .filter(matchesSearch)
       .sort((a, b) => {
@@ -462,7 +470,7 @@ export default function ResultsViewPage() {
 
   const monthlyRows = useMemo(() => {
     return periodicChecks
-      .filter((c) => c.result_value && periodicTaskIds.has(c.task_id))
+      .filter((c) => (c.result_value || c.status === '완료') && periodicTaskIds.has(c.task_id))
       .map(toRow)
       .filter(matchesSearch)
       .sort((a, b) => allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder || a.date.localeCompare(b.date));
@@ -470,16 +478,16 @@ export default function ResultsViewPage() {
   }, [periodicChecks, periodicTaskIds, taskMap, campaignMap, searchQuery, allPeriod]);
 
   const projectResultRows = useMemo((): ProjectResultRow[] => {
-    // Project-level results (from projects table)
+    // Project-level results (from projects table): include completed projects too
     const projectRows: ProjectResultRow[] = projects
-      .filter((p) => p.result_value)
+      .filter((p) => p.result_value || p.state === '완료')
       .map((p) => ({
         id: `project-${p.id}`,
         projectName: p.project_name,
         taskTitle: '(프로젝트 결과)',
         assignee: p.assignee_id ? (userMap.get(p.assignee_id) ?? '-') : '-',
         state: p.state,
-        resultValue: p.result_value!,
+        resultValue: p.result_value || `(${p.state})`,
         dueDate: p.due_date,
       }));
 
@@ -492,7 +500,7 @@ export default function ResultsViewPage() {
         taskTitle: pt.title,
         assignee: pt.assignee_id ? (userMap.get(pt.assignee_id) ?? '-') : (project?.assignee_id ? (userMap.get(project.assignee_id) ?? '-') : '-'),
         state: pt.state,
-        resultValue: pt.result_value!,
+        resultValue: pt.result_value || `(${pt.state})`,
         dueDate: pt.due_date,
       };
     });
