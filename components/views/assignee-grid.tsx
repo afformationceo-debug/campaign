@@ -85,7 +85,7 @@ function GlobalStatusSelect({
   return (
     <Select value={currentStatus ?? ''} onValueChange={handleChange}>
       <SelectTrigger className={cn(
-        'h-6 w-[80px] text-[11px] border-0 bg-transparent px-1',
+        'h-5 w-[72px] text-[10px] border-0 bg-transparent px-0.5',
         config?.color ?? 'text-muted-foreground/40'
       )}>
         <div className="flex items-center gap-1">
@@ -164,7 +164,7 @@ function ResultValueInput({
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full text-[11px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+        className="w-full text-[10px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
         placeholder="결과값 입력..."
       />
     );
@@ -175,7 +175,7 @@ function ResultValueInput({
       type="button"
       onClick={handleStartEdit}
       className={cn(
-        'w-full text-left text-[11px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[18px]',
+        'w-full text-left text-[10px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[16px]',
         check?.result_value ? 'text-foreground' : 'text-muted-foreground/30'
       )}
     >
@@ -473,24 +473,24 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     {globalTasks.length > 0 && (
       <TooltipProvider>
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="px-3 py-1.5 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
-          <div className="w-1.5 h-4 rounded-full bg-violet-400" />
-          <h3 className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">
+        <div className="px-2.5 py-1 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
+          <div className="w-1.5 h-3.5 rounded-full bg-violet-400" />
+          <h3 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">
             전역 업무
           </h3>
-          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+          <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">
             {globalTasks.length}건
           </Badge>
         </div>
         <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '24%' }}>업무</th>
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '9%' }}>카테고리</th>
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
-              <th className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '24%' }}>업무</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '9%' }}>카테고리</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
+              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -501,7 +501,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-2 py-1 bg-violet-50/50 dark:bg-violet-950/10 border-b border-violet-100 dark:border-violet-900/30"
+                      className="px-1.5 py-0.5 bg-violet-50/50 dark:bg-violet-950/10 border-b border-violet-100 dark:border-violet-900/30"
                     >
                       <div className="flex items-center gap-1.5">
                         <div className="flex items-center -space-x-1">
@@ -539,23 +539,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       const isCompleted = check?.status === '완료';
                       return (
                         <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
-                          'border-b border-border/30 hover:bg-muted/20 transition-colors h-6',
+                          'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
                           isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
                         )}>
                           <td className={cn(
-                            'px-2 py-0 max-w-0',
-                            isCompleted && 'border-l-[3px] border-l-emerald-400'
+                            'px-1.5 py-0 max-w-0',
+                            isCompleted && 'border-l-[2px] border-l-emerald-400'
                           )}>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                               {isCompleted && (
-                                <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                  <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                                <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                  <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
                                 </div>
                               )}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className={cn(
-                                    'text-[11px] font-medium truncate block cursor-default',
+                                    'text-[10px] font-medium truncate block cursor-default',
                                     isCompleted && 'text-emerald-800 dark:text-emerald-300',
                                     aIdx > 0 && 'text-muted-foreground'
                                   )}>
@@ -569,24 +569,24 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </Tooltip>
                             </div>
                           </td>
-                          <td className="px-2 py-0">
+                          <td className="px-1.5 py-0">
                             {aIdx === 0 && (
-                              <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                              <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {task.category}
                               </Badge>
                             )}
                           </td>
-                          <td className="px-2 py-0">
-                            <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap font-medium">
+                          <td className="px-1.5 py-0">
+                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap font-medium">
                               {aName.trim()}
                             </span>
                           </td>
-                          <td className="px-2 py-0">
+                          <td className="px-1.5 py-0">
                             {aIdx === 0 && (
-                              <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                              <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
                             )}
                           </td>
-                          <td className="px-2 py-0">
+                          <td className="px-1.5 py-0">
                             <div className="flex items-center justify-center">
                               <GlobalStatusSelect
                                 check={check}
@@ -596,7 +596,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               />
                             </div>
                           </td>
-                          <td className="px-2 py-0">
+                          <td className="px-1.5 py-0">
                             <ResultValueInput
                               check={check}
                               taskId={task.id}
@@ -615,22 +615,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   const isCompleted = check?.status === '완료';
                   return (
                     <tr key={`${group.assignee}-${task.id}`} className={cn(
-                      'border-b border-border/30 hover:bg-muted/20 transition-colors h-6',
+                      'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
                       isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
                     )}>
                       <td className={cn(
-                        'px-2 py-0 max-w-0',
-                        isCompleted && 'border-l-[3px] border-l-emerald-400'
+                        'px-1.5 py-0 max-w-0',
+                        isCompleted && 'border-l-[2px] border-l-emerald-400'
                       )}>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           {isCompleted && (
-                            <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                            <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                              <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
                             </div>
                           )}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={cn('text-[11px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
+                              <span className={cn('text-[10px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[300px]">
                               <p className="text-xs font-medium">{task.task_name}</p>
@@ -639,18 +639,18 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           </Tooltip>
                         </div>
                       </td>
-                      <td className="px-2 py-0">
-                        <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                      <td className="px-1.5 py-0">
+                        <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                           {task.category}
                         </Badge>
                       </td>
-                      <td className="px-2 py-0">
-                        <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
+                      <td className="px-1.5 py-0">
+                        <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
                       </td>
-                      <td className="px-2 py-0">
-                        <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                      <td className="px-1.5 py-0">
+                        <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
                       </td>
-                      <td className="px-2 py-0">
+                      <td className="px-1.5 py-0">
                         <div className="flex items-center justify-center">
                           <GlobalStatusSelect
                             check={check}
@@ -660,7 +660,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           />
                         </div>
                       </td>
-                      <td className="px-2 py-0">
+                      <td className="px-1.5 py-0">
                         <ResultValueInput
                           check={check}
                           taskId={task.id}
