@@ -91,7 +91,23 @@ ALTER PUBLICATION supabase_realtime ADD TABLE ecommerce_platforms;
 ALTER PUBLICATION supabase_realtime ADD TABLE platform_manuals;
 ALTER PUBLICATION supabase_realtime ADD TABLE campaign_platforms;
 
--- ─── 9. 이커머스 플랫폼 시드 데이터 ────────────────────────────
+-- ─── 9. GRANT 권한 ──────────────────────────────────────────────
+GRANT SELECT ON ecommerce_platforms TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ecommerce_platforms TO authenticated;
+GRANT SELECT ON platform_manuals TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON platform_manuals TO authenticated;
+GRANT SELECT ON campaign_platforms TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON campaign_platforms TO authenticated;
+
+-- ─── 10. updated_at 트리거 ──────────────────────────────────────
+CREATE TRIGGER trg_ecommerce_platforms_updated BEFORE UPDATE ON ecommerce_platforms
+  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_platform_manuals_updated BEFORE UPDATE ON platform_manuals
+  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_campaign_platforms_updated BEFORE UPDATE ON campaign_platforms
+  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+
+-- ─── 11. 이커머스 플랫폼 시드 데이터 ────────────────────────────
 INSERT INTO ecommerce_platforms (platform_name, available_countries, platform_url, seller_url, logo_emoji, description, fee_structure, setup_difficulty, sort_order)
 VALUES
   ('큐텐 재팬 (Qoo10)', ARRAY['일본'], 'https://www.qoo10.jp', 'https://qsm.qoo10.jp', '🇯🇵', '일본 2,400만 회원, 여성 70%, 2030 중심 쇼핑몰', '카테고리별 6~10% + 해외셀러 2% + 이체 150엔/건', '쉬움', 1),
@@ -301,25 +317,25 @@ FROM ecommerce_platforms WHERE platform_name = '라자다 (Lazada)';
 -- ─── 11. 이커머스 기본 태스크 시드 ──────────────────────────────
 -- loop_order를 기존 최대값 이후로 설정
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '주문/CS 확인 (이커머스)', '이커머스 플랫폼 주문 및 CS 확인', '이커머스', 'daily', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '주문/CS 확인 (이커머스)', '이커머스 플랫폼 주문 및 CS 확인', '이커머스', 'daily', false, 'campaign'
 FROM tasks;
 
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '재고/배송 상태 확인', '이커머스 플랫폼 재고 및 배송 상태 모니터링', '이커머스', 'daily', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '재고/배송 상태 확인', '이커머스 플랫폼 재고 및 배송 상태 모니터링', '이커머스', 'daily', false, 'campaign'
 FROM tasks;
 
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '광고 성과 리뷰', '이커머스 광고 캠페인 성과 분석', '이커머스', 'weekly', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '광고 성과 리뷰', '이커머스 광고 캠페인 성과 분석', '이커머스', 'weekly', false, 'campaign'
 FROM tasks;
 
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '인플루언서 콘텐츠 확인', '이커머스 연계 인플루언서 콘텐츠 리뷰', '이커머스', 'weekly', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '인플루언서 콘텐츠 확인', '이커머스 연계 인플루언서 콘텐츠 리뷰', '이커머스', 'weekly', false, 'campaign'
 FROM tasks;
 
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '플랫폼별 매출 리포트', '이커머스 플랫폼별 월간 매출 리포트 작성', '이커머스', 'monthly', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '플랫폼별 매출 리포트', '이커머스 플랫폼별 월간 매출 리포트 작성', '이커머스', 'monthly', false, 'campaign'
 FROM tasks;
 
 INSERT INTO tasks (loop_order, task_name, description, category, frequency, is_applicable_default, scope)
-SELECT COALESCE(MAX(loop_order), 0) + 1, '인플루언서 원고비 정산', '이커머스 연계 인플루언서 원고비 월간 정산', '이커머스', 'monthly', true, 'campaign'
+SELECT COALESCE(MAX(loop_order), 0) + 1, '인플루언서 원고비 정산', '이커머스 연계 인플루언서 원고비 월간 정산', '이커머스', 'monthly', false, 'campaign'
 FROM tasks;
