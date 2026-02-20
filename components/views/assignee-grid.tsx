@@ -33,6 +33,7 @@ import type {
   DailyCheck,
   CampaignTaskConfig,
   TaskCategory,
+  User,
 } from '@/lib/types/database';
 
 // ─── Status config for dropdown ───────────────────────
@@ -188,14 +189,28 @@ interface AssigneeGridProps {
   assigneeId: string | null;
   assigneeName?: string | null;
   categories: TaskCategory[];
+  users?: User[];
 }
 
-export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: AssigneeGridProps) {
+export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users = [] }: AssigneeGridProps) {
   const supabase = createClient();
   const { profile } = useAuth();
 
   // For global tasks, use the selected user or the logged-in user
   const effectiveUserId = assigneeId ?? profile?.id ?? '';
+
+  // Name → ID mapping for resolving default_assignees names to user IDs
+  const nameToIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach((u) => map.set(u.name, u.id));
+    return map;
+  }, [users]);
+
+  const idToNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach((u) => map.set(u.id, u.name));
+    return map;
+  }, [users]);
 
   const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
   const { mutate: bulkCreateCheck } = useCreateCheck();
@@ -507,9 +522,96 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                   </tr>
                 )}
                 {group.tasks.map((task) => {
+                  const catColor = CATEGORY_COLORS[task.category];
+
+                  // When viewing "전체 담당자" (assigneeId=null) and the task has multiple assignees,
+                  // expand into one row per assignee to show each person's status/result
+                  const taskAssigneeNames = task.default_assignees && task.default_assignees.length > 0
+                    ? task.default_assignees
+                    : null;
+                  const showExpanded = !assigneeId && taskAssigneeNames && taskAssigneeNames.length > 1;
+
+                  if (showExpanded) {
+                    // Render one row per assignee
+                    return taskAssigneeNames.map((aName, aIdx) => {
+                      const aId = nameToIdMap.get(aName.trim()) ?? '';
+                      const check = aId ? (checkMap.get(`null:${task.id}:${aId}`) ?? null) : null;
+                      const isCompleted = check?.status === '완료';
+                      return (
+                        <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
+                          'border-b border-border/30 hover:bg-muted/20 transition-colors h-7',
+                          isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                        )}>
+                          <td className={cn(
+                            'px-2 py-0 max-w-0',
+                            isCompleted && 'border-l-[3px] border-l-emerald-400'
+                          )}>
+                            <div className="flex items-center gap-1.5">
+                              {isCompleted && (
+                                <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
+                                  <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                              )}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn(
+                                    'text-[11px] font-medium truncate block cursor-default',
+                                    isCompleted && 'text-emerald-800 dark:text-emerald-300',
+                                    aIdx > 0 && 'text-muted-foreground'
+                                  )}>
+                                    {aIdx === 0 ? task.task_name : '↳'}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[300px]">
+                                  <p className="text-xs font-medium">{task.task_name}</p>
+                                  {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </td>
+                          <td className="px-2 py-0">
+                            {aIdx === 0 && (
+                              <Badge variant="outline" className={cn('text-[8px] px-1 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                                {task.category}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-2 py-0">
+                            <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap font-medium">
+                              {aName.trim()}
+                            </span>
+                          </td>
+                          <td className="px-2 py-0">
+                            {aIdx === 0 && (
+                              <span className="text-[10px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-0">
+                            <div className="flex items-center justify-center">
+                              <GlobalStatusSelect
+                                check={check}
+                                taskId={task.id}
+                                date={date}
+                                assigneeId={aId || effectiveUserId}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-2 py-0">
+                            <ResultValueInput
+                              check={check}
+                              taskId={task.id}
+                              date={date}
+                              assigneeId={aId || effectiveUserId}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    });
+                  }
+
+                  // Single assignee or specific assignee view: original single-row rendering
                   const check = checkMap.get(`null:${task.id}:${effectiveUserId}`) ?? null;
                   const assignees = task.default_assignees?.join(', ') || null;
-                  const catColor = CATEGORY_COLORS[task.category];
                   const isCompleted = check?.status === '완료';
                   return (
                     <tr key={`${group.assignee}-${task.id}`} className={cn(

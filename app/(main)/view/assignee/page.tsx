@@ -118,6 +118,7 @@ export default function AssigneeViewPage() {
           assigneeId={assigneeId}
           assigneeName={assigneeName}
           categories={selectedCategories}
+          users={users}
         />
       </motion.div>
 
