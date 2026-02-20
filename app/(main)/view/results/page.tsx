@@ -14,11 +14,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type {
   Task,
   Campaign,
@@ -69,6 +68,7 @@ function HighlightText({ text, search }: { text: string; search: string }) {
 
 /* ── Result Value Cell (shared) ──────────── */
 function ResultValueCell({ value, search }: { value: string; search: string }) {
+  const [copied, setCopied] = useState(false);
   const isUrl = /^https?:\/\//.test(value);
   const isStatus = value.startsWith('(') && value.endsWith(')');
 
@@ -76,44 +76,59 @@ function ResultValueCell({ value, search }: { value: string; search: string }) {
     return <span className="text-muted-foreground/50 italic text-[9px]">{value}</span>;
   }
 
-  const content = (
-    <span className={cn(
-      'truncate block text-[10px]',
-      isUrl && 'text-blue-600'
-    )}>
-      <HighlightText text={value} search={search} />
-    </span>
-  );
-
-  // Short values don't need a tooltip
-  if (value.length <= 40 && !value.includes('\n')) {
-    if (isUrl) {
-      return (
-        <a href={value} target="_blank" rel="noopener noreferrer" className="truncate block text-[10px] text-blue-600 hover:text-blue-800 hover:underline">
-          <HighlightText text={value} search={search} />
-        </a>
-      );
-    }
-    return content;
-  }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {isUrl ? (
-          <a href={value} target="_blank" rel="noopener noreferrer" className="truncate block text-[10px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">
-            <HighlightText text={value} search={search} />
-          </a>
-        ) : (
-          <span className="truncate block text-[10px] cursor-default">
-            <HighlightText text={value} search={search} />
-          </span>
-        )}
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-[400px] whitespace-pre-wrap break-words text-xs p-3">
-        {value}
-      </TooltipContent>
-    </Tooltip>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'truncate block text-[10px] text-left w-full rounded px-0.5 -mx-0.5',
+            'hover:bg-accent/60 transition-colors cursor-pointer',
+            isUrl ? 'text-blue-600 hover:text-blue-800' : 'text-foreground'
+          )}
+        >
+          <HighlightText text={value} search={search} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="w-[420px] p-0 rounded-xl shadow-xl border"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <div className="px-3 py-2 border-b bg-muted/40 flex items-center justify-between rounded-t-xl">
+          <span className="text-[10px] font-semibold text-muted-foreground">결과값 상세</span>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              'flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md transition-all',
+              copied
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-muted hover:bg-muted-foreground/10 text-muted-foreground'
+            )}
+          >
+            {copied ? <Check className="size-2.5" /> : <Copy className="size-2.5" />}
+            {copied ? '복사됨' : '복사'}
+          </button>
+        </div>
+        <div className="px-3 py-2.5 text-[11px] leading-relaxed whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">
+          {isUrl ? (
+            <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+              {value}
+            </a>
+          ) : (
+            value
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -170,7 +185,6 @@ function ResultTable({
   const groups = groupByAssignee(rows);
 
   return (
-    <TooltipProvider>
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
@@ -220,7 +234,6 @@ function ResultTable({
         </tbody>
       </table>
     </div>
-    </TooltipProvider>
   );
 }
 
@@ -238,7 +251,6 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
   const groups = groupByAssignee(rows);
 
   return (
-    <TooltipProvider>
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
@@ -281,7 +293,6 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
         </tbody>
       </table>
     </div>
-    </TooltipProvider>
   );
 }
 
