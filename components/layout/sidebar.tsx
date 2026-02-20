@@ -18,6 +18,7 @@ import {
   MessageSquareWarning,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar-store';
@@ -48,6 +49,10 @@ const manageNav = [
 
 const projectNav = [
   { href: '/roadmap', label: '프로젝트 로드맵', icon: Map },
+];
+
+const knowledgeNav = [
+  { href: '/manuals', label: '매뉴얼/가이드', icon: BookOpen },
 ];
 
 const logNav = [
@@ -156,6 +161,7 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
         <NavGroup items={mainNav} isCollapsed={isCollapsed} />
         <NavGroup title="일일 업무" items={viewNav} isCollapsed={isCollapsed} />
         <NavGroup title="프로젝트" items={projectNav} isCollapsed={isCollapsed} />
+        <NavGroup title="지식베이스" items={knowledgeNav} isCollapsed={isCollapsed} />
         {isAdmin && (
           <NavGroup title="관리" items={manageNav} isCollapsed={isCollapsed} />
         )}

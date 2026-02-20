@@ -15,8 +15,9 @@ export const CATEGORY_COLORS: Record<TaskCategory, {
   'CRM': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', darkBg: 'dark:bg-indigo-950/40' },
   '컨텐츠': { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', darkBg: 'dark:bg-teal-950/40' },
   '회계': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', darkBg: 'dark:bg-yellow-950/40' },
+  '이커머스': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', darkBg: 'dark:bg-emerald-950/40' },
 };
 
 export const CATEGORY_ORDER: TaskCategory[] = [
-  '보고', '영업', '온보딩', '발송', 'CS-인플', 'CS-고객', 'CRM', '컨텐츠', '회계',
+  '보고', '영업', '온보딩', '발송', 'CS-인플', 'CS-고객', 'CRM', '컨텐츠', '회계', '이커머스',
 ];

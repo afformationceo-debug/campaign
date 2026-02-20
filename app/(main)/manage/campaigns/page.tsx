@@ -50,6 +50,7 @@ import type {
   CampaignType,
   ChatdocStatus,
   InterpreterStatus,
+  BrandPhase,
 } from '@/lib/types/database';
 
 // ─── Config ─────────────────────────────────────────────
@@ -78,7 +79,25 @@ const INTERPRETER_MAP = new Map(INTERPRETER_OPTIONS.map((o) => [o.value, o]));
 const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string; className: string }> = {
   '해외마케팅': { label: '해외마케팅', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
   '국내챗닥': { label: '국내챗닥', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+  '제품브랜드': { label: '제품브랜드', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
 };
+
+const BRAND_PHASE_CONFIG: Record<BrandPhase, { label: string; className: string }> = {
+  '기획': { className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30' },
+  '플랫폼세팅': { className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' },
+  '인플루언서기획': { className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30' },
+  '운영': { className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' },
+  '스케일링': { className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
+} as Record<BrandPhase, { label: string; className: string }>;
+// Add labels
+Object.entries(BRAND_PHASE_CONFIG).forEach(([key, val]) => { val.label = key; });
+
+const PRODUCT_CATEGORIES = ['뷰티', '식품', '패션', '전자', '생활용품', '기타'];
+
+const TARGET_COUNTRY_OPTIONS = [
+  '일본', '대만', '싱가포르', '말레이시아', '인도네시아',
+  '태국', '필리핀', '베트남', '미국', '영국', '독일', '캐나다', '멕시코', '브라질',
+];
 
 const CHATDOC_STATUS_CONFIG: Record<ChatdocStatus, { label: string; className: string }> = {
   '대기': { label: '대기', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400' },
@@ -262,6 +281,10 @@ interface CampaignFormData {
   chatdoc_onboarding_done: boolean;
   chatdoc_roas_target: string;
   chatdoc_status: ChatdocStatus;
+  // 제품브랜드 전용
+  target_countries: string[];
+  product_category: string;
+  brand_budget: string;
 }
 
 const defaultFormData: CampaignFormData = {
@@ -280,6 +303,9 @@ const defaultFormData: CampaignFormData = {
   chatdoc_onboarding_done: false,
   chatdoc_roas_target: '',
   chatdoc_status: '대기',
+  target_countries: [],
+  product_category: '',
+  brand_budget: '',
 };
 
 // ─── Main Page ──────────────────────────────────────────
@@ -366,6 +392,11 @@ export default function CampaignsPage() {
         insertData.cost_per_influencer = data.cost_per_influencer ? Number(data.cost_per_influencer) : null;
         insertData.influencer_fee_budget = data.influencer_fee_budget ? Number(data.influencer_fee_budget) : null;
         insertData.interpreter_status = data.interpreter_status;
+      } else if (data.campaign_type === '제품브랜드') {
+        insertData.target_countries = data.target_countries.length > 0 ? data.target_countries : [];
+        insertData.product_category = data.product_category || null;
+        insertData.brand_budget = data.brand_budget ? Number(data.brand_budget) : null;
+        insertData.brand_phase = '기획';
       } else {
         insertData.chatdoc_onboarding_done = data.chatdoc_onboarding_done;
         insertData.chatdoc_roas_target = data.chatdoc_roas_target ? Number(data.chatdoc_roas_target) : null;
@@ -516,6 +547,7 @@ export default function CampaignsPage() {
             <SelectItem value="all">전체 유형</SelectItem>
             <SelectItem value="해외마케팅">해외마케팅</SelectItem>
             <SelectItem value="국내챗닥">국내챗닥</SelectItem>
+            <SelectItem value="제품브랜드">제품브랜드</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
@@ -882,7 +914,7 @@ export default function CampaignsPage() {
                   required
                   value={formData.campaign_name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, campaign_name: e.target.value }))}
-                  placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과 강남점' : '예: 태국 마케팅'}
+                  placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과 강남점' : formData.campaign_type === '제품브랜드' ? '예: 브랜드명 동남아 진출' : '예: 태국 마케팅'}
                 />
               </div>
               <div className="space-y-2">
@@ -892,12 +924,12 @@ export default function CampaignsPage() {
                   required
                   value={formData.client_name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, client_name: e.target.value }))}
-                  placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과' : '예: ABC Corp'}
+                  placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과' : formData.campaign_type === '제품브랜드' ? '예: 뷰티브랜드' : '예: ABC Corp'}
                 />
               </div>
             </div>
 
-            {/* 해외마케팅 전용 필드 */}
+            {/* 타입별 전용 필드 */}
             {formData.campaign_type === '해외마케팅' ? (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -945,6 +977,59 @@ export default function CampaignsPage() {
                       {INTERPRETER_OPTIONS.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.value}</SelectItem>))}
                     </SelectContent>
                   </Select>
+                </div>
+              </>
+            ) : formData.campaign_type === '제품브랜드' ? (
+              /* 제품브랜드 전용 필드 */
+              <>
+                <div className="space-y-2">
+                  <Label>타겟 국가 (복수 선택)</Label>
+                  <div className="flex flex-wrap gap-1.5 p-2 border rounded-lg min-h-[40px]">
+                    {TARGET_COUNTRY_OPTIONS.map((country) => (
+                      <button
+                        key={country}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          target_countries: prev.target_countries.includes(country)
+                            ? prev.target_countries.filter((c) => c !== country)
+                            : [...prev.target_countries, country],
+                        }))}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md text-xs font-medium transition-all border',
+                          formData.target_countries.includes(country)
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                        )}
+                      >
+                        {country}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>제품 카테고리</Label>
+                    <Select value={formData.product_category} onValueChange={(v) => setFormData((prev) => ({ ...prev, product_category: v }))}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
+                      <SelectContent>
+                        {PRODUCT_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="brand_budget">브랜드 예산</Label>
+                    <Input
+                      id="brand_budget"
+                      type="number"
+                      value={formData.brand_budget}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, brand_budget: e.target.value }))}
+                      placeholder="예: 50000000"
+                    />
+                  </div>
                 </div>
               </>
             ) : (

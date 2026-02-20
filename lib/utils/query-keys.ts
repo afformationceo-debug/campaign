@@ -55,4 +55,16 @@ export const queryKeys = {
     kpi: (date: string) => ['dashboard', 'kpi', date] as const,
     charts: (date: string) => ['dashboard', 'charts', date] as const,
   },
+  platforms: {
+    all: ['platforms'] as const,
+    detail: (id: string) => ['platforms', id] as const,
+  },
+  manuals: {
+    all: ['manuals'] as const,
+    byPlatform: (platformId: string) => ['manuals', 'platform', platformId] as const,
+  },
+  campaignPlatforms: {
+    all: ['campaignPlatforms'] as const,
+    byCampaign: (campaignId: string) => ['campaignPlatforms', 'campaign', campaignId] as const,
+  },
 };

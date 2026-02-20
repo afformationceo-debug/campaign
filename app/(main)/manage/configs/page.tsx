@@ -48,6 +48,9 @@ const CONFIG_TYPE_OPTIONS = [
   'CS어드민',
   'CRM',
   '국내챗닥',
+  '이커머스 세팅',
+  '인플루언서 기획',
+  '브랜드 마케팅',
   '기타',
 ];
 
@@ -78,6 +81,19 @@ const DEFAULT_TEMPLATE_CONFIGS = [
   { config_type: 'CS어드민', config_key: 'CRM 연동설정 여부', value_type: 'status' as const },
   // CRM
   { config_type: 'CRM', config_key: 'CRM 등록여부', value_type: 'status' as const },
+];
+
+const BRAND_TEMPLATE_CONFIGS = [
+  { config_type: '이커머스 세팅', config_key: '플랫폼 계정 생성', value_type: 'status' as const },
+  { config_type: '이커머스 세팅', config_key: '상품 등록', value_type: 'status' as const },
+  { config_type: '이커머스 세팅', config_key: '결제 시스템 연동', value_type: 'status' as const },
+  { config_type: '이커머스 세팅', config_key: '배송 설정', value_type: 'status' as const },
+  { config_type: '인플루언서 기획', config_key: '타겟 인플루언서 리스트업', value_type: 'status' as const },
+  { config_type: '인플루언서 기획', config_key: '원고비 예산 배분', value_type: 'text' as const },
+  { config_type: '인플루언서 기획', config_key: '스카웃매니저 캠페인 세팅', value_type: 'status' as const },
+  { config_type: '브랜드 마케팅', config_key: 'SNS 채널 세팅', value_type: 'status' as const },
+  { config_type: '브랜드 마케팅', config_key: '광고 소재 제작', value_type: 'status' as const },
+  { config_type: '브랜드 마케팅', config_key: '현지 마케팅 채널 연동', value_type: 'status' as const },
 ];
 
 const STATUS_VALUE_OPTIONS = ['완료', '진행중', '미완료', '해당없음', '세팅완료', '진행필요', '불필요'];
@@ -324,7 +340,12 @@ export default function ConfigsPage() {
   // Create default template configs
   const createTemplateMutation = useMutation({
     mutationFn: async (campaignId: string) => {
-      const rows = DEFAULT_TEMPLATE_CONFIGS.map((item) => ({
+      // Choose template based on campaign type
+      const campaign = campaigns.find((c) => c.id === campaignId);
+      const templateConfigs = campaign?.campaign_type === '제품브랜드'
+        ? BRAND_TEMPLATE_CONFIGS
+        : DEFAULT_TEMPLATE_CONFIGS;
+      const rows = templateConfigs.map((item) => ({
         campaign_id: campaignId,
         config_type: item.config_type,
         config_key: item.config_key,

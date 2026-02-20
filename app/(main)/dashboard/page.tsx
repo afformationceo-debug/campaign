@@ -46,6 +46,8 @@ import {
   DollarSign,
   Globe,
   Bot,
+  ShoppingBag,
+  Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AiSummarySheet } from '@/components/dashboard/ai-summary-sheet';
@@ -92,6 +94,8 @@ import type {
   ProjectTask,
   CampaignConfig,
   ProjectState,
+  CampaignPlatformWithRelations,
+  BrandPhase,
 } from '@/lib/types/database';
 
 const today = format(new Date(), 'yyyy-MM-dd');
@@ -121,6 +125,14 @@ const PROJECT_STATE_CONFIG: Record<ProjectState, { label: string; color: string;
   '진행전': { label: '진행전', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800', icon: CircleDashed },
   '진행중': { label: '진행중', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40', icon: Clock },
   '완료': { label: '완료', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/40', icon: CheckCircle2 },
+};
+
+const BRAND_PHASE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  '기획': { label: '기획', color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800' },
+  '플랫폼세팅': { label: '플랫폼세팅', color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/40' },
+  '인플루언서기획': { label: '인플기획', color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/40' },
+  '운영': { label: '운영', color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  '스케일링': { label: '스케일링', color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/40' },
 };
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -232,6 +244,20 @@ export default function DashboardPage() {
     },
   });
 
+  // NEW: Campaign Platforms (Brand)
+  const { data: campaignPlatforms = [] } = useQuery({
+    queryKey: queryKeys.campaignPlatforms.all,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaign_platforms')
+        .select('*, ecommerce_platforms(*)')
+        .order('created_at');
+      if (error) throw error;
+      return data as CampaignPlatformWithRelations[];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
   // NEW: Monthly checks for periodic tasks overview
   const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
@@ -333,6 +359,56 @@ export default function DashboardPage() {
 
   const avgConfigRate = configSetupData.length > 0 ? Math.round(configSetupData.reduce((s, c) => s + c.rate, 0) / configSetupData.length) : 0;
   const configIncomplete = configSetupData.filter((c) => c.rate < 100).length;
+
+  // ─── Brand Campaign Stats ─────────────────────────
+  const brandCampaignStats = useMemo(() => {
+    const brandCampaigns = campaigns.filter((c) => c.campaign_type === '제품브랜드');
+    const activeBrands = brandCampaigns.filter((c) => c.status === 'active');
+    const brandIds = new Set(brandCampaigns.map((c) => c.id));
+    const brandPlatforms = campaignPlatforms.filter((cp) => brandIds.has(cp.campaign_id));
+    const completedPlatforms = brandPlatforms.filter((cp) => cp.setup_status === '완료').length;
+    const totalPlatforms = brandPlatforms.length;
+    const setupRate = totalPlatforms > 0 ? Math.round((completedPlatforms / totalPlatforms) * 100) : 0;
+
+    // Country distribution
+    const countryCounts = new Map<string, number>();
+    for (const c of brandCampaigns) {
+      for (const country of (c.target_countries ?? [])) {
+        countryCounts.set(country, (countryCounts.get(country) || 0) + 1);
+      }
+    }
+    const countryDistribution = Array.from(countryCounts.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Phase distribution
+    const phaseCounts = new Map<string, number>();
+    for (const c of activeBrands) {
+      const phase = c.brand_phase ?? '기획';
+      phaseCounts.set(phase, (phaseCounts.get(phase) || 0) + 1);
+    }
+
+    // Platform distribution
+    const platformCounts = new Map<string, number>();
+    for (const cp of brandPlatforms) {
+      const name = cp.ecommerce_platforms?.platform_name ?? '알 수 없음';
+      platformCounts.set(name, (platformCounts.get(name) || 0) + 1);
+    }
+    const platformDistribution = Array.from(platformCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      total: brandCampaigns.length,
+      active: activeBrands.length,
+      totalPlatforms,
+      completedPlatforms,
+      setupRate,
+      countryDistribution,
+      phaseCounts,
+      platformDistribution,
+    };
+  }, [campaigns, campaignPlatforms]);
 
   // ─── Weekly Trend ────────────────────────────────────
   const weeklyTrendData = useMemo(() => {
@@ -803,6 +879,101 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Brand Campaign Overview */}
+            {brandCampaignStats.total > 0 && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Brand KPI + Platform Setup */}
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center"><ShoppingBag className="h-3.5 w-3.5 text-emerald-500" /></div>
+                      제품 브랜드 캠페인
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                        {brandCampaignStats.active}/{brandCampaignStats.total} 활성
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="text-center p-2 rounded-lg bg-emerald-100/50 dark:bg-emerald-900/20">
+                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{brandCampaignStats.total}</p>
+                        <p className="text-[9px] text-muted-foreground">전체 브랜드</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-blue-100/50 dark:bg-blue-900/20">
+                        <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{brandCampaignStats.totalPlatforms}</p>
+                        <p className="text-[9px] text-muted-foreground">플랫폼 세팅</p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-cyan-100/50 dark:bg-cyan-900/20">
+                        <p className={cn('text-lg font-bold', brandCampaignStats.setupRate >= 80 ? 'text-emerald-600' : brandCampaignStats.setupRate >= 50 ? 'text-amber-600' : 'text-red-500')}>{brandCampaignStats.setupRate}%</p>
+                        <p className="text-[9px] text-muted-foreground">세팅 완료율</p>
+                      </div>
+                    </div>
+                    {/* Phase Distribution */}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">브랜드 단계별</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(['기획', '플랫폼세팅', '인플루언서기획', '운영', '스케일링'] as const).map((phase) => {
+                          const count = brandCampaignStats.phaseCounts.get(phase) ?? 0;
+                          if (count === 0) return null;
+                          const cfg = BRAND_PHASE_CONFIG[phase];
+                          return (
+                            <Badge key={phase} variant="secondary" className={cn('text-[9px] px-1.5 py-0.5', cfg?.bg, cfg?.color)}>
+                              {cfg?.label ?? phase} {count}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Country + Platform Distribution */}
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center"><Globe className="h-3.5 w-3.5 text-blue-500" /></div>
+                      국가 & 플랫폼 분포
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Country distribution */}
+                    <div className="mb-4">
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">타겟 국가</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {brandCampaignStats.countryDistribution.map(({ country, count }) => (
+                          <Badge key={country} variant="outline" className="text-[10px] px-2 py-0.5 gap-1">
+                            {country}
+                            <span className="font-bold text-primary">{count}</span>
+                          </Badge>
+                        ))}
+                        {brandCampaignStats.countryDistribution.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground">타겟 국가가 설정되지 않았습니다</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Platform distribution */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider flex items-center gap-1"><Store className="size-3" />이커머스 플랫폼</p>
+                      <div className="space-y-1.5">
+                        {brandCampaignStats.platformDistribution.map(({ name, count }) => (
+                          <div key={name} className="flex items-center gap-2">
+                            <span className="text-[11px] font-medium flex-1 min-w-0 truncate">{name}</span>
+                            <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden shrink-0">
+                              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(count / Math.max(brandCampaignStats.totalPlatforms, 1)) * 100}%` }} />
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-600 tabular-nums w-4 text-right">{count}</span>
+                          </div>
+                        ))}
+                        {brandCampaignStats.platformDistribution.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground">등록된 플랫폼이 없습니다</span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Charts Row: Weekly Trend + Category Donut */}
             <div className="grid gap-4 lg:grid-cols-3">

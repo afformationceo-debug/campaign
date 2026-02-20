@@ -3,12 +3,15 @@ export type CampaignPhase = 'onboarding' | 'running' | 'scaling';
 export type TaskFrequency = 'daily' | 'weekly' | 'monthly' | 'once' | 'as_needed';
 export type CheckStatus = '완료' | '진행중' | '미완료' | '해당없음';
 export type UserRole = 'admin' | 'member';
-export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-인플' | 'CS-고객' | 'CRM' | '컨텐츠' | '회계';
+export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-인플' | 'CS-고객' | 'CRM' | '컨텐츠' | '회계' | '이커머스';
 export type TaskScope = 'campaign' | 'global';
 export type ProjectState = '진행전' | '진행중' | '완료';
 export type InterpreterStatus = '통역 필요 없음' | '돈받고 지원 (상시)' | '돈받고 지원 (요청시)' | '무료로 지원(요청시)' | '무료로 지원(상시)';
-export type CampaignType = '해외마케팅' | '국내챗닥';
+export type CampaignType = '해외마케팅' | '국내챗닥' | '제품브랜드';
 export type ChatdocStatus = '대기' | '온보딩중' | '운영중' | '종료';
+export type BrandPhase = '기획' | '플랫폼세팅' | '인플루언서기획' | '운영' | '스케일링';
+export type SetupStatus = '미시작' | '진행중' | '완료';
+export type ManualType = '세팅가이드' | '운영가이드' | 'FAQ' | '트러블슈팅';
 
 export interface Campaign {
   id: string;
@@ -28,8 +31,66 @@ export interface Campaign {
   chatdoc_onboarding_done: boolean | null;
   chatdoc_roas_target: number | null;
   chatdoc_status: ChatdocStatus | null;
+  // 제품브랜드 전용
+  target_countries: string[] | null;
+  product_category: string | null;
+  brand_budget: number | null;
+  brand_phase: BrandPhase | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EcommercePlatform {
+  id: string;
+  platform_name: string;
+  available_countries: string[];
+  platform_url: string | null;
+  seller_url: string | null;
+  logo_emoji: string | null;
+  description: string | null;
+  fee_structure: string | null;
+  setup_difficulty: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformManual {
+  id: string;
+  platform_id: string;
+  title: string;
+  content: string;
+  manual_type: ManualType;
+  country: string | null;
+  author_id: string | null;
+  is_published: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignPlatform {
+  id: string;
+  campaign_id: string;
+  platform_id: string;
+  country: string;
+  setup_status: SetupStatus;
+  shop_url: string | null;
+  account_info: Record<string, unknown>;
+  assigned_user_id: string | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformManualWithPlatform extends PlatformManual {
+  ecommerce_platforms: EcommercePlatform;
+}
+
+export interface CampaignPlatformWithRelations extends CampaignPlatform {
+  ecommerce_platforms: EcommercePlatform;
+  users: User | null;
 }
 
 export interface Task {
