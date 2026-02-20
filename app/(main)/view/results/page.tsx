@@ -68,16 +68,16 @@ function ResultValueCell({ value, search }: { value: string; search: string }) {
 
   if (isUrl) {
     return (
-      <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline truncate block text-[10px]">
+      <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline break-all text-[10px] leading-snug">
         <HighlightText text={value} search={search} />
       </a>
     );
   }
   if (isStatus) {
-    return <span className="truncate block text-muted-foreground/50 italic text-[9px]">{value}</span>;
+    return <span className="text-muted-foreground/50 italic text-[9px]">{value}</span>;
   }
   return (
-    <span className="truncate block text-[10px]">
+    <span className="text-[10px] leading-snug whitespace-pre-wrap break-words">
       <HighlightText text={value} search={search} />
     </span>
   );
@@ -140,10 +140,10 @@ function ResultTable({
       <table className="w-full table-fixed text-left">
         <thead>
           <tr className="border-b bg-muted/30">
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[9%]">날짜</th>
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[22%]">업무</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>날짜</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: showCampaign ? '18%' : '22%' }}>업무</th>
             {showCampaign && (
-              <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[15%]">캠페인</th>
+              <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '13%' }}>캠페인</th>
             )}
             <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">결과값</th>
           </tr>
@@ -155,9 +155,9 @@ function ResultTable({
               {group.rows.map((row) => {
                 const catColor = CATEGORY_COLORS[row.taskCategory as TaskCategory];
                 return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
-                    <td className="px-2 py-0 text-[9px] text-muted-foreground whitespace-nowrap">{row.date}</td>
-                    <td className="px-2 py-0">
+                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors align-top">
+                    <td className="px-2 py-1 text-[9px] text-muted-foreground whitespace-nowrap">{row.date}</td>
+                    <td className="px-2 py-1">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="text-[10px] font-medium truncate">
                           <HighlightText text={row.taskName} search={search} />
@@ -170,11 +170,11 @@ function ResultTable({
                       </div>
                     </td>
                     {showCampaign && (
-                      <td className="px-2 py-0 text-[9px] text-muted-foreground truncate">
+                      <td className="px-2 py-1 text-[9px] text-muted-foreground truncate">
                         <HighlightText text={row.campaignName || '-'} search={search} />
                       </td>
                     )}
-                    <td className="px-2 py-0">
+                    <td className="px-2 py-1">
                       <ResultValueCell value={row.resultValue} search={search} />
                     </td>
                   </tr>
@@ -206,10 +206,10 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
       <table className="w-full table-fixed text-left">
         <thead>
           <tr className="border-b bg-muted/30">
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[20%]">프로젝트</th>
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[18%]">하위업무</th>
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[7%]">상태</th>
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground w-[9%]">마감일</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '17%' }}>프로젝트</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '15%' }}>하위업무</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '50px' }}>상태</th>
+            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>마감일</th>
             <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">결과값</th>
           </tr>
         </thead>
@@ -222,18 +222,18 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
                   row.state === '완료' ? 'text-emerald-600' :
                   row.state === '진행중' ? 'text-blue-600' : 'text-gray-400';
                 return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
-                    <td className="px-2 py-0 text-[10px] font-medium truncate">
+                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors align-top">
+                    <td className="px-2 py-1 text-[10px] font-medium truncate">
                       <HighlightText text={row.projectName} search={search} />
                     </td>
-                    <td className="px-2 py-0 text-[9px] truncate">
+                    <td className="px-2 py-1 text-[9px] truncate">
                       <HighlightText text={row.taskTitle} search={search} />
                     </td>
-                    <td className="px-2 py-0">
+                    <td className="px-2 py-1">
                       <span className={cn('text-[9px] font-medium', stateColor)}>{row.state}</span>
                     </td>
-                    <td className="px-2 py-0 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
-                    <td className="px-2 py-0">
+                    <td className="px-2 py-1 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
+                    <td className="px-2 py-1">
                       <ResultValueCell value={row.resultValue} search={search} />
                     </td>
                   </tr>
