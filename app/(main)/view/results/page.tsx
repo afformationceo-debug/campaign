@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
-import { FileText, CalendarDays, ClipboardList, FolderOpen, Search, X, Calendar, User as UserIcon } from 'lucide-react';
+import { FileText, CalendarDays, ClipboardList, FolderOpen, Search, X, Calendar, User as UserIcon, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -13,6 +13,12 @@ import { CATEGORY_COLORS } from '@/lib/utils/category-colors';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   Task,
   Campaign,
@@ -66,20 +72,48 @@ function ResultValueCell({ value, search }: { value: string; search: string }) {
   const isUrl = /^https?:\/\//.test(value);
   const isStatus = value.startsWith('(') && value.endsWith(')');
 
-  if (isUrl) {
-    return (
-      <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline break-all text-[10px] leading-snug">
-        <HighlightText text={value} search={search} />
-      </a>
-    );
-  }
   if (isStatus) {
     return <span className="text-muted-foreground/50 italic text-[9px]">{value}</span>;
   }
-  return (
-    <span className="text-[10px] leading-snug whitespace-pre-wrap break-words">
+
+  const content = (
+    <span className={cn(
+      'truncate block text-[10px]',
+      isUrl && 'text-blue-600'
+    )}>
       <HighlightText text={value} search={search} />
     </span>
+  );
+
+  // Short values don't need a tooltip
+  if (value.length <= 40 && !value.includes('\n')) {
+    if (isUrl) {
+      return (
+        <a href={value} target="_blank" rel="noopener noreferrer" className="truncate block text-[10px] text-blue-600 hover:text-blue-800 hover:underline">
+          <HighlightText text={value} search={search} />
+        </a>
+      );
+    }
+    return content;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {isUrl ? (
+          <a href={value} target="_blank" rel="noopener noreferrer" className="truncate block text-[10px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">
+            <HighlightText text={value} search={search} />
+          </a>
+        ) : (
+          <span className="truncate block text-[10px] cursor-default">
+            <HighlightText text={value} search={search} />
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="max-w-[400px] whitespace-pre-wrap break-words text-xs p-3">
+        {value}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -136,6 +170,7 @@ function ResultTable({
   const groups = groupByAssignee(rows);
 
   return (
+    <TooltipProvider>
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
@@ -155,9 +190,9 @@ function ResultTable({
               {group.rows.map((row) => {
                 const catColor = CATEGORY_COLORS[row.taskCategory as TaskCategory];
                 return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors align-top">
-                    <td className="px-2 py-1 text-[9px] text-muted-foreground whitespace-nowrap">{row.date}</td>
-                    <td className="px-2 py-1">
+                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
+                    <td className="px-2 py-0 text-[9px] text-muted-foreground whitespace-nowrap">{row.date}</td>
+                    <td className="px-2 py-0">
                       <div className="flex items-center gap-1 min-w-0">
                         <span className="text-[10px] font-medium truncate">
                           <HighlightText text={row.taskName} search={search} />
@@ -170,11 +205,11 @@ function ResultTable({
                       </div>
                     </td>
                     {showCampaign && (
-                      <td className="px-2 py-1 text-[9px] text-muted-foreground truncate">
+                      <td className="px-2 py-0 text-[9px] text-muted-foreground truncate">
                         <HighlightText text={row.campaignName || '-'} search={search} />
                       </td>
                     )}
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-0">
                       <ResultValueCell value={row.resultValue} search={search} />
                     </td>
                   </tr>
@@ -185,6 +220,7 @@ function ResultTable({
         </tbody>
       </table>
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -202,6 +238,7 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
   const groups = groupByAssignee(rows);
 
   return (
+    <TooltipProvider>
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
@@ -222,18 +259,18 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
                   row.state === '완료' ? 'text-emerald-600' :
                   row.state === '진행중' ? 'text-blue-600' : 'text-gray-400';
                 return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors align-top">
-                    <td className="px-2 py-1 text-[10px] font-medium truncate">
+                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
+                    <td className="px-2 py-0 text-[10px] font-medium truncate">
                       <HighlightText text={row.projectName} search={search} />
                     </td>
-                    <td className="px-2 py-1 text-[9px] truncate">
+                    <td className="px-2 py-0 text-[9px] truncate">
                       <HighlightText text={row.taskTitle} search={search} />
                     </td>
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-0">
                       <span className={cn('text-[9px] font-medium', stateColor)}>{row.state}</span>
                     </td>
-                    <td className="px-2 py-1 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-0 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
+                    <td className="px-2 py-0">
                       <ResultValueCell value={row.resultValue} search={search} />
                     </td>
                   </tr>
@@ -244,6 +281,7 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
         </tbody>
       </table>
     </div>
+    </TooltipProvider>
   );
 }
 
