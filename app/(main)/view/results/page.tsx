@@ -394,6 +394,9 @@ export default function ResultsViewPage() {
   // Helper: convert check to ResultRow
   const toRow = (c: DailyCheck): ResultRow => {
     const task = taskMap.get(c.task_id);
+    // Show the actual user who entered the result (from check's assigned_user_id),
+    // falling back to the task's default_assignees if no user match found
+    const actualAssignee = c.assigned_user_id ? userMap.get(c.assigned_user_id) : null;
     return {
       id: c.id,
       date: c.check_date,
@@ -401,7 +404,7 @@ export default function ResultsViewPage() {
       taskCategory: task?.category ?? '',
       frequency: task?.frequency ?? '',
       loopOrder: task?.loop_order ?? 999,
-      assignee: task?.default_assignees?.join(', ') ?? '-',
+      assignee: actualAssignee ?? task?.default_assignees?.join(', ') ?? '-',
       campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
       resultValue: c.result_value!,
     };

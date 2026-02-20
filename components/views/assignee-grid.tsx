@@ -194,8 +194,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
   const supabase = createClient();
   const { profile } = useAuth();
 
-  // When "전체 담당자" (assigneeId=null), use current user's profile ID
-  // to avoid checkMap collision from multiple users' checks
+  // For global tasks, use the selected user or the logged-in user
   const effectiveUserId = assigneeId ?? profile?.id ?? '';
 
   const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
@@ -205,19 +204,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
   useRealtimeChecks(date);
   useRealtimeTaskConfig();
 
-  // Fetch daily checks for the selected date, always filtered by user
+  // Fetch ALL daily checks for the selected date (no user filter).
+  // Campaign-scope checks are unique per (campaign_id, task_id, check_date) and shared.
+  // Global checks are unique per (task_id, check_date, assigned_user_id) and per-user.
   const { data: checks = [], isLoading: checksLoading } = useQuery({
-    queryKey: queryKeys.checks.byDateAndUser(date, effectiveUserId),
+    queryKey: queryKeys.checks.byDate(date),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('daily_checks')
         .select('*')
-        .eq('check_date', date)
-        .eq('assigned_user_id', effectiveUserId);
+        .eq('check_date', date);
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
-    enabled: !!effectiveUserId,
   });
 
   // Fetch all tasks
@@ -262,11 +261,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
     return map;
   }, [taskConfigs]);
 
-  // Build check lookup: campaign_id + task_id -> check
+  // Build check lookup:
+  // Campaign-scope: campaign_id:task_id -> check (shared, one per combo)
+  // Global-scope: null:task_id:assigned_user_id -> check (per-user)
   const checkMap = useMemo(() => {
     const map = new Map<string, DailyCheck>();
     checks.forEach((check) => {
-      map.set(`${check.campaign_id}:${check.task_id}`, check);
+      if (check.campaign_id) {
+        // Campaign-scope: unique per (campaign_id, task_id, check_date)
+        map.set(`${check.campaign_id}:${check.task_id}`, check);
+      } else {
+        // Global-scope: unique per (task_id, check_date, assigned_user_id)
+        map.set(`null:${check.task_id}:${check.assigned_user_id}`, check);
+      }
     });
     return map;
   }, [checks]);
@@ -500,7 +507,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories }: Ass
                   </tr>
                 )}
                 {group.tasks.map((task) => {
-                  const check = checkMap.get(`null:${task.id}`) ?? null;
+                  const check = checkMap.get(`null:${task.id}:${effectiveUserId}`) ?? null;
                   const assignees = task.default_assignees?.join(', ') || null;
                   const catColor = CATEGORY_COLORS[task.category];
                   const isCompleted = check?.status === '완료';

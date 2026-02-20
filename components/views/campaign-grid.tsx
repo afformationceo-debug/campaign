@@ -49,21 +49,19 @@ export function CampaignGrid({
   useRealtimeChecks(date);
   useRealtimeTaskConfig();
 
-  // Fetch daily checks for the selected date, filtered by current user
-  // to avoid checkMap collision from multiple users' checks
-  const effectiveUserId = profile?.id ?? '';
+  // Fetch ALL daily checks for the selected date (no user filter).
+  // Campaign-scope checks are unique per (campaign_id, task_id, check_date),
+  // so they are shared across all users. No collision issue.
   const { data: checks = [], isLoading: checksLoading } = useQuery({
-    queryKey: queryKeys.checks.byDateAndUser(date, effectiveUserId),
+    queryKey: queryKeys.checks.byDate(date),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('daily_checks')
         .select('*')
-        .eq('check_date', date)
-        .eq('assigned_user_id', effectiveUserId);
+        .eq('check_date', date);
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
-    enabled: !!effectiveUserId,
   });
 
   // Fetch all tasks
