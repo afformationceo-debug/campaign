@@ -236,8 +236,8 @@ export function CampaignGrid({
             <th
               className={cn(
                 'sticky left-0 top-0 z-30 min-w-[200px] max-w-[260px]',
-                'bg-background border-b border-r px-3 py-1',
-                'text-left text-[11px] font-semibold text-muted-foreground'
+                'bg-background border-b border-r px-2 py-0.5',
+                'text-left text-[10px] font-semibold text-muted-foreground'
               )}
             >
               캠페인
@@ -251,8 +251,8 @@ export function CampaignGrid({
                   key={task.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-1',
-                    'text-center min-w-[36px] max-w-[40px]',
+                    'bg-background border-b px-0.5 py-0.5',
+                    'text-center min-w-[34px] max-w-[38px]',
                     taskIdx === 0 && 'border-l',
                     taskIdx === 0 && catColors.border
                   )}
@@ -299,9 +299,9 @@ export function CampaignGrid({
             <th
               className={cn(
                 'sticky top-0 right-0 z-20',
-                'bg-background border-b border-l px-2 py-1',
-                'text-center text-[10px] font-semibold text-muted-foreground',
-                'min-w-[56px]'
+                'bg-background border-b border-l px-1.5 py-0.5',
+                'text-center text-[9px] font-semibold text-muted-foreground',
+                'min-w-[50px]'
               )}
             >
               완료율
@@ -333,8 +333,8 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky left-0 z-10',
-                    'border-b border-r px-3 py-0.5',
-                    'text-[11px] font-medium text-foreground',
+                    'border-b border-r px-2 py-0',
+                    'text-[10px] font-medium text-foreground',
                     'min-w-[200px] max-w-[260px]',
                     pct === 100
                       ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
@@ -407,7 +407,7 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky right-0 z-10',
-                    'border-b border-l px-2 py-0.5',
+                    'border-b border-l px-1.5 py-0',
                     'text-center',
                     pct === 100
                       ? 'bg-emerald-50/80 dark:bg-emerald-950/20'

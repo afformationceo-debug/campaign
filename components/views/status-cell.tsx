@@ -124,11 +124,11 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
     return (
       <div
         className={cn(
-          'flex items-center justify-center w-8 h-8 rounded-lg',
+          'flex items-center justify-center w-6 h-6 rounded-md',
           'bg-muted/40 cursor-not-allowed'
         )}
       >
-        <Minus className="size-3.5 text-muted-foreground/30" />
+        <Minus className="size-2.5 text-muted-foreground/30" />
       </div>
     );
   }
@@ -140,7 +140,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
         type="button"
         onClick={handleClick}
         className={cn(
-          'flex items-center justify-center w-8 h-8 rounded-lg',
+          'flex items-center justify-center w-6 h-6 rounded-md',
           'border border-dashed border-muted-foreground/20',
           'text-muted-foreground/30',
           'hover:border-primary/40 hover:text-primary/60 hover:bg-primary/5',
@@ -149,7 +149,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
         )}
         aria-label="클릭하여 체크 시작"
       >
-        <Circle className="size-3.5" />
+        <Circle className="size-2.5" />
       </button>
     );
   }
@@ -171,7 +171,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               onTouchEnd={handleTouchEnd}
               onTouchCancel={handleTouchEnd}
               className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-lg',
+                'flex items-center justify-center w-6 h-6 rounded-md',
                 'transition-all duration-200 cursor-pointer',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 'hover:scale-110 hover:shadow-md active:scale-95',
@@ -185,7 +185,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               )}
               aria-label={`상태: ${STATUS_LABELS[status]}`}
             >
-              <Icon className="size-4" />
+              <Icon className="size-3" />
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
