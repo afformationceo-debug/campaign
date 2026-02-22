@@ -64,10 +64,12 @@ const QUICK_ACTIONS: { label: string; message: string; dimension: SummaryDimensi
   { label: '프로젝트 현황', message: '프로젝트별로 알려줘', dimension: 'project', emoji: '🗺️' },
   { label: 'QA 관리 현황', message: 'QA관리별로 알려줘', dimension: 'qa', emoji: '⚠️' },
   { label: '캠페인 세팅', message: '캠페인 세팅별로 알려줘', dimension: 'config', emoji: '⚙️' },
+  { label: '이커머스/브랜드', message: '이커머스 브랜드 캠페인 현황 알려줘', dimension: 'ecommerce', emoji: '🛒' },
 ];
 
 function detectDimension(text: string): SummaryDimension {
   const lower = text.toLowerCase();
+  if (/이커머스|브랜드|플랫폼.*세팅|쇼피|아마존|큐텐|라쿠텐|틱톡샵|라자다/.test(lower)) return 'ecommerce';
   if (/담당자/.test(lower)) return 'assignee';
   if (/캠페인.*세팅|세팅/.test(lower)) return 'config';
   if (/캠페인/.test(lower)) return 'campaign';

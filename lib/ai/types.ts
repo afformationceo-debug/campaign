@@ -5,7 +5,8 @@ export type SummaryDimension =
   | 'daily'
   | 'project'
   | 'qa'
-  | 'config';
+  | 'config'
+  | 'ecommerce';
 
 export interface SummaryRequest {
   dimension: SummaryDimension;
@@ -20,4 +21,5 @@ export const DIMENSION_LABELS: Record<SummaryDimension, string> = {
   project: '프로젝트',
   qa: 'QA 관리',
   config: '캠페인 세팅',
+  ecommerce: '이커머스/브랜드',
 };

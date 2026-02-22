@@ -527,6 +527,95 @@ async function fetchConfigContext() {
   };
 }
 
+async function fetchEcommerceContext() {
+  const supabase = getSupabase();
+
+  // 1) 이커머스 플랫폼 마스터
+  const { data: platforms } = await supabase
+    .from('ecommerce_platforms')
+    .select('id, platform_name, available_countries, fee_structure, setup_difficulty, logo_emoji')
+    .eq('is_active', true)
+    .order('sort_order');
+
+  // 2) 플랫폼 매뉴얼 수
+  const { data: manuals } = await supabase
+    .from('platform_manuals')
+    .select('platform_id, manual_type')
+    .eq('is_published', true);
+
+  // 3) 캠페인별 플랫폼 세팅 현황
+  const { data: campaignPlatforms } = await supabase
+    .from('campaign_platforms')
+    .select('campaign_id, platform_id, country, setup_status, shop_url, assigned_user_id');
+
+  // 4) 제품브랜드 캠페인
+  const { data: brandCampaigns } = await supabase
+    .from('campaigns')
+    .select('id, client_name, campaign_name, status, brand_phase, target_countries, product_category, brand_budget')
+    .eq('campaign_type', '제품브랜드');
+
+  // 5) 사용자
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, name');
+
+  if (!platforms) return null;
+
+  const userMap = new Map((users ?? []).map((u) => [u.id, u.name]));
+  const platformMap = new Map((platforms ?? []).map((p) => [p.id, p]));
+  const manualsByPlatform: Record<string, number> = {};
+  for (const m of manuals ?? []) {
+    manualsByPlatform[m.platform_id] = (manualsByPlatform[m.platform_id] || 0) + 1;
+  }
+
+  // 플랫폼별 현황
+  const platformSummary = (platforms ?? []).map((p) => ({
+    name: p.platform_name,
+    emoji: p.logo_emoji,
+    countries: p.available_countries,
+    fee: p.fee_structure,
+    difficulty: p.setup_difficulty,
+    manualCount: manualsByPlatform[p.id] || 0,
+  }));
+
+  // 브랜드 캠페인별 세팅 현황
+  const cpList = campaignPlatforms ?? [];
+  const brandList = (brandCampaigns ?? []).map((c) => {
+    const cps = cpList.filter((cp) => cp.campaign_id === c.id);
+    const setupDone = cps.filter((cp) => cp.setup_status === '완료').length;
+    const setupTotal = cps.length;
+    return {
+      name: `${c.client_name} - ${c.campaign_name}`,
+      status: c.status,
+      phase: c.brand_phase,
+      countries: c.target_countries,
+      category: c.product_category,
+      budget: c.brand_budget ? `${c.brand_budget}만원` : null,
+      platformSetup: setupTotal > 0 ? { done: setupDone, total: setupTotal, rate: Math.round((setupDone / setupTotal) * 100) } : null,
+      platforms: cps.map((cp) => ({
+        platform: platformMap.get(cp.platform_id)?.platform_name ?? '?',
+        country: cp.country,
+        status: cp.setup_status,
+        shopUrl: cp.shop_url,
+        assignee: cp.assigned_user_id ? userMap.get(cp.assigned_user_id) ?? '?' : '미배정',
+      })),
+    };
+  });
+
+  // 전체 세팅 진행률
+  const totalSetup = cpList.length;
+  const doneSetup = cpList.filter((cp) => cp.setup_status === '완료').length;
+  const inProgressSetup = cpList.filter((cp) => cp.setup_status === '진행중').length;
+
+  return {
+    platformCount: platforms.length,
+    platforms: platformSummary,
+    brandCampaignCount: brandCampaigns?.length ?? 0,
+    brandCampaigns: brandList,
+    setupOverall: totalSetup > 0 ? { total: totalSetup, done: doneSetup, inProgress: inProgressSetup, rate: Math.round((doneSetup / totalSetup) * 100) } : null,
+  };
+}
+
 export async function buildContext(dimension: SummaryDimension, range?: DateRange): Promise<string> {
   const r = range ?? defaultRange();
   const rangeLabel = formatRange(r);
@@ -573,6 +662,21 @@ export async function buildContext(dimension: SummaryDimension, range?: DateRang
   if (dimension === 'all' || dimension === 'config') {
     const data = await fetchConfigContext();
     if (data) parts.push(`## 캠페인 세팅\n해외마케팅: ${data.overseas.completed}/${data.overseas.total} (${data.overseas.rate}%)\n국내챗닥: ${data.domestic.completed}/${data.domestic.total} (${data.domestic.rate}%)\n해외 미완료 항목: ${JSON.stringify(data.overseas.lowCompletionKeys, null, 1)}\n해외 캠페인별: ${JSON.stringify(data.overseas.lowCompletionCampaigns, null, 1)}\n국내 미완료 항목: ${JSON.stringify(data.domestic.lowCompletionKeys, null, 1)}\n국내 캠페인별: ${JSON.stringify(data.domestic.lowCompletionCampaigns, null, 1)}`);
+  }
+
+  if (dimension === 'all' || dimension === 'ecommerce') {
+    const data = await fetchEcommerceContext();
+    if (data) {
+      let section = `## 이커머스/브랜드 캠페인 현황\n등록 플랫폼: ${data.platformCount}개, 브랜드 캠페인: ${data.brandCampaignCount}개`;
+      if (data.setupOverall) {
+        section += `\n플랫폼 세팅 전체: ${data.setupOverall.done}/${data.setupOverall.total} (${data.setupOverall.rate}%)`;
+      }
+      section += `\n플랫폼 목록: ${JSON.stringify(data.platforms, null, 1)}`;
+      if (data.brandCampaigns.length > 0) {
+        section += `\n브랜드 캠페인 상세: ${JSON.stringify(data.brandCampaigns, null, 1)}`;
+      }
+      parts.push(section);
+    }
   }
 
   return parts.join('\n\n');
