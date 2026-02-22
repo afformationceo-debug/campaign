@@ -1,23 +1,52 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import {
+  format,
+  addDays,
+  subDays,
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { FileText, CalendarDays, ClipboardList, FolderOpen, Search, X, Calendar, User as UserIcon, Copy, Check } from 'lucide-react';
+import {
+  FileText,
+  CalendarDays,
+  ClipboardList,
+  FolderOpen,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Check,
+  AlertTriangle,
+  ChevronDown,
+  ExternalLink,
+  User as UserIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { CATEGORY_COLORS } from '@/lib/utils/category-colors';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { useUpdateCheckStatus, useCreateCheck } from '@/hooks/use-update-check-status';
 import type {
   Task,
   Campaign,
@@ -26,30 +55,81 @@ import type {
   TaskCategory,
   Project,
   ProjectTask,
+  CheckStatus,
 } from '@/lib/types/database';
 
-/* ── Result row for rendering ──────────── */
+/* ── Types ──────────────────────────────── */
+
+type RangeMode = 'day' | 'week' | 'month';
+
 interface ResultRow {
   id: string;
+  checkId: string | null;
   date: string;
+  taskId: string;
   taskName: string;
   taskCategory: TaskCategory | string;
   frequency: string;
   loopOrder: number;
   assignee: string;
+  assigneeId: string | null;
+  campaignId: string | null;
   campaignName: string | null;
-  resultValue: string;
+  resultValue: string | null;
+  status: CheckStatus;
+  scope: 'global' | 'campaign';
 }
 
-/* ── Project result row ──────────────────── */
 interface ProjectResultRow {
   id: string;
   projectName: string;
   taskTitle: string;
   assignee: string;
   state: string;
-  resultValue: string;
+  resultValue: string | null;
   dueDate: string | null;
+}
+
+/* ── Helpers ────────────────────────────── */
+
+function lastDayOfMonth(dateStr: string): string {
+  const d = parseISO(dateStr);
+  return format(endOfMonth(d), 'yyyy-MM-dd');
+}
+
+function getDateRange(date: string, mode: RangeMode): { start: string; end: string } {
+  const d = parseISO(date);
+  switch (mode) {
+    case 'week':
+      return {
+        start: format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        end: format(endOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+      };
+    case 'month':
+      return {
+        start: format(startOfMonth(d), 'yyyy-MM-dd'),
+        end: format(endOfMonth(d), 'yyyy-MM-dd'),
+      };
+    case 'day':
+    default:
+      return { start: date, end: date };
+  }
+}
+
+function formatDateLabel(date: string, mode: RangeMode): string {
+  const d = parseISO(date);
+  switch (mode) {
+    case 'week': {
+      const ws = startOfWeek(d, { weekStartsOn: 1 });
+      const we = endOfWeek(d, { weekStartsOn: 1 });
+      return `${format(ws, 'M/d')} ~ ${format(we, 'M/d')}`;
+    }
+    case 'month':
+      return format(d, 'yyyy년 M월');
+    case 'day':
+    default:
+      return format(d, 'yyyy-MM-dd (EEE)', { locale: ko });
+  }
 }
 
 /* ── Highlight matching text ─────────────── */
@@ -66,15 +146,109 @@ function HighlightText({ text, search }: { text: string; search: string }) {
   );
 }
 
-/* ── Result Value Cell (shared) ──────────── */
-function ResultValueCell({ value, search }: { value: string; search: string }) {
-  const [copied, setCopied] = useState(false);
-  const isUrl = /^https?:\/\//.test(value);
-  const isStatus = value.startsWith('(') && value.endsWith(')');
+/* ── Inline Result Value Input ─────────────── */
+function InlineResultInput({
+  check,
+  resultValue,
+  taskId,
+  date,
+  assigneeId,
+  campaignId,
+}: {
+  check: { id: string; status: CheckStatus } | null;
+  resultValue: string | null;
+  taskId: string;
+  date: string;
+  assigneeId: string | null;
+  campaignId: string | null;
+}) {
+  const { mutate: updateStatus } = useUpdateCheckStatus();
+  const { mutate: createCheck } = useCreateCheck();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  if (isStatus) {
-    return <span className="text-muted-foreground/50 italic text-[9px]">{value}</span>;
+  const handleStartEdit = () => {
+    setValue(resultValue ?? '');
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleSave = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (!check) {
+      if (!trimmed || !assigneeId) return;
+      createCheck({
+        campaign_id: campaignId,
+        task_id: taskId,
+        check_date: date,
+        assigned_user_id: assigneeId,
+        status: '완료',
+        result_value: trimmed,
+      });
+    } else {
+      if (trimmed === (resultValue ?? '')) return;
+      updateStatus({ id: check.id, status: check.status, result_value: trimmed });
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="w-full text-[10px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+        placeholder="결과값 입력..."
+      />
+    );
   }
+
+  return (
+    <button
+      type="button"
+      onClick={handleStartEdit}
+      className={cn(
+        'w-full text-left text-[10px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[16px]',
+        resultValue ? 'text-foreground' : 'text-muted-foreground/30'
+      )}
+    >
+      {resultValue || '-'}
+    </button>
+  );
+}
+
+/* ── Result Value Cell (with popover + inline edit) ──────────── */
+function ResultValueCell({
+  row,
+  search,
+}: {
+  row: ResultRow;
+  search: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const value = row.resultValue;
+
+  if (!value) {
+    return (
+      <InlineResultInput
+        check={row.checkId ? { id: row.checkId, status: row.status } : null}
+        resultValue={null}
+        taskId={row.taskId}
+        date={row.date}
+        assigneeId={row.assigneeId}
+        campaignId={row.campaignId}
+      />
+    );
+  }
+
+  const isUrl = /^https?:\/\//.test(value);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
@@ -93,7 +267,10 @@ function ResultValueCell({ value, search }: { value: string; search: string }) {
             isUrl ? 'text-blue-600 hover:text-blue-800' : 'text-foreground'
           )}
         >
-          <HighlightText text={value} search={search} />
+          <span className="flex items-center gap-0.5">
+            <HighlightText text={value} search={search} />
+            {isUrl && <ExternalLink className="size-2.5 shrink-0 opacity-50" />}
+          </span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -132,8 +309,18 @@ function ResultValueCell({ value, search }: { value: string; search: string }) {
   );
 }
 
-/* ── Assignee Group Header ─────────────── */
-function AssigneeGroupHeader({ name, count, color }: { name: string; count: number; color: string }) {
+/* ── Assignee Group Header (with input rate) ─────────────── */
+function AssigneeGroupHeader({
+  name,
+  resultCount,
+  totalCount,
+  color,
+}: {
+  name: string;
+  resultCount: number;
+  totalCount: number;
+  color: string;
+}) {
   return (
     <tr>
       <td colSpan={10} className={cn('px-2 py-0.5 border-b', color)}>
@@ -142,7 +329,9 @@ function AssigneeGroupHeader({ name, count, color }: { name: string; count: numb
             <UserIcon className="size-2 text-current opacity-70" />
           </div>
           <span className="text-[10px] font-semibold">{name}</span>
-          <span className="text-[9px] opacity-50">{count}건</span>
+          <span className="text-[9px] opacity-60">
+            결과 {resultCount}건 / 전체 {totalCount}건
+          </span>
         </div>
       </td>
     </tr>
@@ -165,11 +354,13 @@ function groupByAssignee<T extends { assignee: string }>(rows: T[]): { assignee:
 function ResultTable({
   rows,
   showCampaign,
+  showDate,
   search,
   groupColor,
 }: {
   rows: ResultRow[];
   showCampaign: boolean;
+  showDate: boolean;
   search: string;
   groupColor: string;
 }) {
@@ -189,7 +380,9 @@ function ResultTable({
       <table className="w-full table-fixed text-left">
         <thead>
           <tr className="border-b bg-muted/30">
-            <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>날짜</th>
+            {showDate && (
+              <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>날짜</th>
+            )}
             <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: showCampaign ? '18%' : '22%' }}>업무</th>
             {showCampaign && (
               <th className="px-2 py-0.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '13%' }}>캠페인</th>
@@ -198,46 +391,58 @@ function ResultTable({
           </tr>
         </thead>
         <tbody>
-          {groups.map((group) => (
-            <GroupFragment key={group.assignee}>
-              <AssigneeGroupHeader name={group.assignee} count={group.rows.length} color={groupColor} />
-              {group.rows.map((row) => {
-                const catColor = CATEGORY_COLORS[row.taskCategory as TaskCategory];
-                return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
-                    <td className="px-2 py-0 text-[9px] text-muted-foreground whitespace-nowrap">{row.date}</td>
-                    <td className="px-2 py-0">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className="text-[10px] font-medium truncate">
-                          <HighlightText text={row.taskName} search={search} />
-                        </span>
-                        {catColor && (
-                          <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0 shrink-0 leading-tight', catColor.text, catColor.bg)}>
-                            {row.taskCategory}
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    {showCampaign && (
-                      <td className="px-2 py-0 text-[9px] text-muted-foreground truncate">
-                        <HighlightText text={row.campaignName || '-'} search={search} />
+          {groups.map((group) => {
+            const withResult = group.rows.filter((r) => r.resultValue !== null).length;
+            return (
+              <GroupFragment key={group.assignee}>
+                <AssigneeGroupHeader
+                  name={group.assignee}
+                  resultCount={withResult}
+                  totalCount={group.rows.length}
+                  color={groupColor}
+                />
+                {group.rows.map((row) => {
+                  const catColor = CATEGORY_COLORS[row.taskCategory as TaskCategory];
+                  return (
+                    <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
+                      {showDate && (
+                        <td className="px-2 py-0 text-[9px] text-muted-foreground whitespace-nowrap">
+                          {format(parseISO(row.date), 'M/d')}
+                        </td>
+                      )}
+                      <td className="px-2 py-0">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[10px] font-medium truncate">
+                            <HighlightText text={row.taskName} search={search} />
+                          </span>
+                          {catColor && (
+                            <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0 shrink-0 leading-tight', catColor.text, catColor.bg)}>
+                              {row.taskCategory}
+                            </Badge>
+                          )}
+                        </div>
                       </td>
-                    )}
-                    <td className="px-2 py-0">
-                      <ResultValueCell value={row.resultValue} search={search} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </GroupFragment>
-          ))}
+                      {showCampaign && (
+                        <td className="px-2 py-0 text-[9px] text-muted-foreground truncate">
+                          <HighlightText text={row.campaignName || '-'} search={search} />
+                        </td>
+                      )}
+                      <td className="px-2 py-0">
+                        <ResultValueCell row={row} search={search} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </GroupFragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-/* ── Project Result Table (compact + grouped) ── */
+/* ── Project Result Table ── */
 function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultRow[]; search: string; groupColor: string }) {
   if (rows.length === 0) {
     return (
@@ -263,35 +468,117 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
           </tr>
         </thead>
         <tbody>
-          {groups.map((group) => (
-            <GroupFragment key={group.assignee}>
-              <AssigneeGroupHeader name={group.assignee} count={group.rows.length} color={groupColor} />
-              {group.rows.map((row) => {
-                const stateColor =
-                  row.state === '완료' ? 'text-emerald-600' :
-                  row.state === '진행중' ? 'text-blue-600' : 'text-gray-400';
-                return (
-                  <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
-                    <td className="px-2 py-0 text-[10px] font-medium truncate">
-                      <HighlightText text={row.projectName} search={search} />
-                    </td>
-                    <td className="px-2 py-0 text-[9px] truncate">
-                      <HighlightText text={row.taskTitle} search={search} />
-                    </td>
-                    <td className="px-2 py-0">
-                      <span className={cn('text-[9px] font-medium', stateColor)}>{row.state}</span>
-                    </td>
-                    <td className="px-2 py-0 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
-                    <td className="px-2 py-0">
-                      <ResultValueCell value={row.resultValue} search={search} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </GroupFragment>
-          ))}
+          {groups.map((group) => {
+            const withResult = group.rows.filter((r) => r.resultValue !== null).length;
+            return (
+              <GroupFragment key={group.assignee}>
+                <AssigneeGroupHeader
+                  name={group.assignee}
+                  resultCount={withResult}
+                  totalCount={group.rows.length}
+                  color={groupColor}
+                />
+                {group.rows.map((row) => {
+                  const stateColor =
+                    row.state === '완료' ? 'text-emerald-600' :
+                    row.state === '진행중' ? 'text-blue-600' : 'text-gray-400';
+                  return (
+                    <tr key={row.id} className="border-b border-border/20 hover:bg-muted/15 transition-colors h-6">
+                      <td className="px-2 py-0 text-[10px] font-medium truncate">
+                        <HighlightText text={row.projectName} search={search} />
+                      </td>
+                      <td className="px-2 py-0 text-[9px] truncate">
+                        <HighlightText text={row.taskTitle} search={search} />
+                      </td>
+                      <td className="px-2 py-0">
+                        <span className={cn('text-[9px] font-medium', stateColor)}>{row.state}</span>
+                      </td>
+                      <td className="px-2 py-0 text-[9px] text-muted-foreground">{row.dueDate || '-'}</td>
+                      <td className="px-2 py-0">
+                        {row.resultValue ? (
+                          <span className="text-[10px] truncate block">
+                            <HighlightText text={row.resultValue} search={search} />
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/30">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </GroupFragment>
+            );
+          })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/* ── Missing Results Section (collapsible) ─── */
+function MissingResultsSection({
+  rows,
+  search,
+}: {
+  rows: ResultRow[];
+  search: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/10 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/10 transition-colors"
+      >
+        <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400" />
+        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+          결과 미입력
+        </span>
+        <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-amber-200/80 dark:bg-amber-800/40 text-amber-800 dark:text-amber-300">
+          {rows.length}건
+        </Badge>
+        <span className="text-[9px] text-amber-600/60 dark:text-amber-400/60 ml-auto mr-1">
+          완료했지만 결과값이 비어있습니다
+        </span>
+        <ChevronDown className={cn('size-3 text-amber-600/50 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="border-t border-amber-200/60 dark:border-amber-800/30">
+          <table className="w-full table-fixed text-left">
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b border-amber-200/30 dark:border-amber-800/20 hover:bg-amber-100/30 dark:hover:bg-amber-900/10 transition-colors h-6">
+                  <td className="px-3 py-0 text-[10px] text-amber-800/70 dark:text-amber-300/70" style={{ width: '80px' }}>
+                    {row.assignee}
+                  </td>
+                  <td className="px-2 py-0">
+                    <span className="text-[10px] font-medium text-amber-900/80 dark:text-amber-200/80 truncate block">
+                      <HighlightText text={row.taskName} search={search} />
+                    </span>
+                  </td>
+                  <td className="px-2 py-0 text-[9px] text-amber-700/50 dark:text-amber-400/50 truncate" style={{ width: '100px' }}>
+                    {row.campaignName || '전역'}
+                  </td>
+                  <td className="px-2 py-0" style={{ width: '140px' }}>
+                    <InlineResultInput
+                      check={row.checkId ? { id: row.checkId, status: row.status } : null}
+                      resultValue={null}
+                      taskId={row.taskId}
+                      date={row.date}
+                      assigneeId={row.assigneeId}
+                      campaignId={row.campaignId}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -302,10 +589,43 @@ export default function ResultsViewPage() {
 
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('daily');
   const [searchQuery, setSearchQuery] = useState('');
-  const [allPeriod, setAllPeriod] = useState(false);
+  const [rangeMode, setRangeMode] = useState<RangeMode>('day');
 
+  const handleDateNav = useCallback((dir: -1 | 1) => {
+    setDate((prev) => {
+      const d = parseISO(prev);
+      switch (rangeMode) {
+        case 'week':
+          return format(addDays(d, dir * 7), 'yyyy-MM-dd');
+        case 'month':
+          return format(dir === 1 ? addDays(endOfMonth(d), 1) : subDays(startOfMonth(d), 1), 'yyyy-MM-dd');
+        default:
+          return format(addDays(d, dir), 'yyyy-MM-dd');
+      }
+    });
+  }, [rangeMode]);
+
+  const handleToday = useCallback(() => {
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
+
+  const handleCalendarSelect = useCallback((day: Date | undefined) => {
+    if (day) setDate(format(day, 'yyyy-MM-dd'));
+  }, []);
+
+  // ── Computed date range ──
+  const dateRange = useMemo(() => getDateRange(date, rangeMode), [date, rangeMode]);
+  const monthRange = useMemo(() => {
+    const d = parseISO(date);
+    return {
+      start: format(startOfMonth(d), 'yyyy-MM-dd'),
+      end: format(endOfMonth(d), 'yyyy-MM-dd'),
+    };
+  }, [date]);
+  const yearMonth = date.substring(0, 7);
+  const isRangeMode = rangeMode !== 'day';
 
   // ── Data Fetching ──
 
@@ -364,50 +684,31 @@ export default function ResultsViewPage() {
     return map;
   }, [campaigns]);
 
-  // Daily/weekly results: include checks with result_value OR status='완료'
-  const { data: dailyChecks = [], isLoading: dailyLoading } = useQuery({
-    queryKey: allPeriod
-      ? queryKeys.checks.allResults(selectedUserId ?? undefined)
-      : selectedUserId
-        ? queryKeys.checks.resultsByDateAndUser(date, selectedUserId)
-        : queryKeys.checks.resultsByDate(date),
-    queryFn: async () => {
-      let query = supabase
-        .from('daily_checks')
-        .select('*')
-        .or('result_value.not.is.null,status.eq.완료');
-      if (!allPeriod) {
-        query = query.eq('check_date', date);
-      }
-      if (selectedUserId) {
-        query = query.eq('assigned_user_id', selectedUserId);
-      }
-      query = query.order('check_date', { ascending: false }).limit(500);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as DailyCheck[];
-    },
-  });
+  // Set of periodic task IDs (monthly, once, as_needed)
+  const periodicTaskIds = useMemo(() => {
+    return new Set(
+      tasks
+        .filter((t) => t.frequency === 'monthly' || t.frequency === 'once' || t.frequency === 'as_needed')
+        .map((t) => t.id)
+    );
+  }, [tasks]);
 
-  // Periodic results: include checks with result_value OR status='완료'
-  const { data: periodicChecks = [], isLoading: periodicLoading } = useQuery({
-    queryKey: allPeriod
-      ? queryKeys.checks.allPeriodicResults(selectedUserId ?? undefined)
-      : selectedUserId
-        ? queryKeys.checks.periodicResultsByMonthAndUser(date, selectedUserId)
-        : queryKeys.checks.periodicResultsByMonth(date),
+  // ── UNIFIED QUERY: Fetch ALL checks for the month (fixes duplicate + date bug) ──
+  const { data: allChecks = [], isLoading: checksLoading } = useQuery({
+    queryKey: selectedUserId
+      ? queryKeys.checks.periodicResultsByMonthAndUser(yearMonth, selectedUserId)
+      : queryKeys.checks.periodicResultsByMonth(yearMonth),
     queryFn: async () => {
       let query = supabase
         .from('daily_checks')
         .select('*')
-        .or('result_value.not.is.null,status.eq.완료');
-      if (!allPeriod) {
-        query = query.eq('check_date', date);
-      }
+        .or('result_value.not.is.null,status.eq.완료')
+        .gte('check_date', monthRange.start)
+        .lte('check_date', monthRange.end);
       if (selectedUserId) {
         query = query.eq('assigned_user_id', selectedUserId);
       }
-      query = query.order('check_date', { ascending: false }).limit(500);
+      query = query.order('check_date', { ascending: false }).limit(1000);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
@@ -446,77 +747,75 @@ export default function ResultsViewPage() {
     return map;
   }, [projects]);
 
-  // Set of periodic task IDs
-  const periodicTaskIds = useMemo(() => {
-    return new Set(
-      tasks
-        .filter((t) => t.frequency === 'monthly' || t.frequency === 'once' || t.frequency === 'as_needed')
-        .map((t) => t.id)
-    );
-  }, [tasks]);
+  // ── Convert check to ResultRow ──
+  const toRow = useCallback(
+    (c: DailyCheck): ResultRow => {
+      const task = taskMap.get(c.task_id);
+      const actualAssignee = c.assigned_user_id ? userMap.get(c.assigned_user_id) : null;
+      return {
+        id: c.id,
+        checkId: c.id,
+        date: c.check_date,
+        taskId: c.task_id,
+        taskName: task?.task_name ?? c.task_id,
+        taskCategory: task?.category ?? '',
+        frequency: task?.frequency ?? '',
+        loopOrder: task?.loop_order ?? 999,
+        assignee: actualAssignee ?? '-',
+        assigneeId: c.assigned_user_id,
+        campaignId: c.campaign_id,
+        campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
+        resultValue: c.result_value,
+        status: c.status,
+        scope: c.campaign_id ? 'campaign' : 'global',
+      };
+    },
+    [taskMap, userMap, campaignMap]
+  );
 
-  // Resolve selected user's name for client-side filtering
-  const selectedUserName = selectedUserId ? userMap.get(selectedUserId) ?? null : null;
+  // ── Search filter ──
+  const matchesSearch = useCallback(
+    (row: ResultRow): boolean => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        row.taskName.toLowerCase().includes(q) ||
+        (row.resultValue?.toLowerCase().includes(q) ?? false) ||
+        row.assignee.toLowerCase().includes(q) ||
+        (row.campaignName?.toLowerCase().includes(q) ?? false)
+      );
+    },
+    [searchQuery]
+  );
 
-  // Helper: convert check to ResultRow
-  const toRow = (c: DailyCheck): ResultRow => {
-    const task = taskMap.get(c.task_id);
-    const actualAssignee = c.assigned_user_id ? userMap.get(c.assigned_user_id) : null;
-    return {
-      id: c.id,
-      date: c.check_date,
-      taskName: task?.task_name ?? c.task_id,
-      taskCategory: task?.category ?? '',
-      frequency: task?.frequency ?? '',
-      loopOrder: task?.loop_order ?? 999,
-      assignee: actualAssignee ?? '-',
-      campaignName: c.campaign_id ? (campaignMap.get(c.campaign_id) ?? null) : null,
-      resultValue: c.result_value || `(${c.status})`,
-    };
-  };
+  const matchesProjectSearch = useCallback(
+    (row: ProjectResultRow): boolean => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        row.projectName.toLowerCase().includes(q) ||
+        row.taskTitle.toLowerCase().includes(q) ||
+        (row.resultValue?.toLowerCase().includes(q) ?? false) ||
+        row.assignee.toLowerCase().includes(q)
+      );
+    },
+    [searchQuery]
+  );
 
-  // Search filter function
-  const matchesSearch = (row: ResultRow): boolean => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      row.taskName.toLowerCase().includes(q) ||
-      row.resultValue.toLowerCase().includes(q) ||
-      row.assignee.toLowerCase().includes(q) ||
-      (row.campaignName?.toLowerCase().includes(q) ?? false)
-    );
-  };
-
-  const matchesProjectSearch = (row: ProjectResultRow): boolean => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      row.projectName.toLowerCase().includes(q) ||
-      row.taskTitle.toLowerCase().includes(q) ||
-      row.resultValue.toLowerCase().includes(q) ||
-      row.assignee.toLowerCase().includes(q)
-    );
-  };
-
-  // ── Filtered rows ──
-  const globalRows = useMemo(() => {
-    return dailyChecks
-      .filter((c) => (c.result_value || c.status === '완료') && !c.campaign_id && !periodicTaskIds.has(c.task_id))
-      .map(toRow)
-      .filter(matchesSearch)
-      .sort((a, b) => a.assignee.localeCompare(b.assignee, 'ko') || (allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap, userMap, searchQuery, allPeriod]);
-
-  const campaignRows = useMemo(() => {
-    return dailyChecks
-      .filter((c) => (c.result_value || c.status === '완료') && c.campaign_id && !periodicTaskIds.has(c.task_id))
+  // ── DAILY tab rows: daily/weekly tasks, filtered by selected date range ──
+  const dailyRows = useMemo(() => {
+    return allChecks
+      .filter((c) => {
+        if (periodicTaskIds.has(c.task_id)) return false;
+        // For daily tasks: filter by selected date range
+        return c.check_date >= dateRange.start && c.check_date <= dateRange.end;
+      })
       .map(toRow)
       .filter(matchesSearch)
       .sort((a, b) => {
         const assigneeCmp = a.assignee.localeCompare(b.assignee, 'ko');
         if (assigneeCmp !== 0) return assigneeCmp;
-        if (allPeriod) {
+        if (isRangeMode) {
           const dateCmp = b.date.localeCompare(a.date);
           if (dateCmp !== 0) return dateCmp;
         }
@@ -524,23 +823,35 @@ export default function ResultsViewPage() {
         if (campCmp !== 0) return campCmp;
         return a.loopOrder - b.loopOrder;
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyChecks, periodicTaskIds, taskMap, campaignMap, userMap, searchQuery, allPeriod]);
+  }, [allChecks, periodicTaskIds, dateRange, toRow, matchesSearch, isRangeMode]);
 
-  const monthlyRows = useMemo(() => {
-    return periodicChecks
-      .filter((c) => (c.result_value || c.status === '완료') && periodicTaskIds.has(c.task_id))
+  // Split daily rows into with-result and missing-result
+  const dailyWithResult = useMemo(() => dailyRows.filter((r) => r.resultValue !== null), [dailyRows]);
+  const dailyMissingResult = useMemo(() => dailyRows.filter((r) => r.resultValue === null), [dailyRows]);
+
+  // ── PERIODIC tab rows: monthly/once/as_needed, entire month range ──
+  const periodicRows = useMemo(() => {
+    return allChecks
+      .filter((c) => periodicTaskIds.has(c.task_id))
       .map(toRow)
       .filter(matchesSearch)
-      .sort((a, b) => a.assignee.localeCompare(b.assignee, 'ko') || (allPeriod ? b.date.localeCompare(a.date) || a.loopOrder - b.loopOrder : a.loopOrder - b.loopOrder || a.date.localeCompare(b.date)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodicChecks, periodicTaskIds, taskMap, campaignMap, userMap, searchQuery, allPeriod]);
+      .sort((a, b) => {
+        const assigneeCmp = a.assignee.localeCompare(b.assignee, 'ko');
+        if (assigneeCmp !== 0) return assigneeCmp;
+        const dateCmp = b.date.localeCompare(a.date);
+        if (dateCmp !== 0) return dateCmp;
+        return a.loopOrder - b.loopOrder;
+      });
+  }, [allChecks, periodicTaskIds, toRow, matchesSearch]);
 
+  const periodicWithResult = useMemo(() => periodicRows.filter((r) => r.resultValue !== null), [periodicRows]);
+  const periodicMissingResult = useMemo(() => periodicRows.filter((r) => r.resultValue === null), [periodicRows]);
+
+  // ── PROJECT tab rows ──
   const projectResultRows = useMemo((): ProjectResultRow[] => {
     const projectRows: ProjectResultRow[] = projects
       .filter((p) => p.result_value || p.state === '완료')
       .filter((p) => {
-        // Filter by selected user
         if (!selectedUserId) return true;
         return p.assignee_id === selectedUserId;
       })
@@ -550,13 +861,12 @@ export default function ResultsViewPage() {
         taskTitle: '(프로젝트 결과)',
         assignee: p.assignee_id ? (userMap.get(p.assignee_id) ?? '-') : '-',
         state: p.state,
-        resultValue: p.result_value || `(${p.state})`,
+        resultValue: p.result_value,
         dueDate: p.due_date,
       }));
 
     const taskRows: ProjectResultRow[] = projectTasks
       .filter((pt) => {
-        // Filter by selected user
         if (!selectedUserId) return true;
         const project = projectMap.get(pt.project_id);
         const taskAssignee = pt.assignee_id ?? project?.assignee_id ?? null;
@@ -570,7 +880,7 @@ export default function ResultsViewPage() {
           taskTitle: pt.title,
           assignee: pt.assignee_id ? (userMap.get(pt.assignee_id) ?? '-') : (project?.assignee_id ? (userMap.get(project.assignee_id) ?? '-') : '-'),
           state: pt.state,
-          resultValue: pt.result_value || `(${pt.state})`,
+          resultValue: pt.result_value,
           dueDate: pt.due_date,
         };
       });
@@ -578,19 +888,23 @@ export default function ResultsViewPage() {
     return [...projectRows, ...taskRows]
       .filter(matchesProjectSearch)
       .sort((a, b) => a.assignee.localeCompare(b.assignee, 'ko'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, projectTasks, projectMap, userMap, searchQuery, selectedUserId]);
+  }, [projects, projectTasks, projectMap, userMap, matchesProjectSearch, selectedUserId]);
 
-  const isLoading = dailyLoading || periodicLoading || projectTasksLoading;
+  const projectWithResult = useMemo(() => projectResultRows.filter((r) => r.resultValue !== null), [projectResultRows]);
+
+  const isLoading = checksLoading || projectTasksLoading;
+
+  // ── Summary stats ──
+  const totalWithResult = dailyWithResult.length + periodicWithResult.length + projectWithResult.length;
+  const totalAll = dailyRows.length + periodicRows.length + projectResultRows.length;
+  const inputRate = totalAll > 0 ? Math.round((totalWithResult / totalAll) * 100) : 0;
+  const totalMissing = dailyMissingResult.length + periodicMissingResult.length;
 
   const tabCounts = {
-    global: globalRows.length,
-    campaign: campaignRows.length,
-    monthly: monthlyRows.length,
+    daily: dailyRows.length,
+    periodic: periodicRows.length,
     project: projectResultRows.length,
   };
-
-  const totalResults = tabCounts.global + tabCounts.campaign + tabCounts.monthly + tabCounts.project;
 
   return (
     <motion.div
@@ -603,22 +917,88 @@ export default function ResultsViewPage() {
       <motion.div variants={fadeUpItem}>
         <h1 className="text-xl font-bold tracking-tight">결과값 관리</h1>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          업무별, 프로젝트별 결과값을 담당자별로 그룹화하여 확인합니다.
+          업무 결과값을 확인하고 인라인으로 바로 입력할 수 있습니다.
         </p>
       </motion.div>
 
-      {/* Filters */}
+      {/* Summary Stats Card */}
       <motion.div variants={fadeUpItem}>
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-2.5">
+        <div className="rounded-xl border bg-card p-3 space-y-2.5">
+          {/* Date Navigation */}
           <div className="flex flex-wrap items-center gap-2">
-            {!allPeriod && (
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-[150px] h-7 text-xs"
-              />
-            )}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon-xs"
+                onClick={() => handleDateNav(-1)}
+                className="rounded-lg"
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="min-w-[150px] justify-start text-left font-normal h-7 rounded-lg text-xs"
+                  >
+                    <CalendarDays className="size-3.5 text-primary/70" />
+                    <span>{formatDateLabel(date, rangeMode)}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={parseISO(date)}
+                    onSelect={handleCalendarSelect}
+                    defaultMonth={parseISO(date)}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="outline"
+                size="icon-xs"
+                onClick={() => handleDateNav(1)}
+                className="rounded-lg"
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={handleToday}
+                className="text-[11px] text-primary/70 hover:text-primary rounded-lg"
+              >
+                오늘
+              </Button>
+            </div>
+
+            <div className="hidden sm:block h-5 w-px bg-border" />
+
+            {/* Range Mode Toggle */}
+            <div className="flex items-center rounded-lg border bg-muted/30 p-0.5 gap-0.5">
+              {([['day', '일간'], ['week', '이번 주'], ['month', '이번 달']] as [RangeMode, string][]).map(
+                ([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setRangeMode(mode)}
+                    className={cn(
+                      'px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
+                      rangeMode === mode
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {label}
+                  </button>
+                )
+              )}
+            </div>
+
+            <div className="hidden sm:block h-5 w-px bg-border" />
+
+            {/* User filter */}
             <select
               value={selectedUserId ?? ''}
               onChange={(e) => setSelectedUserId(e.target.value || null)}
@@ -629,23 +1009,38 @@ export default function ResultsViewPage() {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={() => setAllPeriod(!allPeriod)}
-              className={cn(
-                'h-7 px-2.5 rounded-md text-[10px] font-medium transition-all flex items-center gap-1 border',
-                allPeriod
-                  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
-                  : 'bg-background text-muted-foreground hover:bg-muted border-border'
-              )}
-            >
-              <Calendar className="size-3" />
-              전체기간
-            </button>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-              {searchQuery ? `검색 ${totalResults}건` : `총 ${totalResults}건`}
-            </Badge>
           </div>
+
+          {/* Stats */}
+          {!isLoading && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground">결과 입력</span>
+                  <span className="text-[12px] font-bold">{totalWithResult}/{totalAll}건</span>
+                  <span className="text-[10px] text-muted-foreground">({inputRate}%)</span>
+                </div>
+                <div className="hidden sm:block h-4 w-px bg-border" />
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  <span>일일 <strong className="text-foreground">{tabCounts.daily}건</strong></span>
+                  <span>월간/기타 <strong className="text-foreground">{tabCounts.periodic}건</strong></span>
+                  <span>프로젝트 <strong className="text-foreground">{tabCounts.project}건</strong></span>
+                </div>
+                {totalMissing > 0 && (
+                  <>
+                    <div className="hidden sm:block h-4 w-px bg-border" />
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="size-3" />
+                      <span className="text-[10px] font-medium">결과 미입력 {totalMissing}건</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <Progress value={inputRate} className="h-1.5" />
+            </div>
+          )}
+
+          {/* Search */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
             <Input
@@ -679,24 +1074,15 @@ export default function ResultsViewPage() {
         <motion.div variants={fadeUpItem}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-2">
-              <TabsTrigger value="all" className="text-[10px] gap-1 px-2 py-1">
-                전체
-                {totalResults > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{totalResults}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="global" className="text-[10px] gap-1 px-2 py-1">
+              <TabsTrigger value="daily" className="text-[10px] gap-1 px-2 py-1">
                 <ClipboardList className="size-3" />
-                전역
-                {tabCounts.global > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{tabCounts.global}</Badge>}
+                일일 업무
+                {tabCounts.daily > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{tabCounts.daily}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="campaign" className="text-[10px] gap-1 px-2 py-1">
+              <TabsTrigger value="periodic" className="text-[10px] gap-1 px-2 py-1">
                 <CalendarDays className="size-3" />
-                캠페인
-                {tabCounts.campaign > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{tabCounts.campaign}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="monthly" className="text-[10px] gap-1 px-2 py-1">
-                <CalendarDays className="size-3" />
-                월간
-                {tabCounts.monthly > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{tabCounts.monthly}</Badge>}
+                월간/기타
+                {tabCounts.periodic > 0 && <Badge variant="secondary" className="text-[8px] px-1 py-0">{tabCounts.periodic}</Badge>}
               </TabsTrigger>
               <TabsTrigger value="project" className="text-[10px] gap-1 px-2 py-1">
                 <FolderOpen className="size-3" />
@@ -705,98 +1091,88 @@ export default function ResultsViewPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* All Tab */}
-            <TabsContent value="all" className="space-y-3">
-              {globalRows.length > 0 && (
+            {/* Daily Tab */}
+            <TabsContent value="daily" className="space-y-3">
+              {/* Global daily section */}
+              {dailyWithResult.filter((r) => r.scope === 'global').length > 0 && (
                 <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
                   <div className="px-2.5 py-1 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-1.5">
                     <ClipboardList className="size-3 text-blue-500" />
-                    <h3 className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">전역 일일/주간</h3>
-                    <span className="text-[9px] text-blue-500/60">{allPeriod ? '전체기간' : date}</span>
-                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{globalRows.length}</Badge>
+                    <h3 className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">전역</h3>
+                    <span className="text-[9px] text-blue-500/60">{isRangeMode ? formatDateLabel(date, rangeMode) : date}</span>
+                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">
+                      {dailyWithResult.filter((r) => r.scope === 'global').length}
+                    </Badge>
                   </div>
-                  <ResultTable rows={globalRows} showCampaign={false} search={searchQuery} groupColor="bg-blue-50/70 dark:bg-blue-950/15 text-blue-700 dark:text-blue-300" />
+                  <ResultTable
+                    rows={dailyWithResult.filter((r) => r.scope === 'global')}
+                    showCampaign={false}
+                    showDate={isRangeMode}
+                    search={searchQuery}
+                    groupColor="bg-blue-50/70 dark:bg-blue-950/15 text-blue-700 dark:text-blue-300"
+                  />
                 </div>
               )}
-              {campaignRows.length > 0 && (
+              {/* Campaign daily section */}
+              {dailyWithResult.filter((r) => r.scope === 'campaign').length > 0 && (
                 <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
                   <div className="px-2.5 py-1 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-1.5">
                     <CalendarDays className="size-3 text-violet-500" />
-                    <h3 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">캠페인별 일일</h3>
-                    <span className="text-[9px] text-violet-500/60">{allPeriod ? '전체기간' : date}</span>
-                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{campaignRows.length}</Badge>
+                    <h3 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">캠페인</h3>
+                    <span className="text-[9px] text-violet-500/60">{isRangeMode ? formatDateLabel(date, rangeMode) : date}</span>
+                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">
+                      {dailyWithResult.filter((r) => r.scope === 'campaign').length}
+                    </Badge>
                   </div>
-                  <ResultTable rows={campaignRows} showCampaign={true} search={searchQuery} groupColor="bg-violet-50/70 dark:bg-violet-950/15 text-violet-700 dark:text-violet-300" />
+                  <ResultTable
+                    rows={dailyWithResult.filter((r) => r.scope === 'campaign')}
+                    showCampaign={true}
+                    showDate={isRangeMode}
+                    search={searchQuery}
+                    groupColor="bg-violet-50/70 dark:bg-violet-950/15 text-violet-700 dark:text-violet-300"
+                  />
                 </div>
               )}
-              {monthlyRows.length > 0 && (
-                <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                  <div className="px-2.5 py-1 border-b bg-indigo-50 dark:bg-indigo-950/20 flex items-center gap-1.5">
-                    <CalendarDays className="size-3 text-indigo-500" />
-                    <h3 className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300">월간/주기별</h3>
-                    <span className="text-[9px] text-indigo-500/60">{allPeriod ? '전체기간' : date}</span>
-                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{monthlyRows.length}</Badge>
-                  </div>
-                  <ResultTable rows={monthlyRows} showCampaign={true} search={searchQuery} groupColor="bg-indigo-50/70 dark:bg-indigo-950/15 text-indigo-700 dark:text-indigo-300" />
-                </div>
-              )}
-              {projectResultRows.length > 0 && (
-                <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                  <div className="px-2.5 py-1 border-b bg-emerald-50 dark:bg-emerald-950/20 flex items-center gap-1.5">
-                    <FolderOpen className="size-3 text-emerald-500" />
-                    <h3 className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">프로젝트</h3>
-                    <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{projectResultRows.length}</Badge>
-                  </div>
-                  <ProjectResultTable rows={projectResultRows} search={searchQuery} groupColor="bg-emerald-50/70 dark:bg-emerald-950/15 text-emerald-700 dark:text-emerald-300" />
-                </div>
-              )}
-              {totalResults === 0 && (
+              {/* Missing results */}
+              <MissingResultsSection rows={dailyMissingResult} search={searchQuery} />
+              {/* Empty state */}
+              {dailyRows.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-1">
                   <FileText className="size-6 opacity-30" />
                   <span className="text-xs">
-                    {searchQuery ? `"${searchQuery}" 검색 결과 없음` : '결과값이 없습니다.'}
+                    {searchQuery ? `"${searchQuery}" 검색 결과 없음` : '해당 기간에 결과값이 없습니다.'}
                   </span>
                 </div>
               )}
             </TabsContent>
 
-            {/* Global Tab */}
-            <TabsContent value="global">
-              <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                <div className="px-2.5 py-1 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-1.5">
-                  <ClipboardList className="size-3 text-blue-500" />
-                  <h3 className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">전역 일일/주간</h3>
-                  <span className="text-[9px] text-blue-500/60">{allPeriod ? '전체기간' : date}</span>
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{globalRows.length}</Badge>
-                </div>
-                <ResultTable rows={globalRows} showCampaign={false} search={searchQuery} groupColor="bg-blue-50/70 dark:bg-blue-950/15 text-blue-700 dark:text-blue-300" />
-              </div>
-            </TabsContent>
-
-            {/* Campaign Tab */}
-            <TabsContent value="campaign">
-              <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                <div className="px-2.5 py-1 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-1.5">
-                  <CalendarDays className="size-3 text-violet-500" />
-                  <h3 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">캠페인별 일일</h3>
-                  <span className="text-[9px] text-violet-500/60">{allPeriod ? '전체기간' : date}</span>
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{campaignRows.length}</Badge>
-                </div>
-                <ResultTable rows={campaignRows} showCampaign={true} search={searchQuery} groupColor="bg-violet-50/70 dark:bg-violet-950/15 text-violet-700 dark:text-violet-300" />
-              </div>
-            </TabsContent>
-
-            {/* Monthly Tab */}
-            <TabsContent value="monthly">
+            {/* Periodic Tab */}
+            <TabsContent value="periodic" className="space-y-3">
               <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
                 <div className="px-2.5 py-1 border-b bg-indigo-50 dark:bg-indigo-950/20 flex items-center gap-1.5">
                   <CalendarDays className="size-3 text-indigo-500" />
-                  <h3 className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300">월간/주기별</h3>
-                  <span className="text-[9px] text-indigo-500/60">{allPeriod ? '전체기간' : date}</span>
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">{monthlyRows.length}</Badge>
+                  <h3 className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300">월간/기타</h3>
+                  <span className="text-[9px] text-indigo-500/60">{format(parseISO(date), 'yyyy년 M월')}</span>
+                  <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">
+                    {periodicWithResult.length}
+                  </Badge>
                 </div>
-                <ResultTable rows={monthlyRows} showCampaign={true} search={searchQuery} groupColor="bg-indigo-50/70 dark:bg-indigo-950/15 text-indigo-700 dark:text-indigo-300" />
+                {periodicWithResult.length > 0 ? (
+                  <ResultTable
+                    rows={periodicWithResult}
+                    showCampaign={true}
+                    showDate={true}
+                    search={searchQuery}
+                    groupColor="bg-indigo-50/70 dark:bg-indigo-950/15 text-indigo-700 dark:text-indigo-300"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-1">
+                    <FileText className="size-5 opacity-30" />
+                    <span className="text-[11px]">{searchQuery ? '검색 결과가 없습니다.' : '이번 달 월간/기타 결과값이 없습니다.'}</span>
+                  </div>
+                )}
               </div>
+              <MissingResultsSection rows={periodicMissingResult} search={searchQuery} />
             </TabsContent>
 
             {/* Project Tab */}
