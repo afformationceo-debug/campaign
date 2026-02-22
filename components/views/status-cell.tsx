@@ -163,30 +163,35 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
-              type="button"
-              onClick={handleClick}
-              onContextMenu={handleContextMenu}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              onTouchCancel={handleTouchEnd}
-              className={cn(
-                'flex items-center justify-center w-6 h-6 rounded-md',
-                'transition-all duration-200 cursor-pointer',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                'hover:scale-110 hover:shadow-md active:scale-95',
-                colors.bg,
-                colors.darkBg,
-                colors.text,
-                pulse && 'animate-pulse ring-2',
-                pulse && colors.ring,
-                check.note && 'ring-1 ring-offset-1',
-                check.note && colors.ring
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleClick}
+                onContextMenu={handleContextMenu}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                className={cn(
+                  'flex items-center justify-center w-6 h-6 rounded-md',
+                  'transition-all duration-200 cursor-pointer',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'hover:scale-110 hover:shadow-md active:scale-95',
+                  colors.bg,
+                  colors.darkBg,
+                  colors.text,
+                  pulse && 'animate-pulse ring-2',
+                  pulse && colors.ring,
+                  check.note && 'ring-1 ring-offset-1',
+                  check.note && colors.ring
+                )}
+                aria-label={`상태: ${STATUS_LABELS[status]}`}
+              >
+                <Icon className="size-3" />
+              </button>
+              {check.note && (
+                <div className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500 border border-white dark:border-gray-900" />
               )}
-              aria-label={`상태: ${STATUS_LABELS[status]}`}
-            >
-              <Icon className="size-3" />
-            </button>
+            </div>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={4}>
@@ -194,6 +199,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
           {check.note && (
             <p className="mt-1 text-[10px] opacity-80">{check.note}</p>
           )}
+          <p className="mt-1 text-[9px] opacity-50">우클릭: 메모 추가/수정</p>
         </TooltipContent>
       </Tooltip>
 

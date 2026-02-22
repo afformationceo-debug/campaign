@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -424,11 +424,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
 
   // Bulk complete: mark all applicable campaigns for a task as '완료'
   const handleBulkComplete = useCallback((task: Task) => {
-    filteredCampaigns.forEach((campaign) => {
-      if (!isApplicable(campaign.id, task.id)) return;
+    const uncompleted = filteredCampaigns.filter((campaign) => {
+      if (!isApplicable(campaign.id, task.id)) return false;
       const check = checkMap.get(`${campaign.id}:${task.id}`);
-      if (check?.status === '완료' || check?.status === '해당없음') return;
+      return !check || (check.status !== '완료' && check.status !== '해당없음');
+    });
 
+    if (uncompleted.length === 0) return;
+    if (!window.confirm(`"${task.task_name}" 업무를 ${uncompleted.length}개 캠페인에서 일괄 완료 처리하시겠습니까?`)) return;
+
+    uncompleted.forEach((campaign) => {
+      const check = checkMap.get(`${campaign.id}:${task.id}`);
       if (!check) {
         bulkCreateCheck({
           campaign_id: campaign.id,
@@ -457,12 +463,18 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
   }
 
   if (filteredCampaigns.length === 0 && globalTasks.length === 0) {
+    const message = assigneeName
+      ? '선택한 담당자에게 할당된 업무가 없습니다.'
+      : categories.length < CATEGORY_ORDER.length
+      ? '선택한 카테고리에 해당하는 업무가 없습니다.'
+      : '표시할 데이터가 없습니다.';
+
     return (
       <div className="flex flex-col items-center justify-center py-20 text-sm text-muted-foreground gap-2">
         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-          <span className="text-lg">📋</span>
+          <ListChecks className="size-5 text-muted-foreground/50" />
         </div>
-        표시할 데이터가 없습니다.
+        {message}
       </div>
     );
   }
@@ -485,12 +497,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
         <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '24%' }}>업무</th>
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '9%' }}>카테고리</th>
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '10%' }}>도구</th>
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
-              <th className="px-1.5 py-0 text-[9px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '26%' }}>업무</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>카테고리</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '11%' }}>담당자</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '11%' }}>도구</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
+              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '34%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -540,7 +552,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       return (
                         <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
                           'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
-                          isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                          isCompleted && 'bg-emerald-50/30 dark:bg-emerald-950/10'
                         )}>
                           <td className={cn(
                             'px-1.5 py-0 max-w-0',
@@ -587,13 +599,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             )}
                           </td>
                           <td className="px-1.5 py-0">
-                            <div className="flex items-center justify-center">
+                            <div className="flex items-center justify-center gap-0.5">
                               <GlobalStatusSelect
                                 check={check}
                                 taskId={task.id}
                                 date={date}
                                 assigneeId={aId || effectiveUserId}
                               />
+                              {check?.note && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p className="text-xs">메모: {check.note}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </td>
                           <td className="px-1.5 py-0">
@@ -616,7 +638,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <tr key={`${group.assignee}-${task.id}`} className={cn(
                       'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
-                      isCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                      isCompleted && 'bg-emerald-50/30 dark:bg-emerald-950/10'
                     )}>
                       <td className={cn(
                         'px-1.5 py-0 max-w-0',
@@ -651,13 +673,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
                       </td>
                       <td className="px-1.5 py-0">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-0.5">
                           <GlobalStatusSelect
                             check={check}
                             taskId={task.id}
                             date={date}
                             assigneeId={effectiveUserId}
                           />
+                          {check?.note && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p className="text-xs">메모: {check.note}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </td>
                       <td className="px-1.5 py-0">
@@ -717,20 +749,18 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   className={cn(
                     'sticky top-0 z-20',
                     'bg-background border-b px-0.5 py-0.5',
-                    'text-center min-w-[34px] max-w-[38px]'
+                    'text-center min-w-[40px] max-w-[46px]'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex flex-col items-center gap-0 cursor-help">
-                        <span className="text-[9px] font-semibold text-foreground leading-tight">
-                          {campaign.client_name.slice(0, 2)}
+                        <span className="text-[8px] font-semibold text-foreground leading-tight">
+                          {campaign.client_name.slice(0, 3)}
                         </span>
-                        {countryShort && (
-                          <span className="text-[7px] text-muted-foreground/70 leading-tight">
-                            {countryShort}
-                          </span>
-                        )}
+                        <span className="text-[7px] text-muted-foreground/70 leading-tight">
+                          {campaign.campaign_name.slice(0, 3)}
+                        </span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-[220px]">
@@ -794,7 +824,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <tr key={task.id} className={cn(
                       'hover:bg-muted/30 transition-colors',
-                      pct === 100 && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                      pct === 100 && 'bg-emerald-50/30 dark:bg-emerald-950/10'
                     )}>
                       {/* Task Name (sticky left) */}
                       <td
@@ -917,11 +947,11 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
           })}
 
           {/* Bottom Summary Row */}
-          <tr>
+          <tr className="sticky bottom-0 z-15 shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
             <td
               className={cn(
-                'sticky left-0 z-10',
-                'bg-muted/50 border-t-2 px-2 py-0.5',
+                'sticky left-0 z-20',
+                'bg-background border-t-2 px-2 py-0.5',
                 'text-[10px] font-semibold text-foreground'
               )}
             >
@@ -941,7 +971,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                     'border-t-2 px-1 py-0.5 text-center',
                     cPct === 100
                       ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
-                      : 'bg-muted/50'
+                      : 'bg-background'
                   )}
                 >
                   <div className="flex flex-col items-center gap-0.5">
@@ -974,8 +1004,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
             })}
             <td
               className={cn(
-                'sticky right-0 z-10',
-                'bg-muted/50 border-t-2 border-l px-1.5 py-0.5 text-center'
+                'sticky right-0 z-20',
+                'bg-background border-t-2 border-l px-1.5 py-0.5 text-center'
               )}
             >
               {(() => {

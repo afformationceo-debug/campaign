@@ -600,10 +600,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
     <TooltipProvider delayDuration={200}>
       <div className="rounded-xl border bg-card shadow-sm">
         {/* Header */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors rounded-t-xl"
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
+          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors rounded-t-xl cursor-pointer"
         >
           {expanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
           <div className="flex items-center gap-2">
@@ -616,7 +618,23 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
           <span className="text-[10px] text-muted-foreground ml-auto">
             {format(currentDate, 'yyyy년 MM월')} 기준
           </span>
-        </button>
+          {expanded && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (expandedGroups.size === groupedData.length) {
+                  setExpandedGroups(new Set());
+                } else {
+                  setExpandedGroups(new Set(groupedData.map(g => g.task.id)));
+                }
+              }}
+              className="text-[10px] text-muted-foreground hover:text-foreground ml-2 px-1.5 py-0.5 rounded hover:bg-accent/50 transition-colors"
+            >
+              {expandedGroups.size === groupedData.length ? '전체 접기' : '전체 펼치기'}
+            </button>
+          )}
+        </div>
 
         {/* Body */}
         {expanded && (
@@ -709,7 +727,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               </Badge>
                               {group.targetCount != null && (
                                 <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
-                                  목표: {group.targetCount}건
+                                  목표: {group.completedCount}/{group.targetCount}건
                                 </Badge>
                               )}
                             </div>
@@ -721,11 +739,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                           {/* Progress */}
                           <td className="px-2 py-0.5">
                             <div className="flex items-center gap-1.5">
-                              <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                              <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden">
                                 <div
                                   className={cn(
                                     'h-full rounded-full transition-all',
-                                    allDone ? 'bg-emerald-500' : progressPct > 0 ? 'bg-amber-400' : 'bg-transparent'
+                                    allDone ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : progressPct > 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-transparent'
                                   )}
                                   style={{ width: `${progressPct}%` }}
                                 />
@@ -821,11 +839,11 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                               </td>
                               <td className="px-2 py-1">
                                 <div className="flex items-center gap-1.5">
-                                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                                  <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden">
                                     <div
                                       className={cn(
                                         'h-full rounded-full transition-all',
-                                        subAllDone ? 'bg-emerald-500' : subPct > 0 ? 'bg-amber-400' : 'bg-transparent'
+                                        subAllDone ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : subPct > 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-transparent'
                                       )}
                                       style={{ width: `${subPct}%` }}
                                     />
