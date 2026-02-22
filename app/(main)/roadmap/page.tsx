@@ -47,6 +47,7 @@ import {
   useReorderTasks,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
+import { AiSummarySheet } from '@/components/dashboard/ai-summary-sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -894,6 +895,7 @@ export default function RoadmapPage() {
   }, []);
 
   const isLoading = projectsLoading || tasksLoading;
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -903,10 +905,21 @@ export default function RoadmapPage() {
           <h1 className="text-xl font-bold tracking-tight">프로젝트 로드맵</h1>
           <p className="text-xs text-muted-foreground mt-0.5">진행중인 프로젝트와 하위 업무를 관리합니다.</p>
         </div>
-        <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs">
-          <Plus className="size-3.5" />
-          새 프로젝트
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 text-xs bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-200 dark:border-indigo-800 hover:from-indigo-500/20 hover:to-purple-500/20"
+            onClick={() => setAiSheetOpen(true)}
+          >
+            <Bot className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-indigo-700 dark:text-indigo-300">AI 분석</span>
+          </Button>
+          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs">
+            <Plus className="size-3.5" />
+            새 프로젝트
+          </Button>
+        </div>
       </div>
 
       {/* AI Agent Guide Banner */}
@@ -2081,6 +2094,8 @@ export default function RoadmapPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AiSummarySheet open={aiSheetOpen} onOpenChange={setAiSheetOpen} />
     </div>
   );
 }
