@@ -1,6 +1,7 @@
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { AiCommandShortcut } from '@/components/ai/ai-command-shortcut';
 
 export default function MainLayout({
   children,
@@ -20,6 +21,7 @@ export default function MainLayout({
           </main>
         </div>
       </div>
+      <AiCommandShortcut />
     </TooltipProvider>
   );
 }

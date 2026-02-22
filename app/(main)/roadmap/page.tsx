@@ -47,7 +47,7 @@ import {
   useReorderTasks,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
-import { AiSummarySheet } from '@/components/dashboard/ai-summary-sheet';
+import { AiCommandCenter } from '@/components/ai/ai-command-center';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -2095,7 +2095,7 @@ export default function RoadmapPage() {
         </DialogContent>
       </Dialog>
 
-      <AiSummarySheet open={aiSheetOpen} onOpenChange={setAiSheetOpen} />
+      <AiCommandCenter open={aiSheetOpen} onOpenChange={setAiSheetOpen} context="roadmap" />
     </div>
   );
 }

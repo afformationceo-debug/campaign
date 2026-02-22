@@ -50,7 +50,7 @@ import {
   Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AiSummarySheet } from '@/components/dashboard/ai-summary-sheet';
+import { AiCommandCenter } from '@/components/ai/ai-command-center';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
@@ -1628,7 +1628,7 @@ export default function DashboardPage() {
       </AnimatePresence>
     </motion.div>
 
-    <AiSummarySheet open={aiSheetOpen} onOpenChange={setAiSheetOpen} />
+    <AiCommandCenter open={aiSheetOpen} onOpenChange={setAiSheetOpen} context="dashboard" />
     </>
   );
 }

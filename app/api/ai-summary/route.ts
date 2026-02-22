@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { buildContext, DateRange } from '@/lib/ai/build-context';
 import { SYSTEM_PROMPT, DIMENSION_PROMPTS } from '@/lib/ai/system-prompt';
+import { generateInsights } from '@/lib/ai/insights';
 import type { SummaryDimension } from '@/lib/ai/types';
 
 // 한국 시간(KST) 기준 오늘 날짜 반환
@@ -76,8 +77,11 @@ export async function POST(req: NextRequest) {
     // Detect date range from user message
     const dateRange = userMessage ? detectDateRange(userMessage) : undefined;
 
-    // Build context from database
-    const context = await buildContext(dimension, dateRange);
+    // Build context and insights in parallel
+    const [context, insights] = await Promise.all([
+      buildContext(dimension, dateRange),
+      generateInsights(),
+    ]);
 
     if (!context) {
       return new Response(
@@ -92,7 +96,12 @@ export async function POST(req: NextRequest) {
         ? `\n\n${DIMENSION_PROMPTS[dimension]}`
         : '';
 
-    const contextMessage = `다음은 현재 시스템 데이터입니다. 분석하여 요약해주세요.${dimensionHint}\n\n${context}`;
+    // Build insights section
+    const insightsSection = insights.length > 0
+      ? `\n\n## 프로액티브 인사이트 (자동 감지)\n${insights.map((i) => `- [${i.severity.toUpperCase()}] ${i.title}: ${i.description}`).join('\n')}`
+      : '';
+
+    const contextMessage = `다음은 현재 시스템 데이터입니다. 분석하여 요약해주세요.${dimensionHint}\n\n${context}${insightsSection}`;
 
     // Build messages array for OpenAI
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
