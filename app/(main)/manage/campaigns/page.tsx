@@ -51,6 +51,7 @@ import type {
   ChatdocStatus,
   InterpreterStatus,
   BrandPhase,
+  VatType,
 } from '@/lib/types/database';
 
 // ─── Config ─────────────────────────────────────────────
@@ -274,6 +275,8 @@ interface CampaignFormData {
   monthly_fixed_cost: string;
   cost_per_influencer: string;
   influencer_fee_budget: string;
+  commission_rate: string;
+  vat_type: VatType;
   interpreter_status: InterpreterStatus;
   start_date: string;
   homepage_url: string;
@@ -297,6 +300,8 @@ const defaultFormData: CampaignFormData = {
   monthly_fixed_cost: '',
   cost_per_influencer: '',
   influencer_fee_budget: '',
+  commission_rate: '',
+  vat_type: 'VAT별도',
   interpreter_status: '통역 필요 없음',
   start_date: '',
   homepage_url: '',
@@ -391,6 +396,8 @@ export default function CampaignsPage() {
         insertData.monthly_fixed_cost = data.monthly_fixed_cost ? Number(data.monthly_fixed_cost) : null;
         insertData.cost_per_influencer = data.cost_per_influencer ? Number(data.cost_per_influencer) : null;
         insertData.influencer_fee_budget = data.influencer_fee_budget ? Number(data.influencer_fee_budget) : null;
+        insertData.commission_rate = data.commission_rate ? Number(data.commission_rate) : null;
+        insertData.vat_type = data.vat_type;
         insertData.interpreter_status = data.interpreter_status;
       } else if (data.campaign_type === '제품브랜드') {
         insertData.target_countries = data.target_countries.length > 0 ? data.target_countries : [];
@@ -576,6 +583,7 @@ export default function CampaignsPage() {
                   <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">월 고정비용</th>
                   <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">섭외당 비용</th>
                   <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">원고료 예산</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">수수료</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">통역/챗닥상태</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">홈페이지</th>
                   <th className="py-1.5 px-2 w-10" />
@@ -768,6 +776,44 @@ export default function CampaignsPage() {
                       )}
                     </td>
 
+                    {/* 수수료 */}
+                    <td className="py-0.5 px-2 min-w-[140px]">
+                      {isOverseas ? (
+                        <div className="flex items-center gap-1">
+                          <InlineTextCell
+                            value={campaign.commission_rate?.toString() ?? ''}
+                            isEditing={isEditingCell(campaign.id, 'commission_rate')}
+                            onStartEdit={() => startEdit(campaign.id, 'commission_rate')}
+                            onSave={(v) => handleInlineUpdate(campaign.id, 'commission_rate', v ? Number(v) : null)}
+                            type="number"
+                            placeholder="-"
+                            className="text-right min-w-[50px]"
+                          />
+                          <span className="text-[10px] text-muted-foreground shrink-0">%</span>
+                          <Select
+                            value={campaign.vat_type ?? 'VAT별도'}
+                            onValueChange={(v) => handleInlineUpdate(campaign.id, 'vat_type', v)}
+                          >
+                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent hover:bg-muted/60 px-1 gap-0.5 w-[80px] shrink-0">
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', campaign.vat_type === 'VAT포함' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400')}>
+                                {campaign.vat_type ?? 'VAT별도'}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              <SelectItem value="VAT별도">
+                                <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600 dark:bg-gray-800/30">VAT별도</Badge>
+                              </SelectItem>
+                              <SelectItem value="VAT포함">
+                                <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30">VAT포함</Badge>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/30 px-2">-</span>
+                      )}
+                    </td>
+
                     {/* 통역사배치 / 챗닥 상태 */}
                     <td className="py-0.5 px-2 min-w-[120px]">
                       {isOverseas ? (
@@ -867,7 +913,7 @@ export default function CampaignsPage() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="py-6 text-center text-muted-foreground text-sm">
+                    <td colSpan={13} className="py-6 text-center text-muted-foreground text-sm">
                       {search ? '검색 결과가 없습니다.' : '캠페인이 없습니다. 새 캠페인을 추가해주세요.'}
                     </td>
                   </tr>
@@ -966,6 +1012,23 @@ export default function CampaignsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="influencer_fee_budget">원고료 예산</Label>
                     <Input id="influencer_fee_budget" type="number" value={formData.influencer_fee_budget} onChange={(e) => setFormData((prev) => ({ ...prev, influencer_fee_budget: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="commission_rate">수수료 (%)</Label>
+                    <Input id="commission_rate" type="number" step="0.1" value={formData.commission_rate} onChange={(e) => setFormData((prev) => ({ ...prev, commission_rate: e.target.value }))} placeholder="예: 10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>VAT 구분</Label>
+                    <Select value={formData.vat_type} onValueChange={(v) => setFormData((prev) => ({ ...prev, vat_type: v as VatType }))}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="VAT별도">VAT별도</SelectItem>
+                        <SelectItem value="VAT포함">VAT포함</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

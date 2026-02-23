@@ -8,6 +8,7 @@ export type TaskScope = 'campaign' | 'global';
 export type ProjectState = '진행전' | '진행중' | '완료';
 export type InterpreterStatus = '통역 필요 없음' | '돈받고 지원 (상시)' | '돈받고 지원 (요청시)' | '무료로 지원(요청시)' | '무료로 지원(상시)';
 export type CampaignType = '해외마케팅' | '국내챗닥' | '제품브랜드';
+export type VatType = 'VAT별도' | 'VAT포함';
 export type ChatdocStatus = '대기' | '온보딩중' | '운영중' | '종료';
 export type BrandPhase = '기획' | '플랫폼세팅' | '인플루언서기획' | '운영' | '스케일링';
 export type SetupStatus = '미시작' | '진행중' | '완료';
@@ -24,6 +25,8 @@ export interface Campaign {
   monthly_fixed_cost: number | null;
   cost_per_influencer: number | null;
   influencer_fee_budget: number | null;
+  commission_rate: number | null;
+  vat_type: VatType | null;
   interpreter_status: InterpreterStatus | null;
   start_date: string | null;
   homepage_url: string | null;
