@@ -409,11 +409,64 @@ export default function CampaignsPage() {
         insertData.chatdoc_roas_target = data.chatdoc_roas_target ? Number(data.chatdoc_roas_target) : null;
         insertData.chatdoc_status = data.chatdoc_status;
       }
-      const { error } = await supabase.from('campaigns').insert(insertData);
+      const { data: created, error } = await supabase.from('campaigns').insert(insertData).select('id, campaign_type').single();
       if (error) throw error;
+
+      // 자동으로 기본 설정(campaign_configs) 생성
+      const DEFAULT_CONFIGS = [
+        { config_type: '세팅 관련', config_key: '인스타그램 URL', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '페이스북 URL', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '트위터 URL', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '틱톡 URL', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '플랫폼별 ID/PW', value_type: 'credentials' },
+        { config_type: '세팅 관련', config_key: '고객전용 라인', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '고객전용 왓츠앱 링크', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '홈페이지 링크', value_type: 'url' },
+        { config_type: '세팅 관련', config_key: '구글맵 세팅여부', value_type: 'status' },
+        { config_type: '세팅 관련', config_key: '리틀리 세팅여부', value_type: 'status' },
+        { config_type: '세팅 관련', config_key: '리틀리 링크', value_type: 'url' },
+        { config_type: '인플루언서 관련', config_key: '인플루언서 전용 라인 세팅', value_type: 'url' },
+        { config_type: '인플루언서 관련', config_key: '인플루언서 전용 왓츠앱 세팅', value_type: 'url' },
+        { config_type: '인플루언서 관련', config_key: '스카웃매니저 라인 메신저 연동', value_type: 'status' },
+        { config_type: '인플루언서 관련', config_key: '스카웃매니저 왓츠앱 메신저 연동', value_type: 'status' },
+        { config_type: '인플루언서 관련', config_key: '스카웃매니저 캠페인 등록', value_type: 'status' },
+        { config_type: '지식베이스', config_key: '고객전용 지식베이스 세팅여부', value_type: 'status' },
+        { config_type: '지식베이스', config_key: '인플전용 지식베이스 세팅여부', value_type: 'status' },
+        { config_type: 'CS어드민', config_key: '메신저 채널 연동 여부', value_type: 'status' },
+        { config_type: 'CS어드민', config_key: 'CRM 연동설정 여부', value_type: 'status' },
+        { config_type: 'CRM', config_key: 'CRM 등록여부', value_type: 'status' },
+      ];
+      const BRAND_CONFIGS = [
+        { config_type: '이커머스 세팅', config_key: '플랫폼 계정 생성', value_type: 'status' },
+        { config_type: '이커머스 세팅', config_key: '상품 등록', value_type: 'status' },
+        { config_type: '이커머스 세팅', config_key: '결제 시스템 연동', value_type: 'status' },
+        { config_type: '이커머스 세팅', config_key: '배송 설정', value_type: 'status' },
+        { config_type: '인플루언서 기획', config_key: '타겟 인플루언서 리스트업', value_type: 'status' },
+        { config_type: '인플루언서 기획', config_key: '원고비 예산 배분', value_type: 'text' },
+        { config_type: '인플루언서 기획', config_key: '스카웃매니저 캠페인 세팅', value_type: 'status' },
+        { config_type: '브랜드 마케팅', config_key: 'SNS 채널 세팅', value_type: 'status' },
+        { config_type: '브랜드 마케팅', config_key: '광고 소재 제작', value_type: 'status' },
+        { config_type: '브랜드 마케팅', config_key: '현지 마케팅 채널 연동', value_type: 'status' },
+      ];
+
+      const templates = created.campaign_type === '제품브랜드'
+        ? [...DEFAULT_CONFIGS, ...BRAND_CONFIGS]
+        : DEFAULT_CONFIGS;
+
+      const configInserts = templates.map((t) => ({
+        campaign_id: created.id,
+        config_type: t.config_type,
+        config_key: t.config_key,
+        config_value: '',
+        value_type: t.value_type,
+        status: '미완료',
+      }));
+
+      await supabase.from('campaign_configs').insert(configInserts);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.configs.all });
       closeDialog();
     },
   });
