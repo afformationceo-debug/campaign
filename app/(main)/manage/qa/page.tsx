@@ -961,13 +961,14 @@ export default function CampaignQaPage() {
                             {/* Assigned To - inline select */}
                             <td className="px-2 py-1">
                               <Select
-                                value={qa.assigned_to || ''}
-                                onValueChange={(v) => handleInlineUpdate(qa.id, 'assigned_to', v || null)}
+                                value={qa.assigned_to || '__none__'}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'assigned_to', v === '__none__' ? null : v)}
                               >
                                 <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.assigned_to ? 'text-foreground' : 'text-muted-foreground')}>{qa.assigned_to || '-'}</span>
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="__none__" className="text-xs text-muted-foreground">미배정</SelectItem>
                                   {users.map((u) => (
                                     <SelectItem key={u.id} value={u.name} className="text-xs">
                                       {u.name}
