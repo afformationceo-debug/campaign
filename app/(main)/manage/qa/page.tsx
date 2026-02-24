@@ -874,7 +874,7 @@ export default function CampaignQaPage() {
                                     })()}
                                   </span>
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" className="max-h-60">
                                   {campaigns.map((c) => (
                                     <SelectItem key={c.id} value={c.id} className="text-xs">
                                       {c.client_name} - {c.campaign_name}
@@ -894,7 +894,7 @@ export default function CampaignQaPage() {
                                     {qa.qa_type}
                                   </Badge>
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" className="max-h-60">
                                   {QA_TYPES.map((t) => (
                                     <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
                                   ))}
@@ -912,7 +912,7 @@ export default function CampaignQaPage() {
                                     {qa.priority}
                                   </Badge>
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" className="max-h-60">
                                   {QA_PRIORITIES.map((p) => (
                                     <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
                                   ))}
@@ -943,13 +943,14 @@ export default function CampaignQaPage() {
                             {/* Created By - inline select */}
                             <td className="px-2 py-1">
                               <Select
-                                value={qa.created_by || ''}
-                                onValueChange={(v) => handleInlineUpdate(qa.id, 'created_by', v || null)}
+                                value={qa.created_by || '__none__'}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'created_by', v === '__none__' ? null : v)}
                               >
                                 <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
-                                  <span className="text-[11px] text-muted-foreground truncate">{qa.created_by || '-'}</span>
+                                  <span className={cn('text-[11px] truncate', qa.created_by ? 'text-foreground' : 'text-muted-foreground')}>{qa.created_by || '-'}</span>
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" className="max-h-60">
+                                  <SelectItem value="__none__" className="text-xs text-muted-foreground">미지정</SelectItem>
                                   {users.map((u) => (
                                     <SelectItem key={u.id} value={u.name} className="text-xs">
                                       {u.name}
@@ -967,7 +968,7 @@ export default function CampaignQaPage() {
                                 <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.assigned_to ? 'text-foreground' : 'text-muted-foreground')}>{qa.assigned_to || '-'}</span>
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" className="max-h-60">
                                   <SelectItem value="__none__" className="text-xs text-muted-foreground">미배정</SelectItem>
                                   {users.map((u) => (
                                     <SelectItem key={u.id} value={u.name} className="text-xs">
