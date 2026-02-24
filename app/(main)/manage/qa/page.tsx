@@ -15,6 +15,7 @@ import {
   Check,
   ChevronsUpDown,
   Bot,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -104,6 +105,7 @@ interface QaFormData {
   resolution: string;
   priority: QaPriority;
   created_by: string;
+  assigned_to: string;
 }
 
 const defaultFormData: QaFormData = {
@@ -115,6 +117,7 @@ const defaultFormData: QaFormData = {
   resolution: '',
   priority: '보통',
   created_by: '',
+  assigned_to: '',
 };
 
 /* ── Due Date Helper ──────────────────── */
@@ -282,6 +285,8 @@ export default function CampaignQaPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [groupBy, setGroupBy] = useState<'campaign' | 'assignee'>('campaign');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQa, setEditingQa] = useState<CampaignQa | null>(null);
   const [formData, setFormData] = useState<QaFormData>(defaultFormData);
@@ -343,6 +348,7 @@ export default function CampaignQaPage() {
         status: data.status,
         priority: data.priority,
         created_by: data.created_by || null,
+        assigned_to: data.assigned_to || null,
       };
       if (data.due_date) insertData.due_date = data.due_date;
       if (data.resolution) insertData.resolution = data.resolution;
@@ -380,6 +386,7 @@ export default function CampaignQaPage() {
       if (data.resolution !== undefined) updateData.resolution = data.resolution || null;
       if (data.priority !== undefined) updateData.priority = data.priority;
       if (data.created_by !== undefined) updateData.created_by = data.created_by || null;
+      if (data.assigned_to !== undefined) updateData.assigned_to = data.assigned_to || null;
 
       const { data: result, error } = await supabase
         .from('campaign_qa')
@@ -493,17 +500,25 @@ export default function CampaignQaPage() {
     if (priorityFilter !== 'all') {
       result = result.filter((q) => q.priority === priorityFilter);
     }
+    if (assigneeFilter !== 'all') {
+      if (assigneeFilter === 'unassigned') {
+        result = result.filter((q) => !q.assigned_to);
+      } else {
+        result = result.filter((q) => q.assigned_to === assigneeFilter);
+      }
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (item) =>
           item.content.toLowerCase().includes(q) ||
           (item.resolution && item.resolution.toLowerCase().includes(q)) ||
-          (item.created_by && item.created_by.toLowerCase().includes(q))
+          (item.created_by && item.created_by.toLowerCase().includes(q)) ||
+          (item.assigned_to && item.assigned_to.toLowerCase().includes(q))
       );
     }
     return result;
-  }, [qaItems, campaignFilter, statusFilter, typeFilter, priorityFilter, searchQuery]);
+  }, [qaItems, campaignFilter, statusFilter, typeFilter, priorityFilter, assigneeFilter, searchQuery]);
 
   // ── Stats ──
 
@@ -565,6 +580,25 @@ export default function CampaignQaPage() {
       unresolvedCount: items.filter((q) => q.status !== '해결완료').length,
     })).sort((a, b) => b.unresolvedCount - a.unresolvedCount);
   }, [filteredQa, campaignMap]);
+
+  const groupedByAssignee = useMemo(() => {
+    const map = new Map<string, CampaignQa[]>();
+    for (const qa of filteredQa) {
+      const key = qa.assigned_to || '미배정';
+      const list = map.get(key) || [];
+      list.push(qa);
+      map.set(key, list);
+    }
+    return Array.from(map.entries()).map(([assignee, items]) => ({
+      assignee,
+      items,
+      unresolvedCount: items.filter((q) => q.status !== '해결완료').length,
+    })).sort((a, b) => {
+      if (a.assignee === '미배정') return 1;
+      if (b.assignee === '미배정') return -1;
+      return b.unresolvedCount - a.unresolvedCount;
+    });
+  }, [filteredQa]);
 
   return (
     <TooltipProvider>
@@ -678,6 +712,40 @@ export default function CampaignQaPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+              <SelectTrigger className="w-[120px] h-8 text-xs">
+                <SelectValue placeholder="실행자" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 실행자</SelectItem>
+                <SelectItem value="unassigned">미배정</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center border rounded-md h-8 overflow-hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => setGroupBy('campaign')}
+                className={cn(
+                  'px-2.5 h-full text-[10px] font-medium transition-colors',
+                  groupBy === 'campaign' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
+                )}
+              >
+                캠페인별
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupBy('assignee')}
+                className={cn(
+                  'px-2.5 h-full text-[10px] font-medium transition-colors',
+                  groupBy === 'assignee' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
+                )}
+              >
+                실행자별
+              </button>
+            </div>
             <div className="relative flex-1 min-w-[160px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
@@ -718,15 +786,31 @@ export default function CampaignQaPage() {
           </motion.div>
         ) : (
           <motion.div variants={fadeUpItem} className="space-y-3">
-            {groupedByCampaign.map(({ campaign, campaignId, items, unresolvedCount }) => (
-              <div key={campaignId} className="rounded-xl border bg-card shadow-sm overflow-hidden">
-                {/* Campaign Group Header */}
+            {(groupBy === 'campaign' ? groupedByCampaign : groupedByAssignee).map((group) => {
+              const groupKey = groupBy === 'campaign'
+                ? (group as (typeof groupedByCampaign)[number]).campaignId
+                : (group as (typeof groupedByAssignee)[number]).assignee;
+              const items = group.items;
+              const unresolvedCount = group.unresolvedCount;
+              const campaign = groupBy === 'campaign'
+                ? (group as (typeof groupedByCampaign)[number]).campaign
+                : undefined;
+              const assigneeName = groupBy === 'assignee'
+                ? (group as (typeof groupedByAssignee)[number]).assignee
+                : undefined;
+
+              return (
+              <div key={groupKey} className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                {/* Group Header */}
                 <div className="px-3 py-2 border-b bg-muted/30 flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    {groupBy === 'assignee' && <Users className="size-3.5 text-muted-foreground shrink-0" />}
                     <span className="text-xs font-semibold truncate">
-                      {campaign ? `${campaign.client_name} - ${campaign.campaign_name}` : campaignId}
+                      {groupBy === 'campaign'
+                        ? (campaign ? `${campaign.client_name} - ${campaign.campaign_name}` : groupKey)
+                        : assigneeName}
                     </span>
-                    {campaign?.target_country && (
+                    {groupBy === 'campaign' && campaign?.target_country && (
                       <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-2">
                         {campaign.target_country}
                       </Badge>
@@ -749,16 +833,17 @@ export default function CampaignQaPage() {
                   <table className="w-full table-fixed text-left min-w-[800px]">
                     <thead>
                       <tr className="border-b bg-muted/10">
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[12%]">캠페인</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">유형</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%]">캠페인</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">유형</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[22%]">내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[16%]">해결 상세내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[20%]">내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[14%]">해결 상세내용</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">작성자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">실행자</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">기한</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">상태</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">등록일</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%] text-right">작업</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[10%] text-right">작업</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -873,6 +958,24 @@ export default function CampaignQaPage() {
                                 </SelectContent>
                               </Select>
                             </td>
+                            {/* Assigned To - inline select */}
+                            <td className="px-2 py-1">
+                              <Select
+                                value={qa.assigned_to || ''}
+                                onValueChange={(v) => handleInlineUpdate(qa.id, 'assigned_to', v || null)}
+                              >
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                  <span className={cn('text-[11px] truncate', qa.assigned_to ? 'text-foreground' : 'text-muted-foreground')}>{qa.assigned_to || '-'}</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {users.map((u) => (
+                                    <SelectItem key={u.id} value={u.name} className="text-xs">
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
                             {/* Due Date - inline date edit */}
                             <td className="px-2 py-1 whitespace-nowrap">
                               <InlineDateCell
@@ -935,7 +1038,8 @@ export default function CampaignQaPage() {
                   </table>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </motion.div>
         )}
 
@@ -1043,8 +1147,8 @@ export default function CampaignQaPage() {
                 />
               </div>
 
-              {/* Due Date + Status + Created By Row */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Due Date + Status + Created By + Assigned To Row */}
+              <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">기한</label>
                   <Input
@@ -1077,7 +1181,25 @@ export default function CampaignQaPage() {
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, created_by: v }))}
                   >
                     <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="담당자 선택" />
+                      <SelectValue placeholder="작성자 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>
+                          {u.name}{u.position ? ` (${u.position})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">실행자</label>
+                  <Select
+                    value={formData.assigned_to}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, assigned_to: v }))}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="실행자 선택" />
                     </SelectTrigger>
                     <SelectContent>
                       {users.map((u) => (

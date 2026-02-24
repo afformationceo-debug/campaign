@@ -234,6 +234,7 @@ export interface CampaignQa {
   resolution: string | null;
   priority: QaPriority;
   created_by: string | null;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
