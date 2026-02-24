@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
-import { Bot, ChevronDown, ChevronUp, CheckCircle2, Clock, Circle, AlertCircle } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, CheckCircle2, Clock, Circle, AlertCircle, ListChecks } from 'lucide-react';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
 import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
@@ -282,33 +282,59 @@ export default function AssigneeViewPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="grid grid-cols-4 gap-3">
-            <Card className="px-3 py-2.5 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900/20 border-slate-200/60 dark:border-slate-800/40">
-              <p className="text-[10px] font-medium text-muted-foreground mb-1">전체 업무</p>
-              <p className="text-lg font-bold tabular-nums">{kpiStats.total}<span className="text-[11px] font-normal text-muted-foreground ml-0.5">건</span></p>
-              <Progress value={kpiStats.pct} className="h-1.5 mt-1.5" />
-              <p className="text-[10px] text-muted-foreground mt-1">완료율 {kpiStats.pct}%</p>
-            </Card>
-            <Card className="px-3 py-2.5 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-emerald-950/10 border-emerald-200/60 dark:border-emerald-800/40">
-              <div className="flex items-center gap-1 mb-1">
-                <CheckCircle2 className="size-3 text-emerald-500" />
-                <p className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">완료</p>
+          <div className="grid grid-cols-4 gap-2">
+            <Card className="px-3 py-2 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900/20 border-slate-200/60 dark:border-slate-800/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ListChecks className="size-3.5 text-slate-500" />
+                  <span className="text-[10px] font-medium text-muted-foreground">전체 업무</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold tabular-nums">{kpiStats.total}</span>
+                  <span className="text-[10px] text-muted-foreground">건</span>
+                </div>
               </div>
-              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{kpiStats.completed}<span className="text-[11px] font-normal text-emerald-600/60 ml-0.5">건</span></p>
+              <Progress value={kpiStats.pct} className="h-1 mt-1.5" />
+              <p className="text-[10px] font-semibold text-right mt-0.5 tabular-nums text-slate-600 dark:text-slate-400">완료율 {kpiStats.pct}%</p>
             </Card>
-            <Card className="px-3 py-2.5 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-blue-950/10 border-blue-200/60 dark:border-blue-800/40">
-              <div className="flex items-center gap-1 mb-1">
-                <Clock className="size-3 text-blue-500" />
-                <p className="text-[10px] font-medium text-blue-700 dark:text-blue-400">진행중</p>
+            <Card className="px-3 py-2 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-emerald-950/10 border-emerald-200/60 dark:border-emerald-800/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-emerald-500" />
+                  <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">완료</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{kpiStats.completed}</span>
+                  <span className="text-[10px] text-emerald-600/60">건</span>
+                </div>
               </div>
-              <p className="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">{kpiStats.inProgress}<span className="text-[11px] font-normal text-blue-600/60 ml-0.5">건</span></p>
+              <p className="text-[10px] text-right mt-1 tabular-nums text-emerald-600/80 dark:text-emerald-400/80">{kpiStats.total > 0 ? Math.round((kpiStats.completed / kpiStats.total) * 100) : 0}%</p>
             </Card>
-            <Card className="px-3 py-2.5 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/30 dark:to-gray-900/10 border-gray-200/60 dark:border-gray-800/40">
-              <div className="flex items-center gap-1 mb-1">
-                <Circle className="size-3 text-gray-400" />
-                <p className="text-[10px] font-medium text-gray-600 dark:text-gray-400">미완료</p>
+            <Card className="px-3 py-2 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-blue-950/10 border-blue-200/60 dark:border-blue-800/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-blue-500" />
+                  <span className="text-[10px] font-medium text-blue-700 dark:text-blue-400">진행중</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold text-blue-700 dark:text-blue-300 tabular-nums">{kpiStats.inProgress}</span>
+                  <span className="text-[10px] text-blue-600/60">건</span>
+                </div>
               </div>
-              <p className="text-lg font-bold text-gray-700 dark:text-gray-300 tabular-nums">{kpiStats.incomplete}<span className="text-[11px] font-normal text-gray-500/60 ml-0.5">건</span></p>
+              <p className="text-[10px] text-right mt-1 tabular-nums text-blue-600/80 dark:text-blue-400/80">{kpiStats.total > 0 ? Math.round((kpiStats.inProgress / kpiStats.total) * 100) : 0}%</p>
+            </Card>
+            <Card className="px-3 py-2 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/30 dark:to-gray-900/10 border-gray-200/60 dark:border-gray-800/40">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Circle className="size-3.5 text-gray-400" />
+                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">미완료</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">{kpiStats.incomplete}</span>
+                  <span className="text-[10px] text-gray-500/60">건</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-right mt-1 tabular-nums text-gray-500/80 dark:text-gray-400/80">{kpiStats.total > 0 ? Math.round((kpiStats.incomplete / kpiStats.total) * 100) : 0}%</p>
             </Card>
           </div>
         </motion.div>

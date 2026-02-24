@@ -631,21 +631,20 @@ export default function CampaignsPage() {
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">클라이언트</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">상태</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">시작일</th>
-                  {/* 해외마케팅 전용 */}
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">국가/단계</th>
-                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">월 고정비용</th>
-                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">섭외당 비용</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">비용/예산</th>
+                  <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">섭외당/카테고리</th>
                   <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">원고료 예산</th>
                   <th className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">수수료</th>
-                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">통역/챗닥상태</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">통역/상태</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">홈페이지</th>
                   <th className="py-1.5 px-2 w-10" />
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((campaign) => {
-                  const isOverseas = campaign.campaign_type !== '국내챗닥';
-                  const typeConf = CAMPAIGN_TYPE_CONFIG[campaign.campaign_type ?? '해외마케팅'];
+                  const cType = campaign.campaign_type ?? '해외마케팅';
+                  const typeConf = CAMPAIGN_TYPE_CONFIG[cType];
                   return (
                   <tr
                     key={campaign.id}
@@ -654,7 +653,7 @@ export default function CampaignsPage() {
                     {/* 유형 */}
                     <td className="py-0.5 px-2 min-w-[90px]">
                       <Select
-                        value={campaign.campaign_type ?? '해외마케팅'}
+                        value={cType}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'campaign_type', v)}
                       >
                         <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-1 gap-1 w-[90px]">
@@ -728,9 +727,9 @@ export default function CampaignsPage() {
                       />
                     </td>
 
-                    {/* 국가/단계 or ROAS */}
-                    <td className="py-0.5 px-2 min-w-[110px]">
-                      {isOverseas ? (
+                    {/* 국가/단계 — 유형별 분기 */}
+                    <td className="py-0.5 px-2 min-w-[130px]">
+                      {cType === '해외마케팅' ? (
                         <div className="flex items-center gap-1">
                           <InlineTextCell
                             value={campaign.target_country ?? ''}
@@ -741,13 +740,37 @@ export default function CampaignsPage() {
                           />
                           <Select value={campaign.phase} onValueChange={(v) => handleInlineUpdate(campaign.id, 'phase', v)}>
                             <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent px-1 gap-0.5 w-[80px]">
-                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', PHASE_CONFIG[campaign.phase].className)}>
-                                {PHASE_CONFIG[campaign.phase].label}
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', PHASE_CONFIG[campaign.phase]?.className)}>
+                                {PHASE_CONFIG[campaign.phase]?.label ?? '-'}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent position="popper">
                               {(Object.keys(PHASE_CONFIG) as CampaignPhase[]).map((p) => (
                                 <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px]', PHASE_CONFIG[p].className)}>{PHASE_CONFIG[p].label}</Badge></SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : cType === '제품브랜드' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap gap-0.5 px-1 py-0.5 min-w-[60px]">
+                            {(campaign.target_countries ?? []).length > 0 ? (
+                              (campaign.target_countries ?? []).map((c) => (
+                                <Badge key={c} variant="outline" className="text-[8px] px-1 py-0">{c}</Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground/40 text-[10px]">국가 없음</span>
+                            )}
+                          </div>
+                          <Select value={campaign.brand_phase ?? '기획'} onValueChange={(v) => handleInlineUpdate(campaign.id, 'brand_phase', v)}>
+                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent px-1 gap-0.5 w-[90px]">
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', BRAND_PHASE_CONFIG[campaign.brand_phase ?? '기획']?.className)}>
+                                {BRAND_PHASE_CONFIG[campaign.brand_phase ?? '기획']?.label ?? '기획'}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              {(Object.keys(BRAND_PHASE_CONFIG) as BrandPhase[]).map((p) => (
+                                <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px]', BRAND_PHASE_CONFIG[p].className)}>{BRAND_PHASE_CONFIG[p].label}</Badge></SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -768,14 +791,24 @@ export default function CampaignsPage() {
                       )}
                     </td>
 
-                    {/* 월 고정비용 / 온보딩 */}
+                    {/* 비용/예산 — 해외: 월고정비용, 제품브랜드: 브랜드예산, 챗닥: 온보딩 */}
                     <td className="py-0.5 px-2 min-w-[100px]">
-                      {isOverseas ? (
+                      {cType === '해외마케팅' ? (
                         <InlineTextCell
                           value={campaign.monthly_fixed_cost?.toString() ?? ''}
                           isEditing={isEditingCell(campaign.id, 'monthly_fixed_cost')}
                           onStartEdit={() => startEdit(campaign.id, 'monthly_fixed_cost')}
                           onSave={(v) => handleInlineUpdate(campaign.id, 'monthly_fixed_cost', v ? Number(v) : null)}
+                          type="number"
+                          placeholder="-"
+                          className="text-right"
+                        />
+                      ) : cType === '제품브랜드' ? (
+                        <InlineTextCell
+                          value={campaign.brand_budget?.toString() ?? ''}
+                          isEditing={isEditingCell(campaign.id, 'brand_budget')}
+                          onStartEdit={() => startEdit(campaign.id, 'brand_budget')}
+                          onSave={(v) => handleInlineUpdate(campaign.id, 'brand_budget', v ? Number(v) : null)}
                           type="number"
                           placeholder="-"
                           className="text-right"
@@ -795,9 +828,9 @@ export default function CampaignsPage() {
                       )}
                     </td>
 
-                    {/* 섭외당 비용 */}
+                    {/* 섭외당/카테고리 — 해외: 섭외당비용, 제품브랜드: 카테고리, 챗닥: - */}
                     <td className="py-0.5 px-2 min-w-[100px]">
-                      {isOverseas ? (
+                      {cType === '해외마케팅' ? (
                         <InlineTextCell
                           value={campaign.cost_per_influencer?.toString() ?? ''}
                           isEditing={isEditingCell(campaign.id, 'cost_per_influencer')}
@@ -807,6 +840,17 @@ export default function CampaignsPage() {
                           placeholder="-"
                           className="text-right"
                         />
+                      ) : cType === '제품브랜드' ? (
+                        <Select value={campaign.product_category ?? ''} onValueChange={(v) => handleInlineUpdate(campaign.id, 'product_category', v || null)}>
+                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
+                            <span className="text-[10px]">{campaign.product_category || <span className="text-muted-foreground/40">카테고리</span>}</span>
+                          </SelectTrigger>
+                          <SelectContent position="popper">
+                            {PRODUCT_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <span className="text-muted-foreground/30 px-2">-</span>
                       )}
@@ -814,7 +858,7 @@ export default function CampaignsPage() {
 
                     {/* 원고료 예산 */}
                     <td className="py-0.5 px-2 min-w-[100px]">
-                      {isOverseas ? (
+                      {cType === '해외마케팅' ? (
                         <InlineTextCell
                           value={campaign.influencer_fee_budget?.toString() ?? ''}
                           isEditing={isEditingCell(campaign.id, 'influencer_fee_budget')}
@@ -831,7 +875,7 @@ export default function CampaignsPage() {
 
                     {/* 수수료 */}
                     <td className="py-0.5 px-2 min-w-[140px]">
-                      {isOverseas ? (
+                      {cType === '해외마케팅' ? (
                         <div className="flex items-center gap-1">
                           <InlineTextCell
                             value={campaign.commission_rate?.toString() ?? ''}
@@ -867,9 +911,9 @@ export default function CampaignsPage() {
                       )}
                     </td>
 
-                    {/* 통역사배치 / 챗닥 상태 */}
+                    {/* 통역/상태 — 해외: 통역, 챗닥: 챗닥상태, 제품브랜드: - */}
                     <td className="py-0.5 px-2 min-w-[120px]">
-                      {isOverseas ? (
+                      {cType === '해외마케팅' ? (
                         <Select
                           value={campaign.interpreter_status ?? '통역 필요 없음'}
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'interpreter_status', v)}
@@ -887,7 +931,7 @@ export default function CampaignsPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      ) : (
+                      ) : cType === '국내챗닥' ? (
                         <Select
                           value={campaign.chatdoc_status ?? '대기'}
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'chatdoc_status', v)}
@@ -905,6 +949,8 @@ export default function CampaignsPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                      ) : (
+                        <span className="text-muted-foreground/30 px-2">-</span>
                       )}
                     </td>
 
