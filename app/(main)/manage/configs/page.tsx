@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList, Bot } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList, Bot, BookOpen } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -39,6 +39,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { CredentialEditor, parseCredentials, credentialsToText, textToCredentialsJson } from '@/components/manage/credential-editor';
+import { OnboardingManual } from '@/components/manage/onboarding-manual';
 import type { Campaign, CampaignConfig, ConfigValueType } from '@/lib/types/database';
 
 const CONFIG_TYPE_OPTIONS = [
@@ -1057,6 +1058,10 @@ export default function ConfigsPage() {
             <ClipboardList className="h-3.5 w-3.5" />
             항목별 현황
           </TabsTrigger>
+          <TabsTrigger value="onboarding" className="gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" />
+            온보딩 매뉴얼
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -1072,6 +1077,10 @@ export default function ConfigsPage() {
 
         <TabsContent value="key-view">
           <ConfigKeyView />
+        </TabsContent>
+
+        <TabsContent value="onboarding">
+          <OnboardingManual />
         </TabsContent>
 
         <TabsContent value="individual" className="space-y-3">

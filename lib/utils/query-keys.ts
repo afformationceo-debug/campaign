@@ -63,6 +63,9 @@ export const queryKeys = {
     all: ['manuals'] as const,
     byPlatform: (platformId: string) => ['manuals', 'platform', platformId] as const,
   },
+  onboardingManual: {
+    all: ['onboardingManual'] as const,
+  },
   campaignPlatforms: {
     all: ['campaignPlatforms'] as const,
     byCampaign: (campaignId: string) => ['campaignPlatforms', 'campaign', campaignId] as const,

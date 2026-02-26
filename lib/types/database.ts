@@ -243,6 +243,17 @@ export interface CampaignQaWithCampaign extends CampaignQa {
   campaigns: Campaign;
 }
 
+export interface OnboardingManualSection {
+  id: string;
+  section_number: number;
+  section_title: string;
+  content: string;
+  sort_order: number;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Join 타입
 export interface DailyCheckWithRelations extends DailyCheck {
   campaigns: Campaign;
