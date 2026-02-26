@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -27,6 +27,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type {
   Task,
   Campaign,
@@ -579,6 +584,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
                                 </TooltipContent>
                               </Tooltip>
+                              {aIdx === 0 && task.description && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button type="button" className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                      <Info className="size-3 text-muted-foreground/60 hover:text-primary" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent side="right" align="start" className="w-72 p-3">
+                                    <p className="text-xs font-semibold mb-1">{task.task_name}</p>
+                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{task.description}</p>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                             </div>
                           </td>
                           <td className="px-1.5 py-0">
@@ -659,6 +677,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
                             </TooltipContent>
                           </Tooltip>
+                          {task.description && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                  <Info className="size-3 text-muted-foreground/60 hover:text-primary" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="right" align="start" className="w-72 p-3">
+                                <p className="text-xs font-semibold mb-1">{task.task_name}</p>
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{task.description}</p>
+                              </PopoverContent>
+                            </Popover>
+                          )}
                         </div>
                       </td>
                       <td className="px-1.5 py-0">
@@ -856,6 +887,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               ) : null}
                             </TooltipContent>
                           </Tooltip>
+                          {task.description && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button type="button" className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                  <Info className="size-3 text-muted-foreground/60 hover:text-primary" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent side="right" align="start" className="w-72 p-3 z-50">
+                                <p className="text-xs font-semibold mb-1">{task.task_name}</p>
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{task.description}</p>
+                              </PopoverContent>
+                            </Popover>
+                          )}
                           {summary && summary.completed < summary.total && (
                             <Tooltip>
                               <TooltipTrigger asChild>

@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
-import { CheckCircle2, Clock, Circle, Minus, CalendarDays, ChevronDown, ChevronRight, User, ListChecks, Trophy, CornerDownRight } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Minus, CalendarDays, ChevronDown, ChevronRight, User, ListChecks, Trophy, CornerDownRight, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -25,6 +25,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type {
   Task,
   Campaign,
@@ -722,6 +727,19 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                   )}
                                 </TooltipContent>
                               </Tooltip>
+                              {group.task.description && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button type="button" className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                      <Info className="size-3 text-muted-foreground/60 hover:text-primary" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent side="right" align="start" className="w-72 p-3">
+                                    <p className="text-xs font-semibold mb-1">{group.task.task_name}</p>
+                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{group.task.description}</p>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', catColor?.text ?? '', catColor?.bg ?? '')}>
                                 {group.task.category}
                               </Badge>

@@ -13,6 +13,7 @@ import { useIsAdmin } from '@/hooks/use-is-admin';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -389,6 +390,11 @@ export default function TasksPage() {
                               </Badge>
                             )}
                           </div>
+                          {task.description && (
+                            <p className="text-[11px] text-muted-foreground truncate max-w-[400px] mt-0.5" title={task.description}>
+                              {task.description}
+                            </p>
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <Badge variant="secondary" className={`text-[10px] ${color.bg} ${color.text} ${color.darkBg}`}>
@@ -444,6 +450,11 @@ export default function TasksPage() {
                               <CornerDownRight className="size-3 text-muted-foreground/50 shrink-0" />
                               <span className="text-sm">{child.task_name}</span>
                             </div>
+                            {child.description && (
+                              <p className="text-[11px] text-muted-foreground truncate max-w-[350px] mt-0.5 pl-[34px]" title={child.description}>
+                                {child.description}
+                              </p>
+                            )}
                           </td>
                           <td className="px-3 py-1.5">
                             <span className="text-[10px] text-muted-foreground">{child.category}</span>
@@ -528,13 +539,16 @@ export default function TasksPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">설명</Label>
-              <Input
+              <Label htmlFor="description">상세내용</Label>
+              <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
+                placeholder="업무 상세내용을 입력하세요 (담당자별 화면에서 조회 가능)"
+                rows={3}
+                className="text-sm"
               />
             </div>
 
