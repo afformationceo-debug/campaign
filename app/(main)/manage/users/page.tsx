@@ -35,11 +35,11 @@ import type { User, UserRole } from '@/lib/types/database';
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   admin: {
     label: '관리자',
-    className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    className: 'bg-foreground text-background',
   },
   member: {
     label: '멤버',
-    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    className: 'bg-secondary text-secondary-foreground',
   },
 };
 
@@ -177,14 +177,14 @@ export default function UsersPage() {
       key: 'name',
       header: '이름',
       sortable: true,
-      cell: (row) => <span className="font-medium">{row.name}</span>,
+      cell: (row) => <span className="font-medium text-[12px]">{row.name}</span>,
     },
     {
       key: 'email',
       header: '이메일',
       sortable: true,
       cell: (row) => (
-        <span className="text-muted-foreground">{row.email}</span>
+        <span className="text-muted-foreground text-[12px]">{row.email}</span>
       ),
     },
     {
@@ -194,7 +194,7 @@ export default function UsersPage() {
       cell: (row) => {
         const config = ROLE_CONFIG[row.role];
         return (
-          <Badge variant="secondary" className={config.className}>
+          <Badge variant="secondary" className={`${config.className} rounded-full text-[11px]`}>
             {config.label}
           </Badge>
         );
@@ -204,7 +204,7 @@ export default function UsersPage() {
       key: 'position',
       header: '직책',
       sortable: true,
-      cell: (row) => row.position ?? '-',
+      cell: (row) => <span className="text-[12px]">{row.position ?? '-'}</span>,
     },
     {
       key: 'is_active',
@@ -240,7 +240,7 @@ export default function UsersPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
       </div>
     );
   }
@@ -249,7 +249,7 @@ export default function UsersPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
           <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
@@ -263,16 +263,16 @@ export default function UsersPage() {
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className="space-y-6"
+      className="space-y-4"
     >
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">담당자 관리</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            팀 구성원을 관리합니다. 총 {users.length}명
+          <h1 className="text-2xl font-black tracking-tight">우리 팀, 여기서 관리해.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            팀원 초대, 역할 설정, 활성 상태 관리까지. 팀 구성은 제가 도와줄게요.
           </p>
         </div>
-        <Button onClick={() => setIsInviteDialogOpen(true)} className="rounded-lg">
+        <Button onClick={() => setIsInviteDialogOpen(true)} className="rounded-lg bg-foreground text-background hover:bg-foreground/90">
           <UserPlus className="h-4 w-4 mr-2" />
           새 담당자 초대
         </Button>
@@ -280,28 +280,26 @@ export default function UsersPage() {
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-gradient-to-r from-emerald-50/80 via-green-50/50 to-transparent dark:from-emerald-950/30 dark:via-green-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-100/30 to-transparent dark:from-emerald-900/15 rounded-bl-full" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-green-100/20 to-transparent dark:from-green-900/10 rounded-tr-full" />
+        <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200/50 dark:shadow-emerald-900/30 ring-2 ring-white/80 dark:ring-white/10">
-                <Bot className="size-4 text-white" />
+              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
+                <Bot className="size-4 text-background" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-emerald-900 dark:text-emerald-200">어포메이션 본질 AI Agent</p>
-                <span className="text-[9px] font-medium text-emerald-500/60 dark:text-emerald-400/50 bg-emerald-100/60 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">담당자 관리 가이드</span>
+                <p className="text-[12px] font-bold text-foreground">bkit AI Agent</p>
+                <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">담당자 관리 가이드</span>
               </div>
-              <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/70 leading-[1.7] space-y-1">
+              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
                 <p>안녕하세요, 어포메이션 임직원 여러분! 담당자 관리 페이지를 안내해 드립니다.</p>
-                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-emerald-100/50 dark:border-emerald-800/20">
-                  <p>이 페이지에서 <strong className="text-emerald-700 dark:text-emerald-300">팀 구성원을 초대하고 역할(관리자/멤버)을 설정</strong>합니다.</p>
-                  <p><strong className="text-green-700 dark:text-green-300">비활성화</strong>하면 해당 담당자가 시스템에서 숨겨지며, 업무 배정에서 제외됩니다.</p>
+                <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+                  <p>이 페이지에서 <strong className="text-foreground">팀 구성원을 초대하고 역할(관리자/멤버)을 설정</strong>합니다.</p>
+                  <p><strong className="text-foreground">비활성화</strong>하면 해당 담당자가 시스템에서 숨겨지며, 업무 배정에서 제외됩니다.</p>
                 </div>
-                <p className="text-[10px] text-emerald-600/60 dark:text-emerald-400/40">정확한 담당자 정보가 업무 배정과 일일 체크의 기반이 됩니다!</p>
+                <p className="text-[10px] text-muted-foreground/60">정확한 담당자 정보가 업무 배정과 일일 체크의 기반이 됩니다!</p>
               </div>
             </div>
           </div>
@@ -311,7 +309,7 @@ export default function UsersPage() {
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
             <span className="text-sm">데이터를 불러오는 중...</span>
           </div>
         </div>
@@ -328,9 +326,9 @@ export default function UsersPage() {
 
       {/* Invite Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
-            <DialogTitle>새 담당자 초대</DialogTitle>
+            <DialogTitle className="font-bold">새 담당자 초대</DialogTitle>
             <DialogDescription>새 팀 구성원의 이메일과 정보를 입력하세요.</DialogDescription>
           </DialogHeader>
           <form
@@ -347,6 +345,7 @@ export default function UsersPage() {
                 required
                 value={inviteData.name}
                 onChange={(e) => setInviteData((prev) => ({ ...prev, name: e.target.value }))}
+                className="bg-secondary/50 border-border"
               />
             </div>
             <div className="space-y-2">
@@ -357,6 +356,7 @@ export default function UsersPage() {
                 required
                 value={inviteData.email}
                 onChange={(e) => setInviteData((prev) => ({ ...prev, email: e.target.value }))}
+                className="bg-secondary/50 border-border"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -366,7 +366,7 @@ export default function UsersPage() {
                   value={inviteData.role}
                   onValueChange={(v) => setInviteData((prev) => ({ ...prev, role: v as UserRole }))}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-secondary/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -381,20 +381,21 @@ export default function UsersPage() {
                   id="invite_position"
                   value={inviteData.position}
                   onChange={(e) => setInviteData((prev) => ({ ...prev, position: e.target.value }))}
+                  className="bg-secondary/50 border-border"
                 />
               </div>
             </div>
             {inviteError && (
-              <p className="text-sm text-red-500">{inviteError}</p>
+              <p className="text-sm text-destructive">{inviteError}</p>
             )}
             <p className="text-xs text-muted-foreground">
               초기 비밀번호: temp1234! (로그인 후 변경 필요)
             </p>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)} className="rounded-lg border-border">
                 취소
               </Button>
-              <Button type="submit" disabled={inviteMutation.isPending}>
+              <Button type="submit" disabled={inviteMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg">
                 {inviteMutation.isPending ? '초대 중...' : '초대'}
               </Button>
             </DialogFooter>
@@ -404,9 +405,9 @@ export default function UsersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
-            <DialogTitle>담당자 수정</DialogTitle>
+            <DialogTitle className="font-bold">담당자 수정</DialogTitle>
             <DialogDescription>담당자 정보를 수정합니다.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -419,6 +420,7 @@ export default function UsersPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
+                className="bg-secondary/50 border-border"
               />
             </div>
             <div className="space-y-2">
@@ -428,7 +430,7 @@ export default function UsersPage() {
                 type="email"
                 disabled
                 value={formData.email}
-                className="opacity-60"
+                className="opacity-60 bg-secondary/50 border-border"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -440,7 +442,7 @@ export default function UsersPage() {
                     setFormData((prev) => ({ ...prev, role: v as UserRole }))
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-secondary/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -457,6 +459,7 @@ export default function UsersPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, position: e.target.value }))
                   }
+                  className="bg-secondary/50 border-border"
                 />
               </div>
             </div>
@@ -471,10 +474,10 @@ export default function UsersPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>
+              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-lg border-border">
                 취소
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
+              <Button type="submit" disabled={updateMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg">
                 {updateMutation.isPending ? '저장 중...' : '수정'}
               </Button>
             </DialogFooter>

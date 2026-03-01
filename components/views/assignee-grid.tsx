@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -32,6 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { TaskDetailPanel } from '@/components/views/task-detail-panel';
 import type {
   Task,
   Campaign,
@@ -51,6 +52,15 @@ const CHECK_STATUS_CONFIG: Record<string, { label: string; color: string; icon: 
 const CHECK_STATUSES = ['완료', '진행중', '미완료', '해당없음'] as const;
 
 import type { CheckStatus } from '@/lib/types/database';
+
+// ─── Priority left-border color ──────────────────────
+const getPriorityBorderClass = (priority?: string) => {
+  switch (priority) {
+    case '긴급': return 'border-l-2 border-l-red-500';
+    case '높음': return 'border-l-2 border-l-orange-400';
+    default: return 'border-l-2 border-l-transparent';
+  }
+};
 
 // ─── Global Status Select Dropdown ───────────────────
 function GlobalStatusSelect({
@@ -200,6 +210,25 @@ interface AssigneeGridProps {
 export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users = [] }: AssigneeGridProps) {
   const supabase = createClient();
   const { profile } = useAuth();
+
+  // Task detail side panel
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Multi-assignee collapse/expand state for global tasks
+  const [expandedGlobalTaskIds, setExpandedGlobalTaskIds] = useState<Set<string>>(new Set());
+  const toggleGlobalTaskExpand = useCallback((taskId: string) => {
+    setExpandedGlobalTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  }, []);
+
+  // Campaign type filter
+  const [activeCampaignTypes, setActiveCampaignTypes] = useState<Set<string>>(() => {
+    return new Set(['해외마케팅', '국내챗닥', '제품브랜드']);
+  });
 
   // For global tasks, use the selected user or the logged-in user
   const effectiveUserId = assigneeId ?? profile?.id ?? '';
@@ -383,6 +412,11 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     });
   }, [campaigns, campaignScopeTasks, configMap]);
 
+  // Visible campaigns filtered by active campaign type toggles
+  const visibleCampaigns = useMemo(() => {
+    return filteredCampaigns.filter(c => activeCampaignTypes.has(c.campaign_type));
+  }, [filteredCampaigns, activeCampaignTypes]);
+
   // Helper: is task applicable for a campaign?
   const isApplicable = (campaignId: string, taskId: string): boolean => {
     const config = configMap.get(`${campaignId}:${taskId}`);
@@ -485,29 +519,28 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
     {/* Global Tasks Section (table layout, grouped by assignee) */}
     {globalTasks.length > 0 && (
       <TooltipProvider>
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="px-2.5 py-1 border-b bg-violet-50 dark:bg-violet-950/20 flex items-center gap-2">
-          <div className="w-1.5 h-3.5 rounded-full bg-violet-400" />
-          <h3 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-2.5 py-1 border-b border-border bg-secondary/50 flex items-center gap-2">
+          <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             전역 업무
           </h3>
-          <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto">
+          <Badge variant="secondary" className="text-[11px] rounded-full px-2 py-0 ml-auto">
             {globalTasks.length}건
           </Badge>
         </div>
         <table className="w-full text-left table-fixed">
           <thead>
-            <tr className="border-b bg-muted/30">
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '26%' }}>업무</th>
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>카테고리</th>
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '11%' }}>담당자</th>
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '11%' }}>도구</th>
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
-              <th className="px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground" style={{ width: '34%' }}>결과값</th>
+            <tr className="border-b border-border bg-secondary/50">
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '35%' }}>업무</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '7%' }}>카테고리</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '9%' }}>담당자</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '9%' }}>도구</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '32%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -518,22 +551,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-1.5 py-0.5 bg-violet-50/50 dark:bg-violet-950/10 border-b border-violet-100 dark:border-violet-900/30"
+                      className="px-1.5 py-0.5 bg-secondary/30 border-b border-border"
                     >
                       <div className="flex items-center gap-1.5">
                         <div className="flex items-center -space-x-1">
                           {(group.assignee === '전체' ? ['전'] : group.assignee.split(', ')).map((name, i) => (
-                            <div key={i} className="size-4 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center border border-white dark:border-slate-900" style={{ zIndex: 10 - i }}>
-                              <span className="text-[8px] font-bold text-violet-600 dark:text-violet-400">
+                            <div key={i} className="size-4 rounded-full bg-secondary flex items-center justify-center border border-background" style={{ zIndex: 10 - i }}>
+                              <span className="text-[8px] font-bold text-foreground">
                                 {name.charAt(0)}
                               </span>
                             </div>
                           ))}
                         </div>
-                        <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           {group.assignee}
                         </span>
-                        <span className="text-[9px] text-violet-500/60 ml-1">{group.tasks.length}건</span>
+                        <span className="text-[9px] text-muted-foreground/60 ml-1">{group.tasks.length}건</span>
                       </div>
                     </td>
                   </tr>
@@ -541,42 +574,51 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 {group.tasks.map((task) => {
                   const catColor = CATEGORY_COLORS[task.category];
 
-                  // When viewing "전체 담당자" (assigneeId=null) and the task has multiple assignees,
-                  // expand into one row per assignee to show each person's status/result
+                  // Multi-assignee: collapsible rows (default collapsed)
                   const taskAssigneeNames = task.default_assignees && task.default_assignees.length > 0
                     ? task.default_assignees
                     : null;
-                  const showExpanded = !assigneeId && taskAssigneeNames && taskAssigneeNames.length > 1;
+                  const isMultiAssignee = !assigneeId && taskAssigneeNames && taskAssigneeNames.length > 1;
+                  const isExpanded = expandedGlobalTaskIds.has(task.id);
 
-                  if (showExpanded) {
-                    // Render one row per assignee
-                    return taskAssigneeNames.map((aName, aIdx) => {
+                  if (isMultiAssignee) {
+                    // Count completed for summary badge
+                    const completedCount = taskAssigneeNames.filter((aName) => {
                       const aId = nameToIdMap.get(aName.trim()) ?? '';
-                      const check = aId ? (checkMap.get(`null:${task.id}:${aId}`) ?? null) : null;
-                      const isCompleted = check?.status === '완료';
-                      return (
-                        <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
+                      const c = aId ? checkMap.get(`null:${task.id}:${aId}`) : null;
+                      return c?.status === '완료' || c?.status === '해당없음';
+                    }).length;
+                    const allDone = completedCount === taskAssigneeNames.length;
+
+                    return (
+                      <Fragment key={`${group.assignee}-${task.id}`}>
+                        {/* Collapsed summary row */}
+                        <tr className={cn(
                           'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
-                          isCompleted && 'bg-emerald-50/30 dark:bg-emerald-950/10'
+                          allDone && 'bg-muted/20',
+                          getPriorityBorderClass(task.priority)
                         )}>
-                          <td className={cn(
-                            'px-1.5 py-0 max-w-0',
-                            isCompleted && 'border-l-[2px] border-l-emerald-400'
-                          )}>
+                          <td className={cn('px-1.5 py-0 max-w-0', allDone && 'border-l-[2px] border-l-foreground/30')}>
                             <div className="flex items-center gap-1">
-                              {isCompleted && (
-                                <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                  <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
-                                </div>
+                              <button
+                                type="button"
+                                className="shrink-0 p-0 rounded hover:bg-muted/60 transition-colors"
+                                onClick={() => toggleGlobalTaskExpand(task.id)}
+                              >
+                                {isExpanded
+                                  ? <ChevronDown className="size-3 text-muted-foreground" />
+                                  : <ChevronRight className="size-3 text-muted-foreground" />}
+                              </button>
+                              {allDone && (
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                               )}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className={cn(
-                                    'text-[10px] font-medium truncate block cursor-default',
-                                    isCompleted && 'text-emerald-800 dark:text-emerald-300',
-                                    aIdx > 0 && 'text-muted-foreground'
-                                  )}>
-                                    {aIdx === 0 ? task.task_name : '↳'}
+                                  <span
+                                    className={cn('text-[10px] font-medium truncate block cursor-pointer hover:underline', allDone && 'text-foreground')}
+                                    onClick={() => setSelectedTask(task)}
+                                  >
+                                    {task.task_name}
                                   </span>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="max-w-[300px]">
@@ -584,7 +626,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
                                 </TooltipContent>
                               </Tooltip>
-                              {aIdx === 0 && task.description && (
+                              {task.description && (
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <button type="button" className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors" onClick={(e) => e.stopPropagation()}>
@@ -597,56 +639,103 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   </PopoverContent>
                                 </Popover>
                               )}
+                              <button
+                                type="button"
+                                className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                                title="단계 보기"
+                              >
+                                <ListChecks className="size-3 text-muted-foreground/60 hover:text-primary" />
+                              </button>
                             </div>
                           </td>
                           <td className="px-1.5 py-0">
-                            {aIdx === 0 && (
-                              <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
-                                {task.category}
-                              </Badge>
-                            )}
+                            <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                              {task.category}
+                            </Badge>
                           </td>
                           <td className="px-1.5 py-0">
-                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap font-medium">
-                              {aName.trim()}
-                            </span>
+                            <button
+                              type="button"
+                              className="text-[9px] text-muted-foreground block font-medium hover:text-foreground transition-colors text-left"
+                              onClick={() => toggleGlobalTaskExpand(task.id)}
+                            >
+                              <span className="break-words">{taskAssigneeNames.join(', ')}</span>
+                              <span className="ml-1 text-[8px] whitespace-nowrap">
+                                ({completedCount}/{taskAssigneeNames.length})
+                              </span>
+                            </button>
                           </td>
                           <td className="px-1.5 py-0">
-                            {aIdx === 0 && (
-                              <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
-                            )}
+                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
                           </td>
                           <td className="px-1.5 py-0">
-                            <div className="flex items-center justify-center gap-0.5">
-                              <GlobalStatusSelect
-                                check={check}
-                                taskId={task.id}
-                                date={date}
-                                assigneeId={aId || effectiveUserId}
-                              />
-                              {check?.note && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p className="text-xs">메모: {check.note}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
+                            <div className="flex items-center justify-center">
+                              <span className={cn(
+                                'text-[9px] font-medium',
+                                allDone ? 'text-emerald-600' : completedCount > 0 ? 'text-blue-600' : 'text-muted-foreground/40'
+                              )}>
+                                {allDone ? '전체완료' : `${completedCount}/${taskAssigneeNames.length}`}
+                              </span>
                             </div>
                           </td>
                           <td className="px-1.5 py-0">
-                            <ResultValueInput
-                              check={check}
-                              taskId={task.id}
-                              date={date}
-                              assigneeId={aId || effectiveUserId}
-                            />
+                            <span className="text-[9px] text-muted-foreground/40">펼쳐서 입력</span>
                           </td>
                         </tr>
-                      );
-                    });
+                        {/* Expanded: individual assignee rows */}
+                        {isExpanded && taskAssigneeNames.map((aName) => {
+                          const aId = nameToIdMap.get(aName.trim()) ?? '';
+                          const check = aId ? (checkMap.get(`null:${task.id}:${aId}`) ?? null) : null;
+                          const isCompleted = check?.status === '완료';
+                          return (
+                            <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
+                              'border-b border-border/30 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/20',
+                              isCompleted && 'bg-muted/20',
+                            )}>
+                              <td className="px-1.5 py-0 max-w-0">
+                                <span className="text-[9px] text-muted-foreground/50 pl-5">↳</span>
+                              </td>
+                              <td className="px-1.5 py-0" />
+                              <td className="px-1.5 py-0">
+                                <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap font-medium">
+                                  {aName.trim()}
+                                </span>
+                              </td>
+                              <td className="px-1.5 py-0" />
+                              <td className="px-1.5 py-0">
+                                <div className="flex items-center justify-center gap-0.5">
+                                  <GlobalStatusSelect
+                                    check={check}
+                                    taskId={task.id}
+                                    date={date}
+                                    assigneeId={aId || effectiveUserId}
+                                  />
+                                  {check?.note && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p className="text-xs">메모: {check.note}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <ResultValueInput
+                                  check={check}
+                                  taskId={task.id}
+                                  date={date}
+                                  assigneeId={aId || effectiveUserId}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    );
                   }
 
                   // Single assignee or specific assignee view: original single-row rendering
@@ -656,21 +745,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <tr key={`${group.assignee}-${task.id}`} className={cn(
                       'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
-                      isCompleted && 'bg-emerald-50/30 dark:bg-emerald-950/10'
+                      isCompleted && 'bg-muted/20',
+                      getPriorityBorderClass(task.priority)
                     )}>
                       <td className={cn(
                         'px-1.5 py-0 max-w-0',
-                        isCompleted && 'border-l-[2px] border-l-emerald-400'
+                        isCompleted && 'border-l-[2px] border-l-foreground/30'
                       )}>
                         <div className="flex items-center gap-1">
                           {isCompleted && (
-                            <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                              <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
-                            </div>
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={cn('text-[10px] font-medium truncate block cursor-default', isCompleted && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
+                              <span
+                                className={cn('text-[10px] font-medium truncate block cursor-pointer hover:underline', isCompleted && 'text-foreground')}
+                                onClick={() => setSelectedTask(task)}
+                              >{task.task_name}</span>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[300px]">
                               <p className="text-xs font-medium">{task.task_name}</p>
@@ -690,6 +781,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </PopoverContent>
                             </Popover>
                           )}
+                          <button
+                            type="button"
+                            className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                            title="단계 보기"
+                          >
+                            <ListChecks className="size-3 text-muted-foreground/60 hover:text-primary" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-1.5 py-0">
@@ -745,14 +844,44 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     {/* Campaign-scope Tasks Grid */}
     {filteredCampaigns.length > 0 && campaignScopeTasks.length > 0 && (
     <TooltipProvider>
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-      <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
-        <div className="w-1.5 h-4 rounded-full bg-blue-400" />
-        <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+    <div>
+    {/* Campaign Type Filter */}
+    <div className="flex items-center gap-1.5 mb-1.5">
+      {(['해외마케팅', '국내챗닥', '제품브랜드'] as const).map((type) => {
+        const count = filteredCampaigns.filter(c => c.campaign_type === type).length;
+        if (count === 0) return null;
+        const isActive = activeCampaignTypes.has(type);
+        return (
+          <button
+            key={type}
+            type="button"
+            onClick={() => {
+              setActiveCampaignTypes(prev => {
+                const next = new Set(prev);
+                if (next.has(type)) next.delete(type);
+                else next.add(type);
+                return next;
+              });
+            }}
+            className={cn(
+              'text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors',
+              isActive
+                ? 'bg-foreground text-background border-foreground'
+                : 'bg-transparent text-muted-foreground border-border hover:border-foreground/30'
+            )}
+          >
+            {type} ({count})
+          </button>
+        );
+      })}
+    </div>
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 border-b border-border bg-secondary/50 flex items-center gap-2">
+        <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           일일 캠페인별 업무
         </h3>
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
-          {filteredCampaigns.length}개 캠페인
+        <Badge variant="secondary" className="text-[11px] rounded-full px-2 py-0 ml-auto">
+          {visibleCampaigns.length}개 캠페인
         </Badge>
       </div>
     <div className="relative overflow-auto max-h-[calc(100vh-260px)]">
@@ -770,7 +899,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
             >
               업무
             </th>
-            {filteredCampaigns.map((campaign) => {
+            {visibleCampaigns.map((campaign) => {
               const countryShort = campaign.target_country
                 ? campaign.target_country.replace('중화권(홍,말,싱)', '중화').slice(0, 2)
                 : '';
@@ -829,15 +958,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 {/* Category Group Header */}
                 <tr>
                   <td
-                    colSpan={filteredCampaigns.length + 2}
+                    colSpan={visibleCampaigns.length + 2}
                     className={cn(
                       'sticky left-0 z-10',
-                      'px-3 py-0.5 text-[11px] font-semibold',
-                      catColors.bg,
-                      catColors.darkBg,
-                      catColors.text,
-                      catColors.border,
-                      'border-b'
+                      'px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+                      'bg-secondary/50 text-muted-foreground',
+                      'border-b border-border'
                     )}
                   >
                     {group.category}
@@ -855,29 +981,28 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <tr key={task.id} className={cn(
                       'hover:bg-muted/30 transition-colors',
-                      pct === 100 && 'bg-emerald-50/30 dark:bg-emerald-950/10'
+                      getPriorityBorderClass(task.priority)
                     )}>
                       {/* Task Name (sticky left) */}
                       <td
                         className={cn(
                           'sticky left-0 z-10',
-                          'border-b border-r px-2 py-0',
-                          'text-[10px] font-medium text-foreground',
+                          'border-b border-r border-border px-2 py-1',
+                          'text-[12px] font-medium text-foreground',
                           'min-w-[180px] max-w-[220px]',
-                          pct === 100
-                            ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
-                            : 'bg-background'
+                          'bg-background'
                         )}
                       >
                         <div className="flex items-center gap-1.5">
                           {pct === 100 && (
-                            <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
-                            </div>
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={cn('truncate cursor-default', pct === 100 && 'text-emerald-800 dark:text-emerald-300')}>{task.task_name}</span>
+                              <span
+                                className="truncate cursor-pointer hover:underline font-medium text-[12px]"
+                                onClick={() => setSelectedTask(task)}
+                              >{task.task_name}</span>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="max-w-[300px]">
                               <p className="text-xs font-medium">{task.task_name}</p>
@@ -906,7 +1031,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 <button
                                   type="button"
                                   onClick={() => handleBulkComplete(task)}
-                                  className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 transition-colors"
+                                  className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors"
                                 >
                                   <ListChecks className="size-3" />
                                 </button>
@@ -923,7 +1048,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       </td>
 
                       {/* Status Cells */}
-                      {filteredCampaigns.map((campaign) => {
+                      {visibleCampaigns.map((campaign) => {
                         const applicable = isApplicable(campaign.id, task.id);
                         const check = checkMap.get(`${campaign.id}:${task.id}`) ?? null;
 
@@ -952,35 +1077,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           'sticky right-0 z-10',
                           'border-b border-l px-1.5 py-0',
                           'text-center',
-                          pct === 100
-                            ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
-                            : 'bg-background'
+                          'bg-background'
                         )}
                       >
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-[10px] font-medium text-muted-foreground">
                             {summary?.completed ?? 0}/{summary?.total ?? 0}
                           </span>
-                          {pct === 100 ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
-                            >
-                              <CheckCircle2 className="size-2.5" />
-                              100%
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                'text-[9px] px-1.5 py-0',
-                                pct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                                pct === 0 && 'bg-gray-100 text-gray-500'
-                              )}
-                            >
-                              {pct}%
-                            </Badge>
-                          )}
+                          <Badge
+                            variant="secondary"
+                            className="text-[11px] rounded-full px-1.5 py-0"
+                          >
+                            {pct}%
+                          </Badge>
                         </div>
                       </td>
                     </tr>
@@ -1001,7 +1110,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
             >
               캠페인 완료율
             </td>
-            {filteredCampaigns.map((campaign) => {
+            {visibleCampaigns.map((campaign) => {
               const summary = campaignSummary.get(campaign.id);
               const cPct =
                 summary && summary.total > 0
@@ -1022,26 +1131,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {summary?.completed ?? 0}/{summary?.total ?? 0}
                     </span>
-                    {cPct === 100 ? (
-                      <Badge
-                        variant="secondary"
-                        className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
-                      >
-                        <CheckCircle2 className="size-2.5" />
-                        100%
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'text-[9px] px-1.5 py-0',
-                          cPct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                          cPct === 0 && 'bg-gray-100 text-gray-500'
-                        )}
-                      >
-                        {cPct}%
-                      </Badge>
-                    )}
+                    <Badge
+                      variant="secondary"
+                      className="text-[11px] rounded-full px-1.5 py-0"
+                    >
+                      {cPct}%
+                    </Badge>
                   </div>
                 </td>
               );
@@ -1064,12 +1159,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 return (
                   <Badge
                     variant="secondary"
-                    className={cn(
-                      'text-[10px] px-2 py-0.5 font-semibold',
-                      totalPct === 100 && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                      totalPct > 0 && totalPct < 100 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                      totalPct === 0 && 'bg-gray-100 text-gray-500'
-                    )}
+                    className="text-[11px] rounded-full px-2 py-0.5 font-semibold"
                   >
                     {totalPct}%
                   </Badge>
@@ -1081,8 +1171,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
       </table>
     </div>
     </div>
+    </div>
     </TooltipProvider>
     )}
+
+    {/* Task Detail Side Panel */}
+    <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />
     </div>
   );
 }

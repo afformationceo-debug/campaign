@@ -138,10 +138,10 @@ function InteractiveStatusCell({
           className={cn(
             'flex items-center justify-center w-7 h-7 rounded-md',
             'transition-all duration-200 cursor-pointer',
-            'hover:scale-110 hover:shadow-md active:scale-95',
-            colors.bg, colors.darkBg, colors.text,
-            check.note && 'ring-1 ring-offset-1',
-            check.note && colors.ring
+            'hover:scale-110 active:scale-95',
+            'border border-border/50 bg-card',
+            colors.text,
+            check.note && 'ring-1 ring-offset-1 ring-border'
           )}
           aria-label={`상태: ${STATUS_LABELS[status]}`}
         >
@@ -219,7 +219,7 @@ function NoteEditor({
           {check?.note ? '결과보기' : '결과값넣기'}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72" side="left" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-72 bg-card border-border" side="left" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="space-y-3">
           <p className="text-xs font-medium text-muted-foreground">{taskName}</p>
           <Input
@@ -227,7 +227,7 @@ function NoteEditor({
             value={noteValue}
             onChange={(e) => setNoteValue(e.target.value)}
             placeholder="메모 또는 결과값 입력..."
-            className="h-8 text-sm"
+            className="h-8 text-[13px] bg-secondary/50 border-border"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
             }}
@@ -381,7 +381,7 @@ export function CampaignDetailPanel({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-lg md:max-w-xl overflow-hidden"
+        className="w-full sm:max-w-lg md:max-w-xl overflow-hidden bg-background border-l border-border"
       >
         <SheetHeader className="pb-2">
           <SheetTitle className="text-base">
@@ -401,23 +401,13 @@ export function CampaignDetailPanel({
               )}
               <Badge
                 variant="outline"
-                className={cn(
-                  'text-xs',
-                  campaign.status === 'active' && 'border-emerald-300 text-emerald-600',
-                  campaign.status === 'paused' && 'border-amber-300 text-amber-600',
-                  campaign.status === 'completed' && 'border-gray-300 text-gray-500'
-                )}
+                className="text-[11px] rounded-full border-border"
               >
                 {campaign.status}
               </Badge>
               <Badge
                 variant="secondary"
-                className={cn(
-                  'text-xs font-semibold',
-                  completionPct === 100 && 'bg-emerald-100 text-emerald-700',
-                  completionPct > 0 && completionPct < 100 && 'bg-amber-100 text-amber-700',
-                  completionPct === 0 && 'bg-gray-100 text-gray-500'
-                )}
+                className="text-[11px] rounded-full"
               >
                 {stats.completed}/{stats.applicable} ({completionPct}%)
               </Badge>
@@ -438,8 +428,8 @@ export function CampaignDetailPanel({
                   <div
                     className={cn(
                       'sticky top-0 z-10 px-3 py-1.5 rounded-md mb-2',
-                      'text-xs font-semibold',
-                      catColors.bg, catColors.darkBg, catColors.text
+                      'text-[10px] font-semibold uppercase tracking-wider',
+                      'bg-secondary/50 text-muted-foreground'
                     )}
                   >
                     {group.category}
@@ -498,15 +488,12 @@ export function CampaignDetailPanel({
                           {/* Task Info */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-foreground truncate">
+                              <span className="text-[13px] font-medium text-foreground truncate">
                                 {task.task_name}
                               </span>
                               <Badge
                                 variant="secondary"
-                                className={cn(
-                                  'text-[9px] px-1 py-0 shrink-0',
-                                  statusColors.bg, statusColors.darkBg, statusColors.text
-                                )}
+                                className="text-[11px] rounded-full px-1.5 py-0 shrink-0"
                               >
                                 {status}
                               </Badge>

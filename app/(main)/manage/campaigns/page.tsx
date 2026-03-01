@@ -56,39 +56,39 @@ import type {
 
 // ─── Config ─────────────────────────────────────────────
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
-  active: { label: 'Active', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  paused: { label: 'Paused', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-  completed: { label: 'Completed', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400' },
+  active: { label: 'Active', className: 'bg-foreground text-background text-[11px]' },
+  paused: { label: 'Paused', className: 'bg-secondary text-muted-foreground text-[11px]' },
+  completed: { label: 'Completed', className: 'bg-secondary text-secondary-foreground text-[11px]' },
 };
 
 const PHASE_CONFIG: Record<CampaignPhase, { label: string; className: string }> = {
-  onboarding: { label: 'Onboarding', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' },
-  running: { label: 'Running', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30' },
-  scaling: { label: 'Scaling', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
+  onboarding: { label: 'Onboarding', className: 'bg-secondary text-secondary-foreground' },
+  running: { label: 'Running', className: 'bg-foreground text-background' },
+  scaling: { label: 'Scaling', className: 'bg-secondary text-muted-foreground' },
 };
 
 const INTERPRETER_OPTIONS: { value: InterpreterStatus; label: string; className: string }[] = [
-  { value: '통역 필요 없음', label: '필요 없음', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400' },
-  { value: '돈받고 지원 (상시)', label: '유료(상시)', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  { value: '돈받고 지원 (요청시)', label: '유료(요청)', className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-  { value: '무료로 지원(요청시)', label: '무료(요청)', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  { value: '무료로 지원(상시)', label: '무료(상시)', className: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+  { value: '통역 필요 없음', label: '필요 없음', className: 'bg-secondary text-muted-foreground' },
+  { value: '돈받고 지원 (상시)', label: '유료(상시)', className: 'bg-foreground text-background' },
+  { value: '돈받고 지원 (요청시)', label: '유료(요청)', className: 'bg-secondary text-secondary-foreground' },
+  { value: '무료로 지원(요청시)', label: '무료(요청)', className: 'bg-secondary text-secondary-foreground' },
+  { value: '무료로 지원(상시)', label: '무료(상시)', className: 'bg-secondary text-secondary-foreground' },
 ];
 
 const INTERPRETER_MAP = new Map(INTERPRETER_OPTIONS.map((o) => [o.value, o]));
 
 const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string; className: string }> = {
-  '해외마케팅': { label: '해외마케팅', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  '국내챗닥': { label: '국내챗닥', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-  '제품브랜드': { label: '제품브랜드', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  '해외마케팅': { label: '해외마케팅', className: 'bg-secondary text-secondary-foreground' },
+  '국내챗닥': { label: '국내챗닥', className: 'bg-foreground text-background' },
+  '제품브랜드': { label: '제품브랜드', className: 'bg-secondary text-muted-foreground' },
 };
 
 const BRAND_PHASE_CONFIG: Record<BrandPhase, { label: string; className: string }> = {
-  '기획': { className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30' },
-  '플랫폼세팅': { className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' },
-  '인플루언서기획': { className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30' },
-  '운영': { className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' },
-  '스케일링': { className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
+  '기획': { className: 'bg-secondary text-muted-foreground' },
+  '플랫폼세팅': { className: 'bg-secondary text-secondary-foreground' },
+  '인플루언서기획': { className: 'bg-secondary text-secondary-foreground' },
+  '운영': { className: 'bg-foreground text-background' },
+  '스케일링': { className: 'bg-secondary text-muted-foreground' },
 } as Record<BrandPhase, { label: string; className: string }>;
 // Add labels
 Object.entries(BRAND_PHASE_CONFIG).forEach(([key, val]) => { val.label = key; });
@@ -101,10 +101,10 @@ const TARGET_COUNTRY_OPTIONS = [
 ];
 
 const CHATDOC_STATUS_CONFIG: Record<ChatdocStatus, { label: string; className: string }> = {
-  '대기': { label: '대기', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400' },
-  '온보딩중': { label: '온보딩중', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-  '운영중': { label: '운영중', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  '종료': { label: '종료', className: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' },
+  '대기': { label: '대기', className: 'bg-secondary text-muted-foreground' },
+  '온보딩중': { label: '온보딩중', className: 'bg-secondary text-secondary-foreground' },
+  '운영중': { label: '운영중', className: 'bg-foreground text-background' },
+  '종료': { label: '종료', className: 'bg-secondary text-muted-foreground' },
 };
 
 // ─── Helpers ────────────────────────────────────────────
@@ -525,7 +525,7 @@ export default function CampaignsPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-foreground/40 border-t-foreground" />
       </div>
     );
   }
@@ -534,7 +534,7 @@ export default function CampaignsPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
           <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
@@ -553,40 +553,38 @@ export default function CampaignsPage() {
       {/* Header */}
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">캠페인 관리</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            캠페인을 추가, 수정, 삭제합니다. 셀을 클릭하여 직접 수정할 수 있습니다.
+          <h1 className="text-2xl font-black tracking-tight">캠페인, 여기서 다 관리해.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            캠페인 추가, 수정, 상태 변경까지 한 곳에서. 복잡한 건 제가 정리해드릴게요.
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="rounded-lg">
+        <Button onClick={() => setIsDialogOpen(true)} className="rounded-lg bg-foreground text-background hover:bg-foreground/90">
           <Plus className="size-4 mr-1" /> 캠페인 추가
         </Button>
       </motion.div>
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-teal-100 dark:border-teal-900/30 bg-gradient-to-r from-teal-50/80 via-cyan-50/50 to-transparent dark:from-teal-950/30 dark:via-cyan-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-teal-100/30 to-transparent dark:from-teal-900/15 rounded-bl-full" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-cyan-100/20 to-transparent dark:from-cyan-900/10 rounded-tr-full" />
+        <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-gradient-to-br from-teal-500 via-cyan-500 to-emerald-600 flex items-center justify-center shadow-md shadow-teal-200/50 dark:shadow-teal-900/30 ring-2 ring-white/80 dark:ring-white/10">
-                <Bot className="size-4 text-white" />
+              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
+                <Bot className="size-4 text-background" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-teal-900 dark:text-teal-200">어포메이션 본질 AI Agent</p>
-                <span className="text-[9px] font-medium text-teal-500/60 dark:text-teal-400/50 bg-teal-100/60 dark:bg-teal-900/30 px-1.5 py-0.5 rounded-full">캠페인 관리 가이드</span>
+                <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">캠페인 관리 가이드</span>
               </div>
-              <div className="text-[11px] text-teal-800/80 dark:text-teal-300/70 leading-[1.7] space-y-1">
+              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
                 <p>안녕하세요, 어포메이션 임직원 여러분! 캠페인 관리 페이지 안내를 드립니다.</p>
-                <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-teal-100/50 dark:border-teal-800/20">
-                  <p>이 페이지에서는 <strong className="text-teal-700 dark:text-teal-300">캠페인의 등록, 수정, 삭제</strong>를 관리합니다.</p>
-                  <p>셀을 <strong className="text-cyan-700 dark:text-cyan-300">직접 클릭</strong>하면 해당 항목을 즉시 수정할 수 있으며, 상태/단계/통역 등의 정보를 정확히 유지해 주세요.</p>
+                <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+                  <p>이 페이지에서는 <strong className="text-foreground">캠페인의 등록, 수정, 삭제</strong>를 관리합니다.</p>
+                  <p>셀을 <strong className="text-foreground">직접 클릭</strong>하면 해당 항목을 즉시 수정할 수 있으며, 상태/단계/통역 등의 정보를 정확히 유지해 주세요.</p>
                 </div>
-                <p className="text-[10px] text-teal-600/60 dark:text-teal-400/40">캠페인 정보가 정확해야 모든 업무 체크와 리포트가 올바르게 작동합니다!</p>
+                <p className="text-[10px] text-muted-foreground/60">캠페인 정보가 정확해야 모든 업무 체크와 리포트가 올바르게 작동합니다!</p>
               </div>
             </div>
           </div>
@@ -599,10 +597,10 @@ export default function CampaignsPage() {
           placeholder="캠페인명, 클라이언트, 국가로 검색..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm h-9 text-sm"
+          className="max-w-sm h-9 text-[13px] bg-secondary/50 border-border"
         />
         <Select value={typeFilter || 'all'} onValueChange={(v) => setTypeFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="유형" /></SelectTrigger>
+          <SelectTrigger className="w-[130px] h-9 text-xs border-border"><SelectValue placeholder="유형" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체 유형</SelectItem>
             <SelectItem value="해외마케팅">해외마케팅</SelectItem>
@@ -616,16 +614,16 @@ export default function CampaignsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-foreground/40 border-t-foreground" />
             <span className="text-sm">데이터를 불러오는 중...</span>
           </div>
         </div>
       ) : (
-        <motion.div variants={fadeUpItem} className="border rounded-xl overflow-hidden">
+        <motion.div variants={fadeUpItem} className="border border-border rounded-xl overflow-hidden bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-[12px]">
               <thead>
-                <tr className="bg-muted/50 border-b">
+                <tr className="bg-muted/50 border-b border-border">
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">유형</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">캠페인명</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">클라이언트</th>
@@ -648,7 +646,7 @@ export default function CampaignsPage() {
                   return (
                   <tr
                     key={campaign.id}
-                    className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                    className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
                   >
                     {/* 유형 */}
                     <td className="py-0.5 px-2 min-w-[90px]">
@@ -657,14 +655,14 @@ export default function CampaignsPage() {
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'campaign_type', v)}
                       >
                         <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-1 gap-1 w-[90px]">
-                          <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', typeConf.className)}>
+                          <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', typeConf.className)}>
                             {typeConf.label}
                           </Badge>
                         </SelectTrigger>
                         <SelectContent position="popper">
                           {(Object.keys(CAMPAIGN_TYPE_CONFIG) as CampaignType[]).map((t) => (
                             <SelectItem key={t} value={t}>
-                              <Badge variant="secondary" className={cn('text-[10px]', CAMPAIGN_TYPE_CONFIG[t].className)}>
+                              <Badge variant="secondary" className={cn('text-[10px] rounded-full', CAMPAIGN_TYPE_CONFIG[t].className)}>
                                 {CAMPAIGN_TYPE_CONFIG[t].label}
                               </Badge>
                             </SelectItem>
@@ -680,7 +678,7 @@ export default function CampaignsPage() {
                         isEditing={isEditingCell(campaign.id, 'campaign_name')}
                         onStartEdit={() => startEdit(campaign.id, 'campaign_name')}
                         onSave={(v) => handleInlineUpdate(campaign.id, 'campaign_name', v)}
-                        className="font-medium"
+                        className="font-medium text-[13px]"
                       />
                     </td>
 
@@ -701,14 +699,14 @@ export default function CampaignsPage() {
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'status', v)}
                       >
                         <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
-                          <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', STATUS_CONFIG[campaign.status].className)}>
+                          <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', STATUS_CONFIG[campaign.status].className)}>
                             {STATUS_CONFIG[campaign.status].label}
                           </Badge>
                         </SelectTrigger>
                         <SelectContent position="popper">
                           {(Object.keys(STATUS_CONFIG) as CampaignStatus[]).map((s) => (
                             <SelectItem key={s} value={s}>
-                              <Badge variant="secondary" className={cn('text-[10px]', STATUS_CONFIG[s].className)}>
+                              <Badge variant="secondary" className={cn('text-[10px] rounded-full', STATUS_CONFIG[s].className)}>
                                 {STATUS_CONFIG[s].label}
                               </Badge>
                             </SelectItem>
@@ -740,13 +738,13 @@ export default function CampaignsPage() {
                           />
                           <Select value={campaign.phase} onValueChange={(v) => handleInlineUpdate(campaign.id, 'phase', v)}>
                             <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent px-1 gap-0.5 w-[80px]">
-                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', PHASE_CONFIG[campaign.phase]?.className)}>
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0 rounded-full', PHASE_CONFIG[campaign.phase]?.className)}>
                                 {PHASE_CONFIG[campaign.phase]?.label ?? '-'}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent position="popper">
                               {(Object.keys(PHASE_CONFIG) as CampaignPhase[]).map((p) => (
-                                <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px]', PHASE_CONFIG[p].className)}>{PHASE_CONFIG[p].label}</Badge></SelectItem>
+                                <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px] rounded-full', PHASE_CONFIG[p].className)}>{PHASE_CONFIG[p].label}</Badge></SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -756,7 +754,7 @@ export default function CampaignsPage() {
                           <div className="flex flex-wrap gap-0.5 px-1 py-0.5 min-w-[60px]">
                             {(campaign.target_countries ?? []).length > 0 ? (
                               (campaign.target_countries ?? []).map((c) => (
-                                <Badge key={c} variant="outline" className="text-[8px] px-1 py-0">{c}</Badge>
+                                <Badge key={c} variant="outline" className="text-[8px] px-1 py-0 rounded-full border-border">{c}</Badge>
                               ))
                             ) : (
                               <span className="text-muted-foreground/40 text-[10px]">국가 없음</span>
@@ -764,13 +762,13 @@ export default function CampaignsPage() {
                           </div>
                           <Select value={campaign.brand_phase ?? '기획'} onValueChange={(v) => handleInlineUpdate(campaign.id, 'brand_phase', v)}>
                             <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent px-1 gap-0.5 w-[90px]">
-                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', BRAND_PHASE_CONFIG[campaign.brand_phase ?? '기획']?.className)}>
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0 rounded-full', BRAND_PHASE_CONFIG[campaign.brand_phase ?? '기획']?.className)}>
                                 {BRAND_PHASE_CONFIG[campaign.brand_phase ?? '기획']?.label ?? '기획'}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent position="popper">
                               {(Object.keys(BRAND_PHASE_CONFIG) as BrandPhase[]).map((p) => (
-                                <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px]', BRAND_PHASE_CONFIG[p].className)}>{BRAND_PHASE_CONFIG[p].label}</Badge></SelectItem>
+                                <SelectItem key={p} value={p}><Badge variant="secondary" className={cn('text-[10px] rounded-full', BRAND_PHASE_CONFIG[p].className)}>{BRAND_PHASE_CONFIG[p].label}</Badge></SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -821,7 +819,7 @@ export default function CampaignsPage() {
                             onCheckedChange={(v) => handleInlineUpdate(campaign.id, 'chatdoc_onboarding_done', v)}
                             className="scale-75"
                           />
-                          <span className={cn('text-[10px]', campaign.chatdoc_onboarding_done ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          <span className={cn('text-[10px]', campaign.chatdoc_onboarding_done ? 'text-foreground font-medium' : 'text-muted-foreground')}>
                             {campaign.chatdoc_onboarding_done ? '완료' : '미완료'}
                           </span>
                         </div>
@@ -892,16 +890,16 @@ export default function CampaignsPage() {
                             onValueChange={(v) => handleInlineUpdate(campaign.id, 'vat_type', v)}
                           >
                             <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent hover:bg-muted/60 px-1 gap-0.5 w-[80px] shrink-0">
-                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0', campaign.vat_type === 'VAT포함' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400')}>
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0 rounded-full', campaign.vat_type === 'VAT포함' ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground')}>
                                 {campaign.vat_type ?? 'VAT별도'}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent position="popper">
                               <SelectItem value="VAT별도">
-                                <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600 dark:bg-gray-800/30">VAT별도</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-secondary text-muted-foreground rounded-full">VAT별도</Badge>
                               </SelectItem>
                               <SelectItem value="VAT포함">
-                                <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30">VAT포함</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-foreground text-background rounded-full">VAT포함</Badge>
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -919,14 +917,14 @@ export default function CampaignsPage() {
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'interpreter_status', v)}
                         >
                           <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[120px]">
-                            <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.className)}>
+                            <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.className)}>
                               {INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.label ?? '필요 없음'}
                             </Badge>
                           </SelectTrigger>
                           <SelectContent position="popper">
                             {INTERPRETER_OPTIONS.map((opt) => (
                               <SelectItem key={opt.value} value={opt.value}>
-                                <Badge variant="secondary" className={cn('text-[10px]', opt.className)}>{opt.label}</Badge>
+                                <Badge variant="secondary" className={cn('text-[10px] rounded-full', opt.className)}>{opt.label}</Badge>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -937,14 +935,14 @@ export default function CampaignsPage() {
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'chatdoc_status', v)}
                         >
                           <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
-                            <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', CHATDOC_STATUS_CONFIG[(campaign.chatdoc_status ?? '대기') as ChatdocStatus].className)}>
+                            <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', CHATDOC_STATUS_CONFIG[(campaign.chatdoc_status ?? '대기') as ChatdocStatus].className)}>
                               {CHATDOC_STATUS_CONFIG[(campaign.chatdoc_status ?? '대기') as ChatdocStatus].label}
                             </Badge>
                           </SelectTrigger>
                           <SelectContent position="popper">
                             {(Object.keys(CHATDOC_STATUS_CONFIG) as ChatdocStatus[]).map((s) => (
                               <SelectItem key={s} value={s}>
-                                <Badge variant="secondary" className={cn('text-[10px]', CHATDOC_STATUS_CONFIG[s].className)}>{CHATDOC_STATUS_CONFIG[s].label}</Badge>
+                                <Badge variant="secondary" className={cn('text-[10px] rounded-full', CHATDOC_STATUS_CONFIG[s].className)}>{CHATDOC_STATUS_CONFIG[s].label}</Badge>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -972,7 +970,7 @@ export default function CampaignsPage() {
                         >
                           {campaign.homepage_url ? (
                             <>
-                              <a href={campaign.homepage_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline truncate max-w-[100px]">
+                              <a href={campaign.homepage_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-foreground hover:underline truncate max-w-[100px]">
                                 {(() => { try { return new URL(campaign.homepage_url).hostname; } catch { return campaign.homepage_url; } })()}
                               </a>
                               <ExternalLink className="size-3 text-muted-foreground shrink-0" />
@@ -1025,23 +1023,23 @@ export default function CampaignsPage() {
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg bg-card border-border">
           <DialogHeader>
-            <DialogTitle>새 캠페인</DialogTitle>
-            <DialogDescription>새로운 캠페인을 등록합니다.</DialogDescription>
+            <DialogTitle className="text-lg font-bold">새 캠페인</DialogTitle>
+            <DialogDescription className="text-[13px] text-muted-foreground">새로운 캠페인을 등록합니다.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* 캠페인 유형 선택 */}
-            <div className="flex gap-2 p-1 bg-muted rounded-lg">
+            <div className="flex gap-2 p-1 bg-secondary rounded-lg">
               {(Object.keys(CAMPAIGN_TYPE_CONFIG) as CampaignType[]).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, campaign_type: type }))}
                   className={cn(
-                    'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                    'flex-1 py-2 px-3 rounded-md text-[13px] font-medium transition-all',
                     formData.campaign_type === type
-                      ? 'bg-background shadow-sm ' + (type === '국내챗닥' ? 'text-purple-700 dark:text-purple-300' : 'text-blue-700 dark:text-blue-300')
+                      ? 'bg-foreground text-background shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -1053,23 +1051,25 @@ export default function CampaignsPage() {
             {/* 공통 필드 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="campaign_name">캠페인명 *</Label>
+                <Label htmlFor="campaign_name" className="text-[13px] font-medium">캠페인명 *</Label>
                 <Input
                   id="campaign_name"
                   required
                   value={formData.campaign_name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, campaign_name: e.target.value }))}
                   placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과 강남점' : formData.campaign_type === '제품브랜드' ? '예: 브랜드명 동남아 진출' : '예: 태국 마케팅'}
+                  className="h-9 bg-secondary/50 border-border text-[13px]"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client_name">클라이언트 *</Label>
+                <Label htmlFor="client_name" className="text-[13px] font-medium">클라이언트 *</Label>
                 <Input
                   id="client_name"
                   required
                   value={formData.client_name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, client_name: e.target.value }))}
                   placeholder={formData.campaign_type === '국내챗닥' ? '예: 밝은눈안과' : formData.campaign_type === '제품브랜드' ? '예: 뷰티브랜드' : '예: ABC Corp'}
+                  className="h-9 bg-secondary/50 border-border text-[13px]"
                 />
               </div>
             </div>
@@ -1079,17 +1079,18 @@ export default function CampaignsPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="target_country">대상 국가</Label>
+                    <Label htmlFor="target_country" className="text-[13px] font-medium">대상 국가</Label>
                     <Input
                       id="target_country"
                       value={formData.target_country}
                       onChange={(e) => setFormData((prev) => ({ ...prev, target_country: e.target.value }))}
+                      className="h-9 bg-secondary/50 border-border text-[13px]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>단계</Label>
+                    <Label className="text-[13px] font-medium">단계</Label>
                     <Select value={formData.phase} onValueChange={(v) => setFormData((prev) => ({ ...prev, phase: v as CampaignPhase }))}>
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="onboarding">Onboarding</SelectItem>
                         <SelectItem value="running">Running</SelectItem>
@@ -1101,28 +1102,28 @@ export default function CampaignsPage() {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="monthly_fixed_cost">월 고정비용</Label>
-                    <Input id="monthly_fixed_cost" type="number" value={formData.monthly_fixed_cost} onChange={(e) => setFormData((prev) => ({ ...prev, monthly_fixed_cost: e.target.value }))} />
+                    <Label htmlFor="monthly_fixed_cost" className="text-[13px] font-medium">월 고정비용</Label>
+                    <Input id="monthly_fixed_cost" type="number" value={formData.monthly_fixed_cost} onChange={(e) => setFormData((prev) => ({ ...prev, monthly_fixed_cost: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cost_per_influencer">섭외당 비용</Label>
-                    <Input id="cost_per_influencer" type="number" value={formData.cost_per_influencer} onChange={(e) => setFormData((prev) => ({ ...prev, cost_per_influencer: e.target.value }))} />
+                    <Label htmlFor="cost_per_influencer" className="text-[13px] font-medium">섭외당 비용</Label>
+                    <Input id="cost_per_influencer" type="number" value={formData.cost_per_influencer} onChange={(e) => setFormData((prev) => ({ ...prev, cost_per_influencer: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="influencer_fee_budget">원고료 예산</Label>
-                    <Input id="influencer_fee_budget" type="number" value={formData.influencer_fee_budget} onChange={(e) => setFormData((prev) => ({ ...prev, influencer_fee_budget: e.target.value }))} />
+                    <Label htmlFor="influencer_fee_budget" className="text-[13px] font-medium">원고료 예산</Label>
+                    <Input id="influencer_fee_budget" type="number" value={formData.influencer_fee_budget} onChange={(e) => setFormData((prev) => ({ ...prev, influencer_fee_budget: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="commission_rate">수수료 (%)</Label>
-                    <Input id="commission_rate" type="number" step="0.1" value={formData.commission_rate} onChange={(e) => setFormData((prev) => ({ ...prev, commission_rate: e.target.value }))} placeholder="예: 10" />
+                    <Label htmlFor="commission_rate" className="text-[13px] font-medium">수수료 (%)</Label>
+                    <Input id="commission_rate" type="number" step="0.1" value={formData.commission_rate} onChange={(e) => setFormData((prev) => ({ ...prev, commission_rate: e.target.value }))} placeholder="예: 10" className="h-9 bg-secondary/50 border-border text-[13px]" />
                   </div>
                   <div className="space-y-2">
-                    <Label>VAT 구분</Label>
+                    <Label className="text-[13px] font-medium">VAT 구분</Label>
                     <Select value={formData.vat_type} onValueChange={(v) => setFormData((prev) => ({ ...prev, vat_type: v as VatType }))}>
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="VAT별도">VAT별도</SelectItem>
                         <SelectItem value="VAT포함">VAT포함</SelectItem>
@@ -1132,9 +1133,9 @@ export default function CampaignsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>통역사배치여부</Label>
+                  <Label className="text-[13px] font-medium">통역사배치여부</Label>
                   <Select value={formData.interpreter_status} onValueChange={(v) => setFormData((prev) => ({ ...prev, interpreter_status: v as InterpreterStatus }))}>
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {INTERPRETER_OPTIONS.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.value}</SelectItem>))}
                     </SelectContent>
@@ -1145,8 +1146,8 @@ export default function CampaignsPage() {
               /* 제품브랜드 전용 필드 */
               <>
                 <div className="space-y-2">
-                  <Label>타겟 국가 (복수 선택)</Label>
-                  <div className="flex flex-wrap gap-1.5 p-2 border rounded-lg min-h-[40px]">
+                  <Label className="text-[13px] font-medium">타겟 국가 (복수 선택)</Label>
+                  <div className="flex flex-wrap gap-1.5 p-2 border border-border rounded-lg min-h-[40px]">
                     {TARGET_COUNTRY_OPTIONS.map((country) => (
                       <button
                         key={country}
@@ -1158,10 +1159,10 @@ export default function CampaignsPage() {
                             : [...prev.target_countries, country],
                         }))}
                         className={cn(
-                          'px-2.5 py-1 rounded-md text-xs font-medium transition-all border',
+                          'px-2.5 py-1 rounded-full text-xs font-medium transition-all border',
                           formData.target_countries.includes(country)
-                            ? 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700'
-                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                            ? 'bg-foreground text-background border-foreground'
+                            : 'bg-secondary text-muted-foreground border-transparent hover:bg-muted'
                         )}
                       >
                         {country}
@@ -1172,9 +1173,9 @@ export default function CampaignsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>제품 카테고리</Label>
+                    <Label className="text-[13px] font-medium">제품 카테고리</Label>
                     <Select value={formData.product_category} onValueChange={(v) => setFormData((prev) => ({ ...prev, product_category: v }))}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
+                      <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
                       <SelectContent>
                         {PRODUCT_CATEGORIES.map((cat) => (
                           <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -1183,13 +1184,14 @@ export default function CampaignsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="brand_budget">브랜드 예산</Label>
+                    <Label htmlFor="brand_budget" className="text-[13px] font-medium">브랜드 예산</Label>
                     <Input
                       id="brand_budget"
                       type="number"
                       value={formData.brand_budget}
                       onChange={(e) => setFormData((prev) => ({ ...prev, brand_budget: e.target.value }))}
                       placeholder="예: 50000000"
+                      className="h-9 bg-secondary/50 border-border text-[13px]"
                     />
                   </div>
                 </div>
@@ -1199,9 +1201,9 @@ export default function CampaignsPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>챗닥 상태</Label>
+                    <Label className="text-[13px] font-medium">챗닥 상태</Label>
                     <Select value={formData.chatdoc_status} onValueChange={(v) => setFormData((prev) => ({ ...prev, chatdoc_status: v as ChatdocStatus }))}>
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {(Object.keys(CHATDOC_STATUS_CONFIG) as ChatdocStatus[]).map((s) => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -1210,7 +1212,7 @@ export default function CampaignsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="chatdoc_roas_target">ROAS 목표 (배수)</Label>
+                    <Label htmlFor="chatdoc_roas_target" className="text-[13px] font-medium">ROAS 목표 (배수)</Label>
                     <Input
                       id="chatdoc_roas_target"
                       type="number"
@@ -1218,17 +1220,18 @@ export default function CampaignsPage() {
                       value={formData.chatdoc_roas_target}
                       onChange={(e) => setFormData((prev) => ({ ...prev, chatdoc_roas_target: e.target.value }))}
                       placeholder="예: 3.5"
+                      className="h-9 bg-secondary/50 border-border text-[13px]"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-lg border px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
                   <Switch
                     checked={formData.chatdoc_onboarding_done}
                     onCheckedChange={(v) => setFormData((prev) => ({ ...prev, chatdoc_onboarding_done: v }))}
                   />
                   <div>
-                    <Label className="cursor-pointer">온보딩 완료 여부</Label>
+                    <Label className="cursor-pointer text-[13px] font-medium">온보딩 완료 여부</Label>
                     <p className="text-[11px] text-muted-foreground">챗닥 온보딩이 완료되었는지 체크합니다</p>
                   </div>
                 </div>
@@ -1238,9 +1241,9 @@ export default function CampaignsPage() {
             {/* 공통 하단 필드 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>상태</Label>
+                <Label className="text-[13px] font-medium">상태</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v as CampaignStatus }))}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full h-9 bg-secondary/50 border-border text-[13px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="paused">Paused</SelectItem>
@@ -1249,19 +1252,19 @@ export default function CampaignsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="start_date">시작일</Label>
-                <Input id="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData((prev) => ({ ...prev, start_date: e.target.value }))} />
+                <Label htmlFor="start_date" className="text-[13px] font-medium">시작일</Label>
+                <Input id="start_date" type="date" value={formData.start_date} onChange={(e) => setFormData((prev) => ({ ...prev, start_date: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="homepage_url">홈페이지 URL</Label>
-              <Input id="homepage_url" type="url" value={formData.homepage_url} onChange={(e) => setFormData((prev) => ({ ...prev, homepage_url: e.target.value }))} />
+              <Label htmlFor="homepage_url" className="text-[13px] font-medium">홈페이지 URL</Label>
+              <Input id="homepage_url" type="url" value={formData.homepage_url} onChange={(e) => setFormData((prev) => ({ ...prev, homepage_url: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>취소</Button>
-              <Button type="submit" disabled={createMutation.isPending}>
+              <Button type="button" variant="outline" onClick={closeDialog} className="bg-secondary border-border">취소</Button>
+              <Button type="submit" disabled={createMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90">
                 {createMutation.isPending ? '저장 중...' : '등록'}
               </Button>
             </DialogFooter>
@@ -1271,10 +1274,10 @@ export default function CampaignsPage() {
 
       {/* Delete Confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
-            <DialogTitle>캠페인 삭제</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg font-bold">캠페인 삭제</DialogTitle>
+            <DialogDescription className="text-[13px] text-muted-foreground">
               &ldquo;{deletingCampaign?.campaign_name}&rdquo; 캠페인을 삭제하시겠습니까?
               <br />
               이 작업은 되돌릴 수 없습니다.
@@ -1287,6 +1290,7 @@ export default function CampaignsPage() {
                 setIsDeleteDialogOpen(false);
                 setDeletingCampaign(null);
               }}
+              className="bg-secondary border-border"
             >
               취소
             </Button>

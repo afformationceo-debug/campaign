@@ -97,9 +97,9 @@ interface GroupDefinition {
 }
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; bg: string }> = {
-  '진행전': { label: '진행전', color: 'text-gray-500', icon: CircleDashed, bg: 'bg-gray-100 dark:bg-gray-800' },
-  '진행중': { label: '진행중', color: 'text-blue-600', icon: Clock, bg: 'bg-blue-50 dark:bg-blue-950' },
-  '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-950' },
+  '진행전': { label: '진행전', color: 'text-muted-foreground', icon: CircleDashed, bg: 'bg-secondary' },
+  '진행중': { label: '진행중', color: 'text-foreground', icon: Clock, bg: 'bg-foreground/10' },
+  '완료': { label: '완료', color: 'text-foreground', icon: CheckCircle2, bg: 'bg-foreground text-background' },
 };
 
 const KANBAN_COLUMNS: ProjectState[] = ['진행전', '진행중', '완료'];
@@ -293,19 +293,19 @@ function ProjectCard({
       className={cn(
         'group relative rounded-xl border bg-card p-4 transition-all duration-200',
         'hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20',
-        project.state === '완료' && 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50/50 via-card to-card dark:from-emerald-950/20 shadow-emerald-100/50 dark:shadow-emerald-900/20',
+        project.state === '완료' && 'border-foreground/20 bg-foreground/[0.03]',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             {project.state === '완료' ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 gap-0.5">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-foreground text-background rounded-full gap-0.5">
                 <Trophy className="size-3" />
                 완료
               </Badge>
             ) : (
-              <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 shrink-0', stateConfig.color, stateConfig.bg)}>
+              <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 shrink-0 rounded-full', stateConfig.color, stateConfig.bg)}>
                 <StateIcon className="size-3 mr-0.5" />
                 {stateConfig.label}
               </Badge>
@@ -316,7 +316,7 @@ function ProjectCard({
               </a>
             )}
           </div>
-          <h3 className={cn('font-semibold text-sm truncate', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}>{project.project_name}</h3>
+          <h3 className={cn('font-semibold text-sm truncate', project.state === '완료' && 'text-foreground')}>{project.project_name}</h3>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -338,7 +338,7 @@ function ProjectCard({
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all duration-500', progressPct === 100 ? 'bg-emerald-500' : progressPct > 0 ? 'bg-blue-500' : 'bg-gray-300')}
+              className={cn('h-full rounded-full transition-all duration-500', progressPct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -558,9 +558,9 @@ export default function RoadmapPage() {
           groups.push({
             key: userId,
             label: user?.name ?? '알 수 없음',
-            color: 'text-blue-600',
+            color: 'text-foreground',
             icon: User,
-            bg: 'bg-blue-50 dark:bg-blue-950',
+            bg: 'bg-secondary',
             projects: projs,
           });
         });
@@ -568,9 +568,9 @@ export default function RoadmapPage() {
           groups.push({
             key: '__unassigned__',
             label: '미지정',
-            color: 'text-gray-500',
+            color: 'text-muted-foreground',
             icon: CircleDashed,
-            bg: 'bg-gray-100 dark:bg-gray-800',
+            bg: 'bg-secondary',
             projects: unassigned,
           });
         }
@@ -597,9 +597,9 @@ export default function RoadmapPage() {
           groups.push({
             key: month,
             label: `${y}년 ${parseInt(m)}월`,
-            color: 'text-violet-600',
+            color: 'text-foreground',
             icon: CalendarDays,
-            bg: 'bg-violet-50 dark:bg-violet-950',
+            bg: 'bg-secondary',
             projects: projs,
           });
         });
@@ -607,9 +607,9 @@ export default function RoadmapPage() {
           groups.push({
             key: '__no_date__',
             label: '마감일 미정',
-            color: 'text-gray-500',
+            color: 'text-muted-foreground',
             icon: CircleDashed,
-            bg: 'bg-gray-100 dark:bg-gray-800',
+            bg: 'bg-secondary',
             projects: noDate,
           });
         }
@@ -902,20 +902,20 @@ export default function RoadmapPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">프로젝트 로드맵</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">진행중인 프로젝트와 하위 업무를 관리합니다.</p>
+          <h1 className="text-2xl font-black tracking-tight">프로젝트 로드맵, 한눈에 파악해.</h1>
+          <p className="text-sm text-muted-foreground mt-1">진행 중인 프로젝트를 카드, 칸반, 테이블 뷰로 확인하세요. 진행률과 마감일을 놓치지 않도록 도와줄게요.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 h-8 text-xs bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-200 dark:border-indigo-800 hover:from-indigo-500/20 hover:to-purple-500/20"
+            className="gap-1.5 h-8 text-xs"
             onClick={() => setAiSheetOpen(true)}
           >
-            <Bot className="size-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-indigo-700 dark:text-indigo-300">AI 분석</span>
+            <Bot className="size-3.5" />
+            AI 분석
           </Button>
-          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs">
+          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs bg-foreground text-background hover:bg-foreground/90">
             <Plus className="size-3.5" />
             새 프로젝트
           </Button>
@@ -923,30 +923,28 @@ export default function RoadmapPage() {
       </div>
 
       {/* AI Agent Guide Banner */}
-      <div className="relative rounded-xl border border-indigo-100 dark:border-indigo-900/30 bg-gradient-to-r from-indigo-50/80 via-violet-50/50 to-transparent dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-100/30 to-transparent dark:from-indigo-900/15 rounded-bl-full" />
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-violet-100/20 to-transparent dark:from-violet-900/10 rounded-tr-full" />
+      <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
         <div className="flex gap-3 items-start relative">
           <div className="relative shrink-0 mt-0.5">
-            <div className="size-9 rounded-full bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-200/50 dark:shadow-indigo-900/30 ring-2 ring-white/80 dark:ring-white/10">
-              <Bot className="size-4 text-white" />
+            <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
+              <Bot className="size-4 text-background" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground/60 border-2 border-background" />
           </div>
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-[12px] font-bold text-indigo-900 dark:text-indigo-200">
+              <p className="text-[12px] font-bold text-foreground">
                 어포메이션 본질 AI Agent
               </p>
-              <span className="text-[9px] font-medium text-indigo-500/60 dark:text-indigo-400/50 bg-indigo-100/60 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-full">프로젝트 가이드</span>
+              <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">프로젝트 가이드</span>
             </div>
-            <div className="text-[11px] text-indigo-800/80 dark:text-indigo-300/70 leading-[1.7] space-y-1">
+            <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
               <p>안녕하세요, 어포메이션 임직원 여러분! 프로젝트 로드맵 활용법을 안내드립니다.</p>
-              <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-indigo-100/50 dark:border-indigo-800/20">
-                <p><strong className="text-indigo-700 dark:text-indigo-300">상위 프로젝트</strong>에는 큰 목표(예: &quot;신규 캠페인 런칭&quot;, &quot;시스템 개선&quot;)를 적어주세요.</p>
-                <p><strong className="text-violet-700 dark:text-violet-300">하위 업무</strong>에는 그 목표를 달성하기 위한 구체적인 액션 아이템을 등록합니다.</p>
+              <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+                <p><strong className="text-foreground">상위 프로젝트</strong>에는 큰 목표(예: &quot;신규 캠페인 런칭&quot;, &quot;시스템 개선&quot;)를 적어주세요.</p>
+                <p><strong className="text-foreground">하위 업무</strong>에는 그 목표를 달성하기 위한 구체적인 액션 아이템을 등록합니다.</p>
               </div>
-              <p className="text-[10px] text-indigo-600/60 dark:text-indigo-400/40">상위 프로젝트만 늘리지 말고, 하나의 프로젝트 아래 실행 가능한 업무를 체계적으로 관리해 주세요!</p>
+              <p className="text-[10px] text-muted-foreground/60">상위 프로젝트만 늘리지 말고, 하나의 프로젝트 아래 실행 가능한 업무를 체계적으로 관리해 주세요!</p>
             </div>
           </div>
         </div>
@@ -957,13 +955,13 @@ export default function RoadmapPage() {
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">프로젝트</span>
           <span className="font-bold text-sm">{stats.total}</span>
-          <span className="text-gray-400">({stats.notStarted} 진행전 · <span className="text-blue-600">{stats.inProgress} 진행중</span> · <span className="text-emerald-600">{stats.completed} 완료</span>)</span>
+          <span className="text-muted-foreground">({stats.notStarted} 진행전 · <span className="text-foreground font-medium">{stats.inProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.completed} 완료</span>)</span>
         </div>
         <span className="text-muted-foreground/30">|</span>
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">하위업무</span>
           <span className="font-bold text-sm">{stats.totalTasks}</span>
-          <span className="text-gray-400">({stats.tasksNotStarted} 진행전 · <span className="text-blue-600">{stats.tasksInProgress} 진행중</span> · <span className="text-emerald-600">{stats.tasksCompleted} 완료</span>)</span>
+          <span className="text-muted-foreground">({stats.tasksNotStarted} 진행전 · <span className="text-foreground font-medium">{stats.tasksInProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.tasksCompleted} 완료</span>)</span>
         </div>
       </div>
 
@@ -985,7 +983,7 @@ export default function RoadmapPage() {
           <Button
             variant={showCompleted ? 'outline' : 'secondary'}
             size="sm"
-            className={cn('h-8 text-xs gap-1.5', !showCompleted && 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800')}
+            className={cn('h-8 text-xs gap-1.5', !showCompleted && 'bg-foreground/10 text-foreground')}
             onClick={() => setShowCompleted(!showCompleted)}
           >
             {showCompleted ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
@@ -1022,14 +1020,14 @@ export default function RoadmapPage() {
             )}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+        <div className="ml-auto flex items-center gap-0.5 bg-secondary/50 rounded-full p-0.5">
           {([
             { mode: 'cards' as ViewMode, icon: LayoutGrid, label: '카드' },
             { mode: 'kanban' as ViewMode, icon: Kanban, label: '칸반' },
             { mode: 'table' as ViewMode, icon: Table2, label: '테이블' },
             { mode: 'grouped' as ViewMode, icon: Layers, label: '그룹화' },
           ]).map(({ mode, icon: Icon, label }) => (
-            <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1', viewMode === mode && 'shadow-sm')} onClick={() => setViewMode(mode)}>
+            <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1 rounded-full', viewMode === mode && 'bg-foreground text-background shadow-sm hover:bg-foreground/90')} onClick={() => setViewMode(mode)}>
               <Icon className="size-3" /><span className="hidden sm:inline">{label}</span>
             </Button>
           ))}
@@ -1067,12 +1065,12 @@ export default function RoadmapPage() {
             return (
               <div key={state} className={cn(
                 'rounded-xl border p-3',
-                state === '완료' ? 'bg-emerald-50/30 border-emerald-200 dark:bg-emerald-950/10 dark:border-emerald-800' : 'bg-muted/30',
+                state === '완료' ? 'bg-foreground/[0.03] border-foreground/20' : 'bg-secondary/50',
               )}>
                 <div className="flex items-center gap-2 mb-3 px-1">
                   {state === '완료' ? <Trophy className={cn('size-4', config.color)} /> : <StateIcon className={cn('size-4', config.color)} />}
                   <h3 className={cn('text-sm font-semibold', config.color)}>{config.label}</h3>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">{stateProjects.length}</Badge>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto rounded-full">{stateProjects.length}</Badge>
                 </div>
                 <div className="space-y-3">
                   <AnimatePresence mode="popLayout">
@@ -1141,7 +1139,7 @@ export default function RoadmapPage() {
                           <tr className={cn(
                             'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
                             isExpanded && 'bg-accent/10',
-                            project.state === '완료' && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:via-emerald-950/15 dark:to-transparent border-l-[3px] border-l-emerald-400',
+                            project.state === '완료' && 'bg-foreground/[0.03] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/30',
                           )}>
                             <td className="px-1 py-0.5">
                               <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-accent" onClick={() => toggleExpand(project.id)}>
@@ -1165,7 +1163,7 @@ export default function RoadmapPage() {
                                         isEditing={isEditing(project.id, 'project_name')}
                                         onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
                                         onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                        className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}
+                                        className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-foreground')}
                                       />
                                     </div>
                                   </TooltipTrigger>
@@ -1204,13 +1202,13 @@ export default function RoadmapPage() {
                             </td>
                             <td className="px-2 py-0.5">
                               {pct === 100 && tasks.length > 0 ? (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5">
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-foreground text-background rounded-full gap-0.5">
                                   <CheckCircle2 className="size-2.5" />{completed}/{tasks.length}
                                 </Badge>
                               ) : (
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                                    <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-blue-500' : 'bg-gray-300')} style={{ width: `${pct}%` }} />
+                                    <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')} style={{ width: `${pct}%` }} />
                                   </div>
                                   <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                                 </div>
@@ -1251,8 +1249,8 @@ export default function RoadmapPage() {
                             return (
                               <tr key={task.id} className={cn(
                                 'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap bg-muted/5',
-                                isTaskCompleted && 'bg-gradient-to-r from-emerald-50/50 via-emerald-50/20 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent border-l-[3px] border-l-emerald-300',
-                                isFilteredAssignee && !isTaskCompleted && 'bg-gradient-to-r from-blue-50/60 via-blue-50/20 to-transparent dark:from-blue-950/20 dark:via-blue-950/10 dark:to-transparent border-l-[3px] border-l-blue-400',
+                                isTaskCompleted && 'bg-foreground/[0.02] dark:bg-foreground/[0.04] border-l-[3px] border-l-foreground/20',
+                                isFilteredAssignee && !isTaskCompleted && 'bg-foreground/[0.04] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/40',
                               )}>
                                 <td className="px-1 py-0.5"></td>
                                 <td className="px-1 py-0.5">
@@ -1274,13 +1272,13 @@ export default function RoadmapPage() {
                                             isEditing={isEditing(task.id, 'title')}
                                             onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
                                             onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                            className={cn('text-[11px]', isTaskCompleted ? 'text-emerald-700 dark:text-emerald-400' : isFilteredAssignee && 'font-semibold text-blue-700 dark:text-blue-300')}
+                                            className={cn('text-[11px]', isTaskCompleted ? 'text-foreground' : isFilteredAssignee && 'font-semibold text-foreground')}
                                           />
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent side="bottom"><p className="text-xs">{task.title}</p></TooltipContent>
                                     </Tooltip>
-                                    {isTaskCompleted && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
+                                    {isTaskCompleted && <CheckCircle2 className="size-3 text-foreground shrink-0" />}
                                   </div>
                                 </td>
                                 <td className="px-2 py-0.5">
@@ -1388,9 +1386,9 @@ export default function RoadmapPage() {
                   return (
                     <div key={group.key} className={cn(
                       'rounded-xl border bg-card overflow-hidden shadow-sm',
-                      isCompletedState && 'border-emerald-200 dark:border-emerald-800',
-                      isActiveState && 'border-blue-200 dark:border-blue-800',
-                      isPendingState && 'border-gray-200 dark:border-gray-700',
+                      isCompletedState && 'border-foreground/20',
+                      isActiveState && 'border-foreground/15',
+                      isPendingState && 'border-border',
                     )}>
                       <button
                         type="button"
@@ -1398,11 +1396,11 @@ export default function RoadmapPage() {
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-2 transition-colors',
                           isCompletedState
-                            ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-transparent hover:from-emerald-100/80 dark:hover:from-emerald-950/40'
+                            ? 'bg-foreground/[0.04] hover:bg-foreground/[0.07]'
                             : isActiveState
-                              ? 'bg-gradient-to-r from-blue-50 to-blue-50/30 dark:from-blue-950/30 dark:to-transparent hover:from-blue-100/80 dark:hover:from-blue-950/40'
+                              ? 'bg-foreground/[0.03] hover:bg-foreground/[0.06]'
                               : isPendingState
-                                ? 'bg-gradient-to-r from-gray-50 to-gray-50/30 dark:from-gray-800/30 dark:to-transparent hover:from-gray-100/80 dark:hover:from-gray-800/40'
+                                ? 'bg-secondary/50 hover:bg-secondary/80'
                                 : 'bg-muted/30 hover:bg-muted/50',
                         )}
                       >
@@ -1410,10 +1408,10 @@ export default function RoadmapPage() {
                         {isCompletedState ? <Trophy className={cn('size-4', group.color)} /> : <GroupIcon className={cn('size-4', group.color)} />}
                         <span className={cn('text-sm font-semibold', group.color)}>{group.label}</span>
                         <Badge variant="secondary" className={cn(
-                          'text-[10px] px-1.5 py-0',
-                          isCompletedState && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-                          isActiveState && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-                          isPendingState && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+                          'text-[10px] px-1.5 py-0 rounded-full',
+                          isCompletedState && 'bg-foreground text-background',
+                          isActiveState && 'bg-foreground/10 text-foreground',
+                          isPendingState && 'bg-secondary text-muted-foreground',
                         )}>
                           {projectCount}개
                         </Badge>
@@ -1429,19 +1427,19 @@ export default function RoadmapPage() {
                 } else {
                   // Nested sub-group: colored left border + tinted background
                   const subBorderColor = isCompletedState
-                    ? 'border-l-emerald-400 dark:border-l-emerald-600'
+                    ? 'border-l-foreground/30'
                     : isActiveState
-                      ? 'border-l-blue-400 dark:border-l-blue-600'
+                      ? 'border-l-foreground/20'
                       : isPendingState
-                        ? 'border-l-gray-400 dark:border-l-gray-500'
-                        : 'border-l-violet-300 dark:border-l-violet-600';
+                        ? 'border-l-muted-foreground/30'
+                        : 'border-l-muted-foreground/20';
                   const subBg = isCompletedState
-                    ? 'bg-emerald-50/40 dark:bg-emerald-950/15'
+                    ? 'bg-foreground/[0.03]'
                     : isActiveState
-                      ? 'bg-blue-50/40 dark:bg-blue-950/15'
+                      ? 'bg-foreground/[0.02]'
                       : isPendingState
-                        ? 'bg-gray-50/40 dark:bg-gray-800/15'
-                        : 'bg-violet-50/30 dark:bg-violet-950/10';
+                        ? 'bg-secondary/40'
+                        : 'bg-secondary/30';
                   return (
                     <div key={group.key} className={cn('border-t border-l-[3px]', subBorderColor)}>
                       <button
@@ -1457,10 +1455,10 @@ export default function RoadmapPage() {
                         <GroupIcon className={cn('size-3.5', group.color)} />
                         <span className={cn('text-[12px] font-semibold', group.color)}>{group.label}</span>
                         <Badge variant="secondary" className={cn(
-                          'text-[9px] px-1.5 py-0 h-4',
-                          isCompletedState && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-                          isActiveState && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-                          isPendingState && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+                          'text-[9px] px-1.5 py-0 h-4 rounded-full',
+                          isCompletedState && 'bg-foreground text-background',
+                          isActiveState && 'bg-foreground/10 text-foreground',
+                          isPendingState && 'bg-secondary text-muted-foreground',
                         )}>
                           {projectCount}개
                         </Badge>
@@ -1557,7 +1555,7 @@ export default function RoadmapPage() {
                         'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
                         isExpanded && 'bg-accent/10',
                         isSelected && 'bg-primary/5',
-                        project.state === '완료' && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/30 dark:via-emerald-950/15 dark:to-transparent border-l-[3px] border-l-emerald-400',
+                        project.state === '완료' && 'bg-foreground/[0.03] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/30',
                         dragItem?.type === 'project' && dragItem.id === project.id && 'opacity-40',
                         dragOverItem?.type === 'project' && dragOverItem.id === project.id && 'border-t-2 border-t-primary',
                       )}
@@ -1587,8 +1585,8 @@ export default function RoadmapPage() {
                       <td className="px-2 py-0.5 max-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
                           {project.state === '완료' && (
-                            <span className="shrink-0 size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                              <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="shrink-0 size-5 rounded-full bg-foreground/10 flex items-center justify-center">
+                              <Trophy className="size-2.5 text-foreground" />
                             </span>
                           )}
                           <Tooltip>
@@ -1599,7 +1597,7 @@ export default function RoadmapPage() {
                                   isEditing={isEditing(project.id, 'project_name')}
                                   onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
                                   onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                  className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-emerald-800 dark:text-emerald-300')}
+                                  className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-foreground')}
                                 />
                               </div>
                             </TooltipTrigger>
@@ -1649,14 +1647,14 @@ export default function RoadmapPage() {
                       {/* Progress */}
                       <td className="px-2 py-0.5">
                         {pct === 100 && tasks.length > 0 ? (
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 gap-0.5">
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-foreground text-background rounded-full gap-0.5">
                             <CheckCircle2 className="size-2.5" />
                             {completed}/{tasks.length}
                           </Badge>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-blue-500' : 'bg-gray-300')} style={{ width: `${pct}%` }} />
+                              <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')} style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                           </div>
@@ -1737,8 +1735,8 @@ export default function RoadmapPage() {
                             'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap',
                             'bg-muted/5',
                             isTaskSelected && 'bg-primary/5',
-                            isTaskCompleted && 'bg-gradient-to-r from-emerald-50/50 via-emerald-50/20 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent border-l-[3px] border-l-emerald-300',
-                            isFilteredAssignee && !isTaskCompleted && 'bg-gradient-to-r from-blue-50/60 via-blue-50/20 to-transparent dark:from-blue-950/20 dark:via-blue-950/10 dark:to-transparent border-l-[3px] border-l-blue-400',
+                            isTaskCompleted && 'bg-foreground/[0.02] dark:bg-foreground/[0.04] border-l-[3px] border-l-foreground/20',
+                            isFilteredAssignee && !isTaskCompleted && 'bg-foreground/[0.04] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/40',
                             dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
                             dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                           )}
@@ -1770,7 +1768,7 @@ export default function RoadmapPage() {
                                       isEditing={isEditing(task.id, 'title')}
                                       onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
                                       onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                      className={cn('text-[11px]', isTaskCompleted ? 'text-emerald-700 dark:text-emerald-400' : isFilteredAssignee && 'font-semibold text-blue-700 dark:text-blue-300')}
+                                      className={cn('text-[11px]', isTaskCompleted ? 'text-foreground' : isFilteredAssignee && 'font-semibold text-foreground')}
                                     />
                                   </div>
                                 </TooltipTrigger>
@@ -1778,7 +1776,7 @@ export default function RoadmapPage() {
                                   <p className="text-xs">{task.title}</p>
                                 </TooltipContent>
                               </Tooltip>
-                              {isTaskCompleted && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
+                              {isTaskCompleted && <CheckCircle2 className="size-3 text-foreground shrink-0" />}
                             </div>
                           </td>
                           {/* State */}
@@ -1934,22 +1932,22 @@ export default function RoadmapPage() {
 
       {/* ═══════════════ COMPLETED PROJECTS SECTION ═══════════════ */}
       {completedProjects.length > 0 && (
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-transparent dark:from-emerald-950/20 overflow-hidden">
+        <div className="rounded-xl border border-foreground/20 bg-foreground/[0.03] overflow-hidden">
           <button
-            className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-foreground/[0.05] transition-colors"
             onClick={() => setShowCompleted(true)}
           >
-            <Trophy className="size-4 text-emerald-500" />
-            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+            <Trophy className="size-4 text-foreground/60" />
+            <span className="text-sm font-semibold text-foreground">
               완료된 프로젝트
             </span>
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full bg-foreground text-background">
               {completedProjects.length}개
             </Badge>
-            <span className="ml-auto text-[11px] text-emerald-600/60 dark:text-emerald-400/60">
+            <span className="ml-auto text-[11px] text-muted-foreground">
               클릭하여 보기
             </span>
-            <Eye className="size-3.5 text-emerald-500/50" />
+            <Eye className="size-3.5 text-muted-foreground" />
           </button>
         </div>
       )}
@@ -2078,7 +2076,7 @@ export default function RoadmapPage() {
           <EmptyProjectForm formData={formData} setFormData={setFormData} users={users} />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>취소</Button>
-            <Button onClick={handleSubmit} disabled={!formData.project_name?.trim() || creating || updating}>{editingProject ? '저장' : '생성'}</Button>
+            <Button className="bg-foreground text-background hover:bg-foreground/90" onClick={handleSubmit} disabled={!formData.project_name?.trim() || creating || updating}>{editingProject ? '저장' : '생성'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -74,24 +74,24 @@ const QA_STATUSES: QaStatus[] = ['미해결', '진행중', '해결완료'];
 const QA_PRIORITIES: QaPriority[] = ['긴급', '높음', '보통', '낮음'];
 
 const QA_TYPE_CONFIG: Record<QaType, { icon: React.ElementType; color: string; bg: string }> = {
-  '요청사항': { icon: MessageSquareWarning, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30' },
-  '불만사항': { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/30' },
-  '개선사항': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-  '버그': { icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30' },
-  '기타': { icon: MessageSquareWarning, color: 'text-gray-600', bg: 'bg-gray-50 dark:bg-gray-950/30' },
+  '요청사항': { icon: MessageSquareWarning, color: 'text-foreground', bg: 'bg-secondary' },
+  '불만사항': { icon: AlertCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
+  '개선사항': { icon: CheckCircle2, color: 'text-foreground', bg: 'bg-secondary' },
+  '버그': { icon: AlertCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
+  '기타': { icon: MessageSquareWarning, color: 'text-muted-foreground', bg: 'bg-secondary' },
 };
 
 const QA_STATUS_CONFIG: Record<QaStatus, { color: string; bg: string; border: string }> = {
-  '미해결': { color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800' },
-  '진행중': { color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800' },
-  '해결완료': { color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800' },
+  '미해결': { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20' },
+  '진행중': { color: 'text-foreground', bg: 'bg-secondary', border: 'border-border' },
+  '해결완료': { color: 'text-muted-foreground', bg: 'bg-secondary/50', border: 'border-border' },
 };
 
 const QA_PRIORITY_CONFIG: Record<QaPriority, { color: string; bg: string }> = {
-  '긴급': { color: 'text-red-700', bg: 'bg-red-100 dark:bg-red-950/40' },
-  '높음': { color: 'text-orange-700', bg: 'bg-orange-100 dark:bg-orange-950/40' },
-  '보통': { color: 'text-blue-700', bg: 'bg-blue-100 dark:bg-blue-950/40' },
-  '낮음': { color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-950/40' },
+  '긴급': { color: 'text-destructive', bg: 'bg-destructive/10' },
+  '높음': { color: 'text-foreground', bg: 'bg-secondary' },
+  '보통': { color: 'text-muted-foreground', bg: 'bg-secondary' },
+  '낮음': { color: 'text-muted-foreground', bg: 'bg-secondary/50' },
 };
 
 /* ── Form Data ──────────────────────── */
@@ -134,11 +134,11 @@ function DueDateBadge({ dueDate, status }: { dueDate: string | null; status: QaS
   let bgColor = '';
   if (!isResolved) {
     if (overdue) {
-      color = 'text-red-600 font-semibold';
-      bgColor = 'bg-red-50 dark:bg-red-950/30';
+      color = 'text-destructive font-semibold';
+      bgColor = 'bg-destructive/10';
     } else if (daysLeft <= 3) {
-      color = 'text-amber-600 font-medium';
-      bgColor = 'bg-amber-50 dark:bg-amber-950/30';
+      color = 'text-foreground font-medium';
+      bgColor = 'bg-secondary';
     }
   }
 
@@ -197,7 +197,7 @@ function InlineTextCell({
           if (e.key === 'Escape') setEditing(false);
           if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleSave(); }
         }}
-        className="w-full text-[11px] bg-background border border-primary/40 rounded px-1.5 py-1 outline-none resize-none min-h-[32px]"
+        className="w-full text-[11px] bg-secondary/50 border border-border rounded px-1.5 py-1 outline-none resize-none min-h-[32px] focus:ring-1 focus:ring-foreground/20"
         rows={2}
       />
     );
@@ -210,7 +210,7 @@ function InlineTextCell({
           type="button"
           onClick={handleStart}
           className={cn(
-            'w-full text-left text-[11px] truncate cursor-text rounded px-0.5 hover:bg-accent/50 transition-colors min-h-[20px]',
+            'w-full text-left text-[11px] truncate cursor-text rounded px-0.5 hover:bg-secondary transition-colors min-h-[20px]',
             value ? (textColor || 'text-foreground') : 'text-muted-foreground/40'
           )}
         >
@@ -261,13 +261,13 @@ function InlineDateCell({
         defaultValue={value || ''}
         onChange={handleChange}
         onBlur={() => setEditing(false)}
-        className="text-[10px] bg-background border border-primary/40 rounded px-1 py-0.5 outline-none w-full"
+        className="text-[10px] bg-secondary/50 border border-border rounded px-1 py-0.5 outline-none w-full focus:ring-1 focus:ring-foreground/20"
       />
     );
   }
 
   return (
-    <button type="button" onClick={handleStart} className="cursor-pointer hover:bg-accent/50 rounded px-0.5 transition-colors">
+    <button type="button" onClick={handleStart} className="cursor-pointer hover:bg-secondary rounded px-0.5 transition-colors">
       <DueDateBadge dueDate={value} status={status} />
     </button>
   );
@@ -610,36 +610,34 @@ export default function CampaignQaPage() {
       >
         {/* Header */}
         <motion.div variants={fadeUpItem}>
-          <h1 className="text-xl font-bold tracking-tight">캠페인 QA 관리</h1>
+          <h1 className="text-2xl font-black tracking-tight">QA 이슈, 놓치지 않게 관리해줄게.</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            캠페인별 요청사항, 불만사항 등 QA 이슈를 체계적으로 관리합니다.
+            요청사항, 불만, 개선점, 버그까지. 우선순위별로 정리하고 진행 상황을 추적하세요.
           </p>
         </motion.div>
 
         {/* AI Agent Guide Banner */}
         <motion.div variants={fadeUpItem}>
-          <div className="relative rounded-xl border border-orange-100 dark:border-orange-900/30 bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/30 dark:via-amber-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-orange-100/30 to-transparent dark:from-orange-900/15 rounded-bl-full" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-amber-100/20 to-transparent dark:from-amber-900/10 rounded-tr-full" />
+          <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
             <div className="flex gap-3 items-start relative">
               <div className="relative shrink-0 mt-0.5">
-                <div className="size-9 rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-red-600 flex items-center justify-center shadow-md shadow-orange-200/50 dark:shadow-orange-900/30 ring-2 ring-white/80 dark:ring-white/10">
-                  <Bot className="size-4 text-white" />
+                <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
+                  <Bot className="size-4 text-background" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[12px] font-bold text-orange-900 dark:text-orange-200">어포메이션 본질 AI Agent</p>
-                  <span className="text-[9px] font-medium text-orange-500/60 dark:text-orange-400/50 bg-orange-100/60 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full">QA 관리 가이드</span>
+                  <p className="text-[12px] font-bold text-foreground">bkit AI Agent</p>
+                  <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">QA 관리 가이드</span>
                 </div>
-                <div className="text-[11px] text-orange-800/80 dark:text-orange-300/70 leading-[1.7] space-y-1">
+                <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
                   <p>안녕하세요, 어포메이션 임직원 여러분! QA 관리 페이지를 안내해 드립니다.</p>
-                  <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-orange-100/50 dark:border-orange-800/20">
-                    <p>캠페인 진행 중 발생하는 <strong className="text-orange-700 dark:text-orange-300">요청사항, 불만사항, 개선사항, 버그</strong> 등을 이곳에 등록해 주세요.</p>
-                    <p><strong className="text-red-700 dark:text-red-300">우선순위</strong>를 정확히 설정하면 긴급한 이슈부터 빠르게 처리할 수 있습니다.</p>
+                  <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+                    <p>캠페인 진행 중 발생하는 <strong className="text-foreground">요청사항, 불만사항, 개선사항, 버그</strong> 등을 이곳에 등록해 주세요.</p>
+                    <p><strong className="text-foreground">우선순위</strong>를 정확히 설정하면 긴급한 이슈부터 빠르게 처리할 수 있습니다.</p>
                   </div>
-                  <p className="text-[10px] text-orange-600/60 dark:text-orange-400/40">QA를 꼼꼼하게 관리하면 고객 만족도가 크게 향상됩니다!</p>
+                  <p className="text-[10px] text-muted-foreground/60">QA를 꼼꼼하게 관리하면 고객 만족도가 크게 향상됩니다!</p>
                 </div>
               </div>
             </div>
@@ -650,12 +648,12 @@ export default function CampaignQaPage() {
         <motion.div variants={fadeUpItem} className="grid grid-cols-5 gap-3">
           {[
             { label: '전체', value: stats.total, color: 'text-foreground', bg: 'bg-card' },
-            { label: '미해결', value: stats.unresolved, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/20' },
-            { label: '진행중', value: stats.inProgress, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/20' },
-            { label: '해결완료', value: stats.resolved, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
-            { label: '기한초과', value: stats.overdue, color: 'text-red-700', bg: 'bg-red-50 dark:bg-red-950/30' },
+            { label: '미해결', value: stats.unresolved, color: 'text-destructive', bg: 'bg-destructive/5' },
+            { label: '진행중', value: stats.inProgress, color: 'text-foreground', bg: 'bg-secondary' },
+            { label: '해결완료', value: stats.resolved, color: 'text-muted-foreground', bg: 'bg-secondary/50' },
+            { label: '기한초과', value: stats.overdue, color: 'text-destructive', bg: 'bg-destructive/5' },
           ].map((s) => (
-            <div key={s.label} className={cn('rounded-xl border p-3', s.bg)}>
+            <div key={s.label} className={cn('rounded-xl border border-border p-3', s.bg)}>
               <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
               <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
             </div>
@@ -664,7 +662,7 @@ export default function CampaignQaPage() {
 
         {/* Filters & Actions */}
         <motion.div variants={fadeUpItem}>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
             <Filter className="size-4 text-muted-foreground shrink-0" />
             <Select value={campaignFilter} onValueChange={setCampaignFilter}>
               <SelectTrigger className="w-[180px] h-8 text-xs">
@@ -724,13 +722,13 @@ export default function CampaignQaPage() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center border rounded-md h-8 overflow-hidden shrink-0">
+            <div className="flex items-center border border-border rounded-lg h-8 overflow-hidden shrink-0">
               <button
                 type="button"
                 onClick={() => setGroupBy('campaign')}
                 className={cn(
                   'px-2.5 h-full text-[10px] font-medium transition-colors',
-                  groupBy === 'campaign' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
+                  groupBy === 'campaign' ? 'bg-foreground text-background' : 'hover:bg-secondary text-muted-foreground'
                 )}
               >
                 캠페인별
@@ -740,7 +738,7 @@ export default function CampaignQaPage() {
                 onClick={() => setGroupBy('assignee')}
                 className={cn(
                   'px-2.5 h-full text-[10px] font-medium transition-colors',
-                  groupBy === 'assignee' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'
+                  groupBy === 'assignee' ? 'bg-foreground text-background' : 'hover:bg-secondary text-muted-foreground'
                 )}
               >
                 실행자별
@@ -755,10 +753,10 @@ export default function CampaignQaPage() {
                 className="pl-8 h-8 text-xs"
               />
             </div>
-            <Badge variant="secondary" className="text-xs shrink-0">
+            <Badge variant="secondary" className="text-[11px] rounded-full shrink-0">
               {filteredQa.length}건
             </Badge>
-            <Button size="sm" className="gap-1.5 ml-auto shrink-0" onClick={handleOpenCreate}>
+            <Button size="sm" className="gap-1.5 ml-auto shrink-0 bg-foreground text-background hover:bg-foreground/90 rounded-lg" onClick={handleOpenCreate}>
               <Plus className="size-3.5" />
               QA 등록
             </Button>
@@ -769,7 +767,7 @@ export default function CampaignQaPage() {
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="flex items-center gap-3 text-muted-foreground">
-              <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+              <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
               <span className="text-sm">데이터를 불러오는 중...</span>
             </div>
           </div>
@@ -778,7 +776,7 @@ export default function CampaignQaPage() {
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
               <MessageSquareWarning className="size-8 opacity-30" />
               <span className="text-sm">등록된 QA가 없습니다.</span>
-              <Button variant="outline" size="sm" className="mt-2 gap-1.5" onClick={handleOpenCreate}>
+              <Button variant="outline" size="sm" className="mt-2 gap-1.5 rounded-lg" onClick={handleOpenCreate}>
                 <Plus className="size-3.5" />
                 첫 QA 등록하기
               </Button>
@@ -800,29 +798,29 @@ export default function CampaignQaPage() {
                 : undefined;
 
               return (
-              <div key={groupKey} className="rounded-xl border bg-card shadow-sm overflow-hidden">
+              <div key={groupKey} className="rounded-xl border border-border bg-card overflow-hidden">
                 {/* Group Header */}
-                <div className="px-3 py-2 border-b bg-muted/30 flex items-center gap-2">
+                <div className="px-3 py-2 border-b border-border bg-secondary/30 flex items-center gap-2">
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {groupBy === 'assignee' && <Users className="size-3.5 text-muted-foreground shrink-0" />}
-                    <span className="text-xs font-semibold truncate">
+                    <span className="text-[12px] font-semibold truncate">
                       {groupBy === 'campaign'
                         ? (campaign ? `${campaign.client_name} - ${campaign.campaign_name}` : groupKey)
                         : assigneeName}
                     </span>
                     {groupBy === 'campaign' && campaign?.target_country && (
-                      <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-2">
+                      <Badge variant="secondary" className="text-[8px] px-1 py-0 rounded-full">
                         {campaign.target_country}
                       </Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {unresolvedCount > 0 && (
-                      <Badge variant="destructive" className="text-[9px] px-1.5 py-0">
+                      <Badge variant="destructive" className="text-[9px] px-1.5 py-0 rounded-full">
                         미해결 {unresolvedCount}
                       </Badge>
                     )}
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                       총 {items.length}건
                     </Badge>
                   </div>
@@ -832,7 +830,7 @@ export default function CampaignQaPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed text-left min-w-[800px]">
                     <thead>
-                      <tr className="border-b bg-muted/10">
+                      <tr className="border-b border-border bg-secondary/10">
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%]">캠페인</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">유형</th>
                         <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
@@ -856,7 +854,7 @@ export default function CampaignQaPage() {
                           <tr
                             key={qa.id}
                             className={cn(
-                              'border-b border-border/30 hover:bg-muted/20 transition-colors',
+                              'border-b border-border/30 hover:bg-secondary/30 transition-colors',
                               qa.status === '해결완료' && 'opacity-60'
                             )}
                           >
@@ -866,7 +864,7 @@ export default function CampaignQaPage() {
                                 value={qa.campaign_id}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'campaign_id', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 max-w-full">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 max-w-full">
                                   <span className="text-[10px] truncate">
                                     {(() => {
                                       const c = campaignMap.get(qa.campaign_id);
@@ -889,8 +887,8 @@ export default function CampaignQaPage() {
                                 value={qa.qa_type}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'qa_type', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] font-medium hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
-                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap pointer-events-none', typeCfg.color, typeCfg.bg)}>
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] font-medium hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap pointer-events-none rounded-full', typeCfg.color, typeCfg.bg)}>
                                     {qa.qa_type}
                                   </Badge>
                                 </SelectTrigger>
@@ -907,8 +905,8 @@ export default function CampaignQaPage() {
                                 value={qa.priority}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'priority', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
-                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap pointer-events-none', priorityCfg.color, priorityCfg.bg)}>
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap pointer-events-none rounded-full', priorityCfg.color, priorityCfg.bg)}>
                                     {qa.priority}
                                   </Badge>
                                 </SelectTrigger>
@@ -936,7 +934,7 @@ export default function CampaignQaPage() {
                                 qaId={qa.id}
                                 field="resolution"
                                 placeholder="해결내용 입력..."
-                                textColor="text-emerald-700 dark:text-emerald-400"
+                                textColor="text-muted-foreground"
                                 onUpdate={handleInlineUpdate}
                               />
                             </td>
@@ -946,7 +944,7 @@ export default function CampaignQaPage() {
                                 value={qa.created_by || '__none__'}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'created_by', v === '__none__' ? null : v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.created_by ? 'text-foreground' : 'text-muted-foreground')}>{qa.created_by || '-'}</span>
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="max-h-60">
@@ -965,7 +963,7 @@ export default function CampaignQaPage() {
                                 value={qa.assigned_to || '__none__'}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'assigned_to', v === '__none__' ? null : v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-accent/50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.assigned_to ? 'text-foreground' : 'text-muted-foreground')}>{qa.assigned_to || '-'}</span>
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="max-h-60">
@@ -1047,9 +1045,9 @@ export default function CampaignQaPage() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[560px]">
+          <DialogContent className="sm:max-w-[560px] bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-lg">
+              <DialogTitle className="text-lg font-bold">
                 {editingQa ? 'QA 수정' : 'QA 등록'}
               </DialogTitle>
             </DialogHeader>
@@ -1063,7 +1061,7 @@ export default function CampaignQaPage() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={campaignSearchOpen}
-                      className="w-full h-9 justify-between text-sm font-normal"
+                      className="w-full h-9 justify-between text-sm font-normal bg-secondary/50 border-border"
                     >
                       {formData.campaign_id
                         ? (() => {
@@ -1109,7 +1107,7 @@ export default function CampaignQaPage() {
                     value={formData.qa_type}
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, qa_type: v as QaType }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1125,7 +1123,7 @@ export default function CampaignQaPage() {
                     value={formData.priority}
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, priority: v as QaPriority }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1145,7 +1143,7 @@ export default function CampaignQaPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
                   placeholder="QA 내용을 입력하세요..."
                   rows={3}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
                 />
               </div>
 
@@ -1157,7 +1155,7 @@ export default function CampaignQaPage() {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
-                    className="h-9 text-sm"
+                    className="h-9 text-sm bg-secondary/50 border-border"
                   />
                 </div>
                 <div>
@@ -1166,7 +1164,7 @@ export default function CampaignQaPage() {
                     value={formData.status}
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v as QaStatus }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1182,7 +1180,7 @@ export default function CampaignQaPage() {
                     value={formData.created_by}
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, created_by: v }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
                       <SelectValue placeholder="작성자 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1200,7 +1198,7 @@ export default function CampaignQaPage() {
                     value={formData.assigned_to}
                     onValueChange={(v) => setFormData((prev) => ({ ...prev, assigned_to: v }))}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
                       <SelectValue placeholder="실행자 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1222,18 +1220,19 @@ export default function CampaignQaPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, resolution: e.target.value }))}
                   placeholder="해결 내용을 입력하세요 (해결 후 작성)..."
                   rows={2}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
                 />
               </div>
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-lg border-border">
                   취소
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={!formData.campaign_id || !formData.content.trim() || createMutation.isPending || updateMutation.isPending}
+                  className="bg-foreground text-background hover:bg-foreground/90 rounded-lg"
                 >
                   {createMutation.isPending || updateMutation.isPending ? '저장 중...' : editingQa ? '수정' : '등록'}
                 </Button>

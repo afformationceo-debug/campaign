@@ -101,16 +101,16 @@ function formatRoomDate(dateStr: string) {
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-3 px-5 py-4">
-      <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
-        <Bot className="size-3.5 text-white" />
+      <div className="size-7 rounded-full bg-foreground flex items-center justify-center shrink-0">
+        <Bot className="size-3.5 text-background" />
       </div>
       <div className="flex flex-col gap-1 pt-1">
-        <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">AI Agent</span>
+        <span className="text-[11px] font-semibold text-muted-foreground">AI Agent</span>
         <div className="flex items-center gap-2 bg-muted/50 rounded-2xl px-4 py-2.5">
           <div className="flex gap-1">
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
           </div>
           <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
         </div>
@@ -438,17 +438,17 @@ export function AiSummarySheet({
         {/* ─── Sidebar ─── */}
         <div
           className={cn(
-            'shrink-0 flex flex-col bg-gradient-to-b from-slate-950 to-slate-900 border-r border-white/[0.06] transition-all duration-300 overflow-hidden',
+            'shrink-0 flex flex-col bg-card border-r border-border transition-all duration-300 overflow-hidden',
             sidebarOpen ? 'w-[240px]' : 'w-0'
           )}
         >
           {/* Sidebar Header */}
           <div className="px-3 pt-4 pb-2 flex items-center justify-between">
-            <span className="text-[11px] font-medium text-white/40 uppercase tracking-[0.08em]">대화 목록</span>
+            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">대화 목록</span>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="size-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/5 transition-colors"
+              className="size-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
               title="사이드바 닫기"
             >
               <PanelLeftClose className="size-3.5" />
@@ -460,7 +460,7 @@ export function AiSummarySheet({
             <button
               type="button"
               onClick={handleNewChat}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium text-white/70 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border hover:border-border transition-all"
             >
               <Plus className="size-3.5" />
               새 대화
@@ -473,10 +473,10 @@ export function AiSummarySheet({
               <div
                 key={room.id}
                 className={cn(
-                  'group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all cursor-pointer',
+                  'group relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all cursor-pointer',
                   activeRoomId === room.id
-                    ? 'bg-white/[0.08] text-white'
-                    : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]'
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 )}
                 onClick={() => handleSelectRoom(room.id)}
               >
@@ -495,12 +495,12 @@ export function AiSummarySheet({
                       if (e.key === 'Escape') setEditingRoomId(null);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex-1 min-w-0 bg-white/5 border border-white/20 rounded px-1.5 py-0.5 text-[12px] text-white outline-none"
+                    className="flex-1 min-w-0 bg-secondary/50 border border-border rounded px-1.5 py-0.5 text-[12px] text-foreground outline-none"
                   />
                 ) : (
                   <div className="flex-1 min-w-0">
                     <span className="text-[12px] block truncate leading-tight">{room.title}</span>
-                    <span className="text-[9px] text-white/25 leading-tight">{formatRoomDate(room.updated_at)}</span>
+                    <span className="text-[9px] text-muted-foreground/50 leading-tight">{formatRoomDate(room.updated_at)}</span>
                   </div>
                 )}
 
@@ -511,7 +511,7 @@ export function AiSummarySheet({
                       <button
                         type="button"
                         onClick={(e) => e.stopPropagation()}
-                        className="size-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                        className="size-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
                       >
                         <MoreHorizontal className="size-3.5" />
                       </button>
@@ -563,10 +563,10 @@ export function AiSummarySheet({
                 )}
                 <SheetTitle className="flex items-center gap-2.5 text-base">
                   <div className="relative">
-                    <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm shadow-indigo-500/20">
-                      <Bot className="size-4 text-white" />
+                    <div className="size-8 rounded-full bg-foreground flex items-center justify-center">
+                      <Bot className="size-4 text-background" />
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-[1.5px] border-background" />
+                    <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-foreground/60 border-[1.5px] border-background" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[13px] font-semibold text-foreground truncate max-w-[220px]">
@@ -601,7 +601,7 @@ export function AiSummarySheet({
           {/* ─── Streaming indicator bar ─── */}
           {isLoading && (
             <div className="h-0.5 w-full bg-muted overflow-hidden shrink-0">
-              <div className="h-full w-1/3 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 animate-shimmer rounded-full" />
+              <div className="h-full w-1/3 bg-foreground/60 animate-shimmer rounded-full" />
             </div>
           )}
 
@@ -621,8 +621,8 @@ export function AiSummarySheet({
             {!hasMessages && !isLoading && (
               <div className="flex flex-col items-center justify-center gap-6 pt-12 pb-6 px-5">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <Sparkles className="size-8 text-white" />
+                  <div className="size-16 rounded-2xl bg-foreground flex items-center justify-center shadow-lg">
+                    <Sparkles className="size-8 text-background" />
                   </div>
                   <div className="text-center">
                     <h3 className="text-[16px] font-bold text-foreground">무엇이든 물어보세요</h3>
@@ -673,19 +673,19 @@ export function AiSummarySheet({
                   className={cn(
                     'px-5 py-4',
                     isUser && 'bg-transparent',
-                    !isUser && 'bg-muted/30'
+                    !isUser && 'bg-secondary/50'
                   )}
                 >
                   <div className="max-w-[620px] mx-auto">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
                       {isUser ? (
-                        <div className="size-7 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shrink-0 shadow-sm text-[11px] font-bold text-white">
+                        <div className="size-7 rounded-full bg-secondary flex items-center justify-center shrink-0 text-[11px] font-bold text-foreground">
                           {user?.email?.charAt(0).toUpperCase() || 'U'}
                         </div>
                       ) : (
-                        <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
-                          <Bot className="size-3.5 text-white" />
+                        <div className="size-7 rounded-full bg-foreground flex items-center justify-center shrink-0">
+                          <Bot className="size-3.5 text-background" />
                         </div>
                       )}
 
@@ -693,7 +693,7 @@ export function AiSummarySheet({
                       <div className="flex-1 min-w-0 group">
                         <span className={cn(
                           'text-[11px] font-semibold block mb-1',
-                          isUser ? 'text-blue-600 dark:text-blue-400' : 'text-indigo-600 dark:text-indigo-400'
+                          isUser ? 'text-foreground' : 'text-muted-foreground'
                         )}>
                           {isUser ? '나' : 'AI Agent'}
                         </span>
@@ -708,7 +708,7 @@ export function AiSummarySheet({
                               prose-p:leading-[1.8] prose-li:leading-[1.8]
                               prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5
                               prose-strong:text-foreground prose-strong:font-semibold
-                              prose-a:text-indigo-600 dark:prose-a:text-indigo-400
+                              prose-a:text-foreground prose-a:underline
                               prose-code:text-[12px] prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-normal
                               prose-pre:bg-slate-900 prose-pre:rounded-xl prose-pre:shadow-sm">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -717,7 +717,7 @@ export function AiSummarySheet({
                             </div>
                             {/* Streaming cursor */}
                             {isStreaming && (
-                              <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
+                              <span className="inline-block w-0.5 h-4 bg-foreground animate-pulse rounded-full ml-0.5 align-middle" />
                             )}
                             {/* Copy button */}
                             {!isLoading && msg.content && (
@@ -780,8 +780,7 @@ export function AiSummarySheet({
             <div className="max-w-[620px] mx-auto">
               <div className={cn(
                 'relative flex items-end gap-2 rounded-2xl border bg-muted/30 px-4 py-2 transition-all',
-                'focus-within:border-indigo-300 focus-within:bg-background focus-within:shadow-sm focus-within:shadow-indigo-500/5',
-                'dark:focus-within:border-indigo-700'
+                'focus-within:border-border focus-within:bg-background focus-within:shadow-sm'
               )}>
                 <textarea
                   ref={inputRef}

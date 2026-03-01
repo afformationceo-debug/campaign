@@ -33,6 +33,18 @@ export function useUpdateCheckStatus() {
       if (params.note !== undefined) updateData.note = params.note;
       if (params.result_value !== undefined) updateData.result_value = params.result_value;
 
+      // Track started_at / completed_at based on status
+      if (params.status === '진행중') {
+        updateData.started_at = new Date().toISOString();
+        updateData.completed_at = null;
+      } else if (params.status === '완료') {
+        updateData.completed_at = new Date().toISOString();
+      } else {
+        // 미완료 or 해당없음 — reset timing
+        updateData.started_at = null;
+        updateData.completed_at = null;
+      }
+
       const { data, error } = await supabase
         .from('daily_checks')
         .update(updateData)
@@ -57,11 +69,21 @@ export function useUpdateCheckStatus() {
       await queryClient.cancelQueries({ queryKey: ['checks'] });
       const allQueries = queryClient.getQueriesData<DailyCheck[]>({ queryKey: ['checks'] });
       const previousMap = new Map(allQueries);
+
+      // Build optimistic timestamp fields
+      const now = new Date().toISOString();
+      const timestampFields: Record<string, string | null> =
+        status === '진행중'
+          ? { started_at: now, completed_at: null }
+          : status === '완료'
+            ? { completed_at: now }
+            : { started_at: null, completed_at: null };
+
       allQueries.forEach(([key]) => {
         queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
           (old || []).map((item) =>
             item.id === id
-              ? { ...item, status, ...(note !== undefined && { note }), ...(result_value !== undefined && { result_value }) }
+              ? { ...item, status, ...timestampFields, ...(note !== undefined && { note }), ...(result_value !== undefined && { result_value }) }
               : item
           )
         );
@@ -124,6 +146,15 @@ export function useCreateCheck() {
       };
       if (params.note !== undefined) insertData.note = params.note;
       if (params.result_value !== undefined) insertData.result_value = params.result_value;
+
+      // Track started_at / completed_at based on status
+      if (params.status === '진행중') {
+        insertData.started_at = new Date().toISOString();
+      } else if (params.status === '완료') {
+        const now = new Date().toISOString();
+        insertData.started_at = now;
+        insertData.completed_at = now;
+      }
 
       const { data, error } = await supabase
         .from('daily_checks')

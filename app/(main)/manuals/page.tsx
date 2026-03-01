@@ -160,31 +160,29 @@ export default function ManualsPage() {
       {/* Header */}
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">이커머스 매뉴얼/가이드</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            해외 이커머스 플랫폼별 입점 가이드 및 운영 매뉴얼을 관리합니다.
+          <h1 className="text-2xl font-black tracking-tight">매뉴얼, 필요한 건 다 있어.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            플랫폼별 세팅 가이드, 운영 가이드, FAQ까지. 모르는 게 있으면 여기서 찾아보세요.
           </p>
         </div>
       </motion.div>
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-transparent dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-100/30 to-transparent dark:from-emerald-900/15 rounded-bl-full" />
+        <div className="relative rounded-lg border border-border bg-card px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center shadow-md ring-2 ring-white/80 dark:ring-white/10">
-                <Bot className="size-4 text-white" />
+              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
+                <Bot className="size-4 text-background" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-emerald-900 dark:text-emerald-200">이커머스 플랫폼 가이드</p>
-                <span className="text-[9px] font-medium text-emerald-500/60 dark:text-emerald-400/50 bg-emerald-100/60 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">지식베이스</span>
+                <p className="text-[12px] font-bold text-foreground">이커머스 플랫폼 가이드</p>
+                <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">지식베이스</span>
               </div>
-              <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/70 leading-[1.7]">
-                <p>플랫폼 카드를 클릭하면 해당 플랫폼의 <strong className="text-emerald-700 dark:text-emerald-300">입점 절차, 수수료, 물류 정보</strong> 등 상세 매뉴얼을 확인할 수 있습니다.</p>
+              <div className="text-[11px] text-muted-foreground leading-[1.7]">
+                <p>플랫폼 카드를 클릭하면 해당 플랫폼의 <strong className="text-foreground">입점 절차, 수수료, 물류 정보</strong> 등 상세 매뉴얼을 확인할 수 있습니다.</p>
               </div>
             </div>
           </div>
@@ -195,7 +193,7 @@ export default function ManualsPage() {
       <motion.div variants={fadeUpItem}>
         {loadingPlatforms ? (
           <div className="flex items-center justify-center h-32">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
           </div>
         ) : selectedPlatform ? (
           /* Compact horizontal strip when a platform is selected */
@@ -210,13 +208,13 @@ export default function ManualsPage() {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-lg border whitespace-nowrap text-sm transition-all shrink-0',
                   platform.id === selectedPlatformId
-                    ? 'border-primary bg-primary/10 text-primary font-semibold shadow-sm'
-                    : 'hover:border-primary/30 bg-card text-muted-foreground hover:text-foreground'
+                    ? 'border-foreground bg-foreground text-background font-semibold'
+                    : 'hover:border-foreground/30 bg-card border-border text-muted-foreground hover:text-foreground'
                 )}
               >
                 <span>{platform.logo_emoji}</span>
                 <span>{platform.platform_name}</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{manualCounts[platform.id] || 0}</Badge>
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">{manualCounts[platform.id] || 0}</Badge>
               </button>
             ))}
           </div>
@@ -246,7 +244,7 @@ export default function ManualsPage() {
             <div className="flex items-center gap-2">
               <span className="text-lg">{selectedPlatform.logo_emoji}</span>
               <h2 className="text-lg font-semibold">{selectedPlatform.platform_name} 매뉴얼</h2>
-              <Badge variant="secondary" className="text-[10px]">{manuals.length}개</Badge>
+              <Badge variant="secondary" className="text-[10px] rounded-full">{manuals.length}개</Badge>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -255,11 +253,11 @@ export default function ManualsPage() {
                   placeholder="매뉴얼 검색..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 h-8 text-xs w-[200px]"
+                  className="pl-8 h-8 text-xs w-[200px] bg-secondary/50 border-border"
                 />
               </div>
               {isAdmin && (
-                <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+                <Button size="sm" onClick={() => setIsCreateOpen(true)} className="bg-foreground text-background hover:bg-foreground/90">
                   <Plus className="size-3.5 mr-1" /> 매뉴얼 추가
                 </Button>
               )}
@@ -279,10 +277,10 @@ export default function ManualsPage() {
           <div className="mt-3">
             {loadingManuals ? (
               <div className="flex items-center justify-center h-32">
-                <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+                <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
               </div>
             ) : filteredManuals.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border rounded-lg gap-2">
+              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border border-border rounded-lg gap-2">
                 <BookOpen className="size-8 text-muted-foreground/50" />
                 <p className="text-sm">등록된 매뉴얼이 없습니다.</p>
               </div>
@@ -319,6 +317,7 @@ export default function ManualsPage() {
                 value={newManual.title}
                 onChange={(e) => setNewManual((p) => ({ ...p, title: e.target.value }))}
                 placeholder="매뉴얼 제목"
+                className="border-border"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -342,6 +341,7 @@ export default function ManualsPage() {
                   value={newManual.country}
                   onChange={(e) => setNewManual((p) => ({ ...p, country: e.target.value }))}
                   placeholder="예: 일본"
+                  className="border-border"
                 />
               </div>
             </div>
@@ -352,14 +352,16 @@ export default function ManualsPage() {
                 onChange={(e) => setNewManual((p) => ({ ...p, content: e.target.value }))}
                 placeholder="매뉴얼 내용을 작성하세요..."
                 rows={12}
+                className="border-border"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-border">취소</Button>
             <Button
               onClick={() => createMutation.mutate()}
               disabled={!newManual.title.trim() || !newManual.content.trim() || createMutation.isPending}
+              className="bg-foreground text-background hover:bg-foreground/90"
             >
               {createMutation.isPending ? '저장 중...' : '등록'}
             </Button>

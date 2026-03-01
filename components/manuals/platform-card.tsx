@@ -5,12 +5,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { EcommercePlatform } from '@/lib/types/database';
 
-const DIFFICULTY_CONFIG: Record<string, { className: string }> = {
-  '쉬움': { className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' },
-  '보통': { className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30' },
-  '어려움': { className: 'bg-red-100 text-red-700 dark:bg-red-900/30' },
-};
-
 export function PlatformCard({
   platform,
   manualCount,
@@ -22,16 +16,14 @@ export function PlatformCard({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const difficulty = DIFFICULTY_CONFIG[platform.setup_difficulty ?? '보통'] ?? DIFFICULTY_CONFIG['보통'];
-
   return (
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border p-4 cursor-pointer transition-all duration-200 hover:shadow-md',
+        'rounded-lg border p-4 cursor-pointer transition-all duration-200 hover:shadow-md',
         isSelected
-          ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
-          : 'hover:border-primary/30 bg-card'
+          ? 'border-foreground bg-foreground/5 shadow-sm ring-1 ring-foreground/20'
+          : 'hover:border-foreground/30 bg-card border-border'
       )}
     >
       <div className="flex items-start justify-between mb-3">
@@ -45,14 +37,14 @@ export function PlatformCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-[10px] text-primary hover:underline flex items-center gap-0.5 mt-0.5"
+                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline flex items-center gap-0.5 mt-0.5"
               >
                 셀러 페이지 <ExternalLink className="size-2.5" />
               </a>
             )}
           </div>
         </div>
-        <Badge variant="secondary" className={cn('text-[9px] px-1.5 py-0', difficulty.className)}>
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
           {platform.setup_difficulty}
         </Badge>
       </div>
@@ -63,12 +55,12 @@ export function PlatformCard({
 
       <div className="flex flex-wrap gap-1 mb-3">
         {platform.available_countries.slice(0, 5).map((country) => (
-          <Badge key={country} variant="outline" className="text-[9px] px-1.5 py-0">
+          <Badge key={country} variant="outline" className="text-[9px] px-1.5 py-0 border-border">
             {country}
           </Badge>
         ))}
         {platform.available_countries.length > 5 && (
-          <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground">
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground border-border">
             +{platform.available_countries.length - 5}
           </Badge>
         )}
@@ -76,7 +68,7 @@ export function PlatformCard({
 
       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
         <span>{platform.fee_structure}</span>
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
           {manualCount}개 매뉴얼
         </Badge>
       </div>

@@ -109,30 +109,26 @@ const TAB_CONFIG: { key: ViewTab; label: string; icon: React.ElementType }[] = [
   { key: 'project', label: '프로젝트별', icon: FolderKanban },
 ];
 
-const PIE_COLORS = [
-  'oklch(0.55 0.22 265)', 'oklch(0.65 0.18 165)', 'oklch(0.55 0.16 145)',
-  'oklch(0.75 0.15 85)', 'oklch(0.6 0.2 25)', 'oklch(0.6 0.2 330)',
-  'oklch(0.5 0.2 280)', 'oklch(0.7 0.14 200)', 'oklch(0.65 0.15 60)',
-];
+const CHART_COLORS = ['#0a0a0a', '#404040', '#737373', '#a3a3a3', '#d4d4d4'];
 
 const PHASE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; bar: string }> = {
-  onboarding: { label: '온보딩', color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50/80 dark:bg-blue-950/30', border: 'border-blue-200/60 dark:border-blue-800/40', bar: 'bg-blue-500' },
-  running: { label: '운영중', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50/80 dark:bg-emerald-950/30', border: 'border-emerald-200/60 dark:border-emerald-800/40', bar: 'bg-emerald-500' },
-  scaling: { label: '스케일링', color: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-50/80 dark:bg-purple-950/30', border: 'border-purple-200/60 dark:border-purple-800/40', bar: 'bg-purple-500' },
+  onboarding: { label: '온보딩', color: 'text-neutral-700 dark:text-neutral-300', bg: 'bg-neutral-50 dark:bg-neutral-900/30', border: 'border-neutral-200 dark:border-neutral-800', bar: 'bg-neutral-500' },
+  running: { label: '운영중', color: 'text-neutral-700 dark:text-neutral-300', bg: 'bg-neutral-100/80 dark:bg-neutral-800/30', border: 'border-neutral-300 dark:border-neutral-700', bar: 'bg-neutral-700' },
+  scaling: { label: '스케일링', color: 'text-neutral-700 dark:text-neutral-300', bg: 'bg-neutral-50 dark:bg-neutral-900/30', border: 'border-neutral-200 dark:border-neutral-800', bar: 'bg-neutral-900 dark:bg-neutral-100' },
 };
 
 const PROJECT_STATE_CONFIG: Record<ProjectState, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  '진행전': { label: '진행전', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800', icon: CircleDashed },
-  '진행중': { label: '진행중', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40', icon: Clock },
-  '완료': { label: '완료', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/40', icon: CheckCircle2 },
+  '진행전': { label: '진행전', color: 'text-neutral-500 dark:text-neutral-400', bg: 'bg-neutral-100 dark:bg-neutral-800', icon: CircleDashed },
+  '진행중': { label: '진행중', color: 'text-neutral-700 dark:text-neutral-300', bg: 'bg-neutral-200/60 dark:bg-neutral-700/40', icon: Clock },
+  '완료': { label: '완료', color: 'text-foreground', bg: 'bg-foreground/10', icon: CheckCircle2 },
 };
 
 const BRAND_PHASE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  '기획': { label: '기획', color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800' },
-  '플랫폼세팅': { label: '플랫폼세팅', color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/40' },
-  '인플루언서기획': { label: '인플기획', color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/40' },
-  '운영': { label: '운영', color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  '스케일링': { label: '스케일링', color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/40' },
+  '기획': { label: '기획', color: 'text-neutral-600', bg: 'bg-neutral-100 dark:bg-neutral-800' },
+  '플랫폼세팅': { label: '플랫폼세팅', color: 'text-neutral-700', bg: 'bg-neutral-200/60 dark:bg-neutral-700/40' },
+  '인플루언서기획': { label: '인플기획', color: 'text-neutral-700', bg: 'bg-neutral-200/60 dark:bg-neutral-700/40' },
+  '운영': { label: '운영', color: 'text-foreground', bg: 'bg-foreground/10' },
+  '스케일링': { label: '스케일링', color: 'text-foreground', bg: 'bg-foreground/10' },
 };
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -590,9 +586,9 @@ export default function DashboardPage() {
 
   // ─── Helpers ──────────────────────────────────────────
   const getBarColor = (rate: number) => {
-    if (rate >= 80) return 'oklch(0.6 0.18 155)';
-    if (rate >= 50) return 'oklch(0.7 0.15 85)';
-    return 'oklch(0.6 0.2 25)';
+    if (rate >= 80) return '#0a0a0a';
+    if (rate >= 50) return '#737373';
+    return '#d4d4d4';
   };
 
   const getGreeting = () => {
@@ -621,39 +617,37 @@ export default function DashboardPage() {
       {/* ─── Header ─── */}
       <motion.div variants={fadeUpItem} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {getGreeting()}, <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">{profile?.name ?? '사용자'}</span>님
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{format(new Date(), 'yyyy년 MM월 dd일')} 기준 실시간 현황</p>
+          <h1 className="text-2xl font-black tracking-tight">오늘의 업무 현황, 한눈에 보여줄게.</h1>
+          <p className="text-sm text-muted-foreground mt-1">실시간 캠페인 진행률, 팀 현황, AI 인사이트까지. 필요한 건 다 여기 있어요.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-200 dark:border-indigo-800 hover:from-indigo-500/20 hover:to-purple-500/20"
+            className="gap-1.5 bg-secondary border-border hover:bg-secondary/80 transition-colors duration-150"
             onClick={() => setAiSheetOpen(true)}
           >
-            <Bot className="size-4 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">AI 현황 요약</span>
+            <Bot className="size-4 text-foreground" />
+            <span className="text-xs font-medium text-foreground">AI 현황 요약</span>
           </Button>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{onlineUsers.length}명 접속 중</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-foreground/5 border border-border">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[11px] font-medium text-muted-foreground">{onlineUsers.length}명 접속 중</span>
           </div>
         </div>
       </motion.div>
 
       {/* ─── Tab Navigation ─── */}
       <motion.div variants={fadeUpItem}>
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 border w-fit">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 border border-border w-fit">
           {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
               className={cn(
-                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
                 activeTab === key
-                  ? 'bg-background shadow-sm text-foreground border'
+                  ? 'bg-foreground text-background shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
               )}
             >
@@ -667,46 +661,32 @@ export default function DashboardPage() {
       {/* ═══ OVERVIEW TAB ═══ */}
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (
-          <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-5">
+          <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }} className="space-y-5">
             {/* KPI Cards */}
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
               {/* Active campaigns */}
-              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
-                      <Target className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    </div>
+                    <Target className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">활성 캠페인</span>
                   </div>
-                  <div className="text-2xl font-bold tracking-tight">{activeCampaigns.length}</div>
+                  <div className="text-2xl font-black tracking-tight text-foreground">{activeCampaigns.length}</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">전체 {campaigns.length}개</p>
                 </CardContent>
               </Card>
 
               {/* Completion rate */}
-              <Card className={cn('relative overflow-hidden border-0 shadow-sm',
-                completionRate >= 80 ? 'bg-gradient-to-br from-emerald-50 to-green-50/50 dark:from-emerald-950/40 dark:to-green-950/20'
-                : completionRate >= 50 ? 'bg-gradient-to-br from-amber-50 to-yellow-50/50 dark:from-amber-950/40 dark:to-yellow-950/20'
-                : 'bg-gradient-to-br from-red-50 to-orange-50/50 dark:from-red-950/40 dark:to-orange-950/20'
-              )}>
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={cn('h-7 w-7 rounded-lg flex items-center justify-center',
-                      completionRate >= 80 ? 'bg-emerald-500/15' : completionRate >= 50 ? 'bg-amber-500/15' : 'bg-red-500/15'
-                    )}>
-                      <CheckCircle2 className={cn('h-3.5 w-3.5',
-                        completionRate >= 80 ? 'text-emerald-600' : completionRate >= 50 ? 'text-amber-600' : 'text-red-600'
-                      )} />
-                    </div>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">오늘 완료율</span>
                   </div>
                   <div className="flex items-end gap-1.5">
-                    <span className={cn('text-2xl font-bold tracking-tight',
-                      completionRate >= 80 ? 'text-emerald-600' : completionRate >= 50 ? 'text-amber-600' : 'text-red-600'
-                    )}>{completionRate}%</span>
+                    <span className="text-2xl font-black tracking-tight text-foreground">{completionRate}%</span>
                     {rateDiff !== null && rateDiff !== 0 && (
-                      <span className={cn('text-[10px] font-medium flex items-center mb-1', rateDiff > 0 ? 'text-emerald-600' : 'text-red-500')}>
+                      <span className={cn('text-[10px] font-medium flex items-center mb-1', rateDiff > 0 ? 'text-green-600' : 'text-red-500')}>
                         {rateDiff > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                         {Math.abs(rateDiff)}%
                       </span>
@@ -717,57 +697,49 @@ export default function DashboardPage() {
               </Card>
 
               {/* Projects in progress */}
-              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-purple-50 to-violet-50/50 dark:from-purple-950/40 dark:to-violet-950/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-lg bg-purple-500/15 flex items-center justify-center">
-                      <FolderKanban className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                    </div>
+                    <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">진행중 프로젝트</span>
                   </div>
-                  <div className="text-2xl font-bold tracking-tight text-purple-700 dark:text-purple-300">{projectStats.inProgress}</div>
+                  <div className="text-2xl font-black tracking-tight text-foreground">{projectStats.inProgress}</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">전체 {projectStats.total}개 · 완료 {projectStats.completed}개</p>
                 </CardContent>
               </Card>
 
               {/* Pending */}
-              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/40 dark:to-orange-950/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                    </div>
+                    <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">미완료 항목</span>
                   </div>
-                  <div className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{pendingChecks.length}</div>
+                  <div className="text-2xl font-black tracking-tight text-foreground">{pendingChecks.length}</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">오늘 남은 업무</p>
                 </CardContent>
               </Card>
 
               {/* Config setup */}
-              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-cyan-50 to-teal-50/50 dark:from-cyan-950/40 dark:to-teal-950/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
-                      <Settings2 className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
+                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">캠페인 세팅률</span>
                   </div>
-                  <div className="text-2xl font-bold tracking-tight text-cyan-700 dark:text-cyan-300">{avgConfigRate}%</div>
+                  <div className="text-2xl font-black tracking-tight text-foreground">{avgConfigRate}%</div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{configIncomplete}개 미완료</p>
                 </CardContent>
               </Card>
 
               {/* Monthly Fixed Cost */}
-              <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="h-7 w-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-                      <DollarSign className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-medium text-muted-foreground">월 고정비용</span>
                   </div>
-                  <div className="text-xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
+                  <div className="text-xl font-black tracking-tight text-foreground">
                     {totalMonthlyFixedCost > 0 ? `${(totalMonthlyFixedCost / 10000).toFixed(0)}만` : '-'}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">활성 {activeCampaigns.length}개 캠페인 합산</p>
@@ -778,30 +750,25 @@ export default function DashboardPage() {
             {/* Global + Periodic Tasks Overview */}
             <div className="grid gap-3 lg:grid-cols-2">
               {/* Global Tasks */}
-              <Card className="shadow-sm border-0 bg-gradient-to-r from-background to-muted/20">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-md bg-indigo-500/10 flex items-center justify-center">
-                      <Globe className="h-3.5 w-3.5 text-indigo-500" />
-                    </div>
-                    <span className="text-sm font-semibold">전역 업무</span>
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[15px] font-bold">전역 업무</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto bg-secondary text-secondary-foreground">
                       {globalTaskStats.taskCount}개 업무
                     </Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground mb-3">모든 캠페인에 공통으로 적용되는 업무예요.</p>
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] text-muted-foreground">오늘 완료율</span>
-                        <span className={cn('text-sm font-bold',
-                          globalTaskStats.rate >= 80 ? 'text-emerald-600' : globalTaskStats.rate >= 50 ? 'text-amber-600' : 'text-red-500'
-                        )}>{globalTaskStats.rate}%</span>
+                        <span className="text-sm font-bold text-foreground">{globalTaskStats.rate}%</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className={cn('h-full rounded-full transition-all',
-                            globalTaskStats.rate >= 80 ? 'bg-emerald-500' : globalTaskStats.rate >= 50 ? 'bg-amber-400' : 'bg-red-400'
-                          )}
+                          className="h-full rounded-full bg-foreground transition-all duration-150"
                           style={{ width: `${globalTaskStats.rate}%` }}
                         />
                       </div>
@@ -812,37 +779,32 @@ export default function DashboardPage() {
               </Card>
 
               {/* Periodic Tasks */}
-              <Card className="shadow-sm border-0 bg-gradient-to-r from-background to-muted/20">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-md bg-purple-500/10 flex items-center justify-center">
-                      <CalendarDays className="h-3.5 w-3.5 text-purple-500" />
-                    </div>
-                    <span className="text-sm font-semibold">월간/주기별 업무</span>
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[15px] font-bold">월간/주기별 업무</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto bg-secondary text-secondary-foreground">
                       {periodicTaskStats.taskCount}개 업무
                     </Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground mb-3">매월, 또는 주기적으로 반복되는 업무 현황이에요.</p>
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[10px] text-muted-foreground">{format(new Date(), 'MM월')} 완료율</span>
-                        <span className={cn('text-sm font-bold',
-                          periodicTaskStats.rate >= 80 ? 'text-emerald-600' : periodicTaskStats.rate >= 50 ? 'text-amber-600' : 'text-red-500'
-                        )}>{periodicTaskStats.rate}%</span>
+                        <span className="text-sm font-bold text-foreground">{periodicTaskStats.rate}%</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className={cn('h-full rounded-full transition-all',
-                            periodicTaskStats.rate >= 80 ? 'bg-emerald-500' : periodicTaskStats.rate >= 50 ? 'bg-amber-400' : 'bg-red-400'
-                          )}
+                          className="h-full rounded-full bg-foreground transition-all duration-150"
                           style={{ width: `${periodicTaskStats.rate}%` }}
                         />
                       </div>
                       <div className="flex items-center gap-3 mt-1">
                         <p className="text-[10px] text-muted-foreground">{periodicTaskStats.completed}/{periodicTaskStats.total} 완료</p>
                         {periodicTaskStats.withResultValue > 0 && (
-                          <p className="text-[10px] text-indigo-600">결과값 {periodicTaskStats.withResultValue}건</p>
+                          <p className="text-[10px] text-foreground font-medium">결과값 {periodicTaskStats.withResultValue}건</p>
                         )}
                       </div>
                     </div>
@@ -852,12 +814,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Phase Distribution */}
-            <Card className="shadow-sm border-0 bg-gradient-to-r from-background to-muted/20">
+            <Card className="bg-card border border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-md bg-purple-500/10 flex items-center justify-center"><Zap className="h-3.5 w-3.5 text-purple-500" /></div>
+                <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5 text-muted-foreground" />
                   캠페인 단계별 분포
                 </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">현재 활성 캠페인이 어떤 단계에 있는지 보여줘요.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3 grid-cols-3">
@@ -866,10 +829,10 @@ export default function DashboardPage() {
                     const count = phaseDistribution[phase];
                     const pct = totalPhase > 0 ? Math.round((count / totalPhase) * 100) : 0;
                     return (
-                      <div key={phase} className={cn('rounded-xl border p-4 transition-all hover:scale-[1.02]', config.bg, config.border)}>
+                      <div key={phase} className={cn('rounded-lg border p-4 transition-all duration-150 hover:scale-[1.02]', config.bg, config.border)}>
                         <p className={cn('text-[11px] font-semibold uppercase tracking-wider', config.color)}>{config.label}</p>
-                        <p className={cn('text-2xl font-bold mt-1', config.color)}>{count}</p>
-                        <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+                        <p className={cn('text-2xl font-black mt-1', config.color)}>{count}</p>
+                        <div className="mt-2 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
                           <div className={cn('h-full rounded-full transition-all duration-700', config.bar)} style={{ width: `${pct}%` }} />
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">{pct}%</p>
@@ -884,28 +847,29 @@ export default function DashboardPage() {
             {brandCampaignStats.total > 0 && (
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Brand KPI + Platform Setup */}
-                <Card className="shadow-sm border-0 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10">
+                <Card className="bg-card border border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center"><ShoppingBag className="h-3.5 w-3.5 text-emerald-500" /></div>
+                    <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                      <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />
                       제품 브랜드 캠페인
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto bg-secondary text-secondary-foreground">
                         {brandCampaignStats.active}/{brandCampaignStats.total} 활성
                       </Badge>
                     </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">브랜드 캠페인 세팅 현황과 단계별 분포예요.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="text-center p-2 rounded-lg bg-emerald-100/50 dark:bg-emerald-900/20">
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{brandCampaignStats.total}</p>
+                      <div className="text-center p-2 rounded-lg bg-secondary">
+                        <p className="text-lg font-bold text-foreground">{brandCampaignStats.total}</p>
                         <p className="text-[9px] text-muted-foreground">전체 브랜드</p>
                       </div>
-                      <div className="text-center p-2 rounded-lg bg-blue-100/50 dark:bg-blue-900/20">
-                        <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{brandCampaignStats.totalPlatforms}</p>
+                      <div className="text-center p-2 rounded-lg bg-secondary">
+                        <p className="text-lg font-bold text-foreground">{brandCampaignStats.totalPlatforms}</p>
                         <p className="text-[9px] text-muted-foreground">플랫폼 세팅</p>
                       </div>
-                      <div className="text-center p-2 rounded-lg bg-cyan-100/50 dark:bg-cyan-900/20">
-                        <p className={cn('text-lg font-bold', brandCampaignStats.setupRate >= 80 ? 'text-emerald-600' : brandCampaignStats.setupRate >= 50 ? 'text-amber-600' : 'text-red-500')}>{brandCampaignStats.setupRate}%</p>
+                      <div className="text-center p-2 rounded-lg bg-secondary">
+                        <p className="text-lg font-bold text-foreground">{brandCampaignStats.setupRate}%</p>
                         <p className="text-[9px] text-muted-foreground">세팅 완료율</p>
                       </div>
                     </div>
@@ -918,7 +882,7 @@ export default function DashboardPage() {
                           if (count === 0) return null;
                           const cfg = BRAND_PHASE_CONFIG[phase];
                           return (
-                            <Badge key={phase} variant="secondary" className={cn('text-[9px] px-1.5 py-0.5', cfg?.bg, cfg?.color)}>
+                            <Badge key={phase} variant="secondary" className={cn('text-[9px] px-1.5 py-0.5 bg-secondary text-secondary-foreground')}>
                               {cfg?.label ?? phase} {count}
                             </Badge>
                           );
@@ -929,12 +893,13 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* Country + Platform Distribution */}
-                <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+                <Card className="bg-card border border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center"><Globe className="h-3.5 w-3.5 text-blue-500" /></div>
+                    <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                       국가 & 플랫폼 분포
                     </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">타겟 국가와 이커머스 플랫폼 현황이에요.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {/* Country distribution */}
@@ -942,9 +907,9 @@ export default function DashboardPage() {
                       <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">타겟 국가</p>
                       <div className="flex flex-wrap gap-1.5">
                         {brandCampaignStats.countryDistribution.map(({ country, count }) => (
-                          <Badge key={country} variant="outline" className="text-[10px] px-2 py-0.5 gap-1">
+                          <Badge key={country} variant="outline" className="text-[10px] px-2 py-0.5 gap-1 border-border">
                             {country}
-                            <span className="font-bold text-primary">{count}</span>
+                            <span className="font-bold text-foreground">{count}</span>
                           </Badge>
                         ))}
                         {brandCampaignStats.countryDistribution.length === 0 && (
@@ -960,9 +925,9 @@ export default function DashboardPage() {
                           <div key={name} className="flex items-center gap-2">
                             <span className="text-[11px] font-medium flex-1 min-w-0 truncate">{name}</span>
                             <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden shrink-0">
-                              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(count / Math.max(brandCampaignStats.totalPlatforms, 1)) * 100}%` }} />
+                              <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${(count / Math.max(brandCampaignStats.totalPlatforms, 1)) * 100}%` }} />
                             </div>
-                            <span className="text-[10px] font-semibold text-emerald-600 tabular-nums w-4 text-right">{count}</span>
+                            <span className="text-[10px] font-semibold text-foreground tabular-nums w-4 text-right">{count}</span>
                           </div>
                         ))}
                         {brandCampaignStats.platformDistribution.length === 0 && (
@@ -977,12 +942,13 @@ export default function DashboardPage() {
 
             {/* Charts Row: Weekly Trend + Category Donut */}
             <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-2 shadow-sm">
+              <Card className="lg:col-span-2 bg-card border border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center"><TrendingUp className="h-3.5 w-3.5 text-blue-500" /></div>
+                  <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
                     주간 완료율 추이
                   </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">최근 7일간 업무 완료율 변화를 보여줘요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {weeklyTrendData.every((d) => d.total === 0) ? (
@@ -992,11 +958,11 @@ export default function DashboardPage() {
                       <AreaChart data={weeklyTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                         <defs>
                           <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="oklch(0.55 0.22 265)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="oklch(0.55 0.22 265)" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#0a0a0a" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#0a0a0a" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.85 0 0 / 40%)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                         <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={40} />
                         <RechartsTooltip
@@ -1004,11 +970,11 @@ export default function DashboardPage() {
                             const payload = props?.payload as { completed?: number; total?: number } | undefined;
                             return [`${value}% (${payload?.completed ?? 0}/${payload?.total ?? 0})`, '완료율'];
                           }}
-                          contentStyle={{ borderRadius: '10px', border: '1px solid oklch(0.9 0 0)', fontSize: '12px' }}
+                          contentStyle={{ borderRadius: '10px', border: '1px solid #e5e5e5', fontSize: '12px' }}
                         />
-                        <Area type="monotone" dataKey="rate" stroke="oklch(0.55 0.22 265)" strokeWidth={2.5} fill="url(#colorRate)"
-                          dot={{ fill: 'oklch(0.55 0.22 265)', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                          activeDot={{ r: 6, fill: 'oklch(0.45 0.2 265)' }}
+                        <Area type="monotone" dataKey="rate" stroke="#0a0a0a" strokeWidth={2.5} fill="url(#colorRate)"
+                          dot={{ fill: '#0a0a0a', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                          activeDot={{ r: 6, fill: '#404040' }}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -1016,9 +982,10 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">카테고리별 업무</CardTitle>
+                  <CardTitle className="text-[15px] font-bold">카테고리별 업무</CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">업무 유형별 비중을 확인해 보세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {categoryData.length === 0 ? (
@@ -1031,10 +998,10 @@ export default function DashboardPage() {
                           labelLine={false}
                         >
                           {categoryData.map((entry, idx) => (
-                            <Cell key={entry.name} fill={PIE_COLORS[CATEGORY_ORDER.indexOf(entry.name as TaskCategory) % PIE_COLORS.length]} />
+                            <Cell key={entry.name} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <RechartsTooltip formatter={(value) => [`${value}건`, '업무 수']} contentStyle={{ borderRadius: '10px', border: '1px solid oklch(0.9 0 0)', fontSize: '12px' }} />
+                        <RechartsTooltip formatter={(value) => [`${value}건`, '업무 수']} contentStyle={{ borderRadius: '10px', border: '1px solid #e5e5e5', fontSize: '12px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -1045,13 +1012,16 @@ export default function DashboardPage() {
             {/* Project Progress + Config Setup */}
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Project Progress */}
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-md bg-purple-500/10 flex items-center justify-center"><FolderKanban className="h-3.5 w-3.5 text-purple-500" /></div>
-                      프로젝트 진행 현황
-                    </CardTitle>
+                    <div>
+                      <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                        <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                        프로젝트 진행 현황
+                      </CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground mt-0.5">진행중인 프로젝트의 완료율이에요.</CardDescription>
+                    </div>
                     <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 text-muted-foreground" onClick={() => setActiveTab('project')}>
                       자세히 <ChevronRight className="size-3" />
                     </Button>
@@ -1083,9 +1053,9 @@ export default function DashboardPage() {
                       <div key={p.id} className="flex items-center gap-2">
                         <span className="text-[11px] font-medium truncate flex-1 min-w-0">{p.project_name}</span>
                         <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden shrink-0">
-                          <div className="h-full rounded-full bg-purple-500 transition-all" style={{ width: `${p.taskRate}%` }} />
+                          <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${p.taskRate}%` }} />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-600 tabular-nums w-8 text-right">{p.taskRate}%</span>
+                        <span className="text-[10px] font-semibold text-foreground tabular-nums w-8 text-right">{p.taskRate}%</span>
                       </div>
                     ))}
                   </div>
@@ -1093,15 +1063,16 @@ export default function DashboardPage() {
               </Card>
 
               {/* Campaign Config Setup Status */}
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-cyan-500/10 flex items-center justify-center"><Settings2 className="h-3.5 w-3.5 text-cyan-500" /></div>
+                  <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                     캠페인 세팅 현황
                     {configIncomplete > 0 && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">{configIncomplete}개 미완료</Badge>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-secondary text-secondary-foreground">{configIncomplete}개 미완료</Badge>
                     )}
                   </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">각 캠페인의 초기 설정 완료 상태예요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[280px]">
@@ -1115,12 +1086,12 @@ export default function DashboardPage() {
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-[11px] font-medium truncate">{c.name}</span>
                                 <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                                  <Badge variant="outline" className={cn('text-[9px] px-1 py-0', PHASE_CONFIG[c.phase]?.color ?? '')}>{PHASE_CONFIG[c.phase]?.label ?? c.phase}</Badge>
-                                  <span className={cn('text-[10px] font-bold tabular-nums', c.rate >= 100 ? 'text-emerald-600' : c.rate >= 50 ? 'text-amber-600' : 'text-red-600')}>{c.rate}%</span>
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-border text-muted-foreground">{PHASE_CONFIG[c.phase]?.label ?? c.phase}</Badge>
+                                  <span className={cn('text-[10px] font-bold tabular-nums text-foreground')}>{c.rate}%</span>
                                 </div>
                               </div>
                               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                                <div className={cn('h-full rounded-full transition-all duration-500', c.rate >= 100 ? 'bg-emerald-500' : c.rate >= 50 ? 'bg-amber-500' : 'bg-red-400')} style={{ width: `${c.rate}%` }} />
+                                <div className="h-full rounded-full bg-foreground transition-all duration-500" style={{ width: `${c.rate}%` }} />
                               </div>
                               <p className="text-[9px] text-muted-foreground mt-0.5">{c.done}/{c.total} 항목 완료</p>
                             </div>
@@ -1134,12 +1105,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Campaign Bar Chart */}
-            <Card className="shadow-sm">
+            <Card className="bg-card border border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-md bg-indigo-500/10 flex items-center justify-center"><BarChart3 className="h-3.5 w-3.5 text-indigo-500" /></div>
+                <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                  <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
                   캠페인별 완료율
                 </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">오늘 기준 각 캠페인의 업무 완료율이에요.</CardDescription>
               </CardHeader>
               <CardContent>
                 {campaignChartData.length === 0 ? (
@@ -1147,7 +1119,7 @@ export default function DashboardPage() {
                 ) : (
                   <ResponsiveContainer width="100%" height={Math.max(250, campaignChartData.length * 30)}>
                     <BarChart data={campaignChartData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.85 0 0 / 40%)" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e5e5" />
                       <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
                       <RechartsTooltip
@@ -1155,7 +1127,7 @@ export default function DashboardPage() {
                           const payload = props?.payload as { completed?: number; total?: number } | undefined;
                           return [`${value}% (${payload?.completed ?? 0}/${payload?.total ?? 0})`, '완료율'];
                         }}
-                        contentStyle={{ borderRadius: '10px', border: '1px solid oklch(0.9 0 0)', fontSize: '12px' }}
+                        contentStyle={{ borderRadius: '10px', border: '1px solid #e5e5e5', fontSize: '12px' }}
                       />
                       <Bar dataKey="rate" radius={[0, 6, 6, 0]} maxBarSize={20}>
                         {campaignChartData.map((entry, idx) => (<Cell key={idx} fill={getBarColor(entry.rate)} />))}
@@ -1169,12 +1141,13 @@ export default function DashboardPage() {
             {/* Rankings + Activity + Overdue */}
             <div className="grid gap-4 lg:grid-cols-3">
               {/* Rankings */}
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center"><TrendingUp className="h-3.5 w-3.5 text-emerald-500" /></div>
+                  <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
                     캠페인 순위
                   </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">상위/하위 캠페인을 한눈에 비교해 보세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {campaignChartData.length === 0 ? (
@@ -1182,7 +1155,7 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-4">
                       <div>
-                        <p className="text-[10px] font-semibold text-emerald-600 mb-2 flex items-center gap-1 uppercase tracking-wider"><TrendingUp className="h-3 w-3" />상위 5</p>
+                        <p className="text-[10px] font-semibold text-green-600 mb-2 flex items-center gap-1 uppercase tracking-wider"><TrendingUp className="h-3 w-3" />상위 5</p>
                         <div className="space-y-2">
                           {topCampaigns.map((c, i) => (
                             <div key={`t-${i}`} className="flex items-center gap-2">
@@ -1190,10 +1163,10 @@ export default function DashboardPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
                                   <span className="text-[11px] font-medium truncate">{c.name}</span>
-                                  <span className={cn('text-[10px] font-bold ml-1 tabular-nums', c.rate >= 80 ? 'text-emerald-600' : c.rate >= 50 ? 'text-amber-600' : 'text-red-600')}>{c.rate}%</span>
+                                  <span className="text-[10px] font-bold ml-1 tabular-nums text-foreground">{c.rate}%</span>
                                 </div>
                                 <div className="h-1 rounded-full bg-muted overflow-hidden mt-0.5">
-                                  <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${c.rate}%` }} />
+                                  <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${c.rate}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -1209,10 +1182,10 @@ export default function DashboardPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
                                   <span className="text-[11px] font-medium truncate">{c.name}</span>
-                                  <span className={cn('text-[10px] font-bold ml-1 tabular-nums', c.rate >= 80 ? 'text-emerald-600' : c.rate >= 50 ? 'text-amber-600' : 'text-red-600')}>{c.rate}%</span>
+                                  <span className="text-[10px] font-bold ml-1 tabular-nums text-foreground">{c.rate}%</span>
                                 </div>
                                 <div className="h-1 rounded-full bg-muted overflow-hidden mt-0.5">
-                                  <div className="h-full rounded-full bg-red-400 transition-all" style={{ width: `${c.rate}%` }} />
+                                  <div className="h-full rounded-full bg-neutral-300 dark:bg-neutral-600 transition-all duration-150" style={{ width: `${c.rate}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -1225,12 +1198,13 @@ export default function DashboardPage() {
               </Card>
 
               {/* Activity Timeline */}
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-indigo-500/10 flex items-center justify-center"><Activity className="h-3.5 w-3.5 text-indigo-500" /></div>
+                  <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                    <Activity className="h-3.5 w-3.5 text-muted-foreground" />
                     최근 활동
                   </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">팀원들의 최근 활동 내역이에요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[360px]">
@@ -1243,12 +1217,12 @@ export default function DashboardPage() {
                           {activityLogs.map((log) => (
                             <div key={log.id} className="flex gap-2.5 relative group">
                               <div className="relative z-10 mt-1.5">
-                                <div className="h-3 w-3 rounded-full border-2 border-primary/40 bg-background group-hover:border-primary transition-colors" />
+                                <div className="h-3 w-3 rounded-full border-2 border-neutral-300 dark:border-neutral-600 bg-background group-hover:border-foreground transition-colors duration-150" />
                               </div>
                               <div className="flex-1 min-w-0 pb-0.5">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[11px] font-medium">{userNameForLog(log.user_id)}</span>
-                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 font-normal">{ACTION_TYPE_LABELS[log.action_type] ?? log.action_type}</Badge>
+                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 font-normal bg-secondary text-secondary-foreground">{ACTION_TYPE_LABELS[log.action_type] ?? log.action_type}</Badge>
                                 </div>
                                 {log.target_table && <p className="text-[10px] text-muted-foreground truncate">{log.target_table}{log.target_id ? ` #${log.target_id.slice(0, 8)}` : ''}</p>}
                                 <p className="text-[9px] text-muted-foreground/60 tabular-nums">{formatLogTime(log.created_at)}</p>
@@ -1263,15 +1237,16 @@ export default function DashboardPage() {
               </Card>
 
               {/* Overdue + Pending Alerts */}
-              <Card className="shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-red-500/10 flex items-center justify-center"><AlertTriangle className="h-3.5 w-3.5 text-red-500" /></div>
+                  <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
                     긴급 알림
                     {(overdueItems.length + pendingAlerts.length) > 0 && (
                       <Badge variant="destructive" className="text-[9px] px-1.5 py-0">{overdueItems.length + pendingAlerts.length}</Badge>
                     )}
                   </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">마감 초과 및 미완료 항목을 확인하세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[360px]">
@@ -1294,16 +1269,16 @@ export default function DashboardPage() {
                     )}
                     {pendingAlerts.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-amber-600 mb-1.5 uppercase tracking-wider">미완료 업무</p>
+                        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">미완료 업무</p>
                         <div className="space-y-1">
                           {pendingAlerts.slice(0, 10).map((alert) => (
-                            <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/30 cursor-pointer transition-all" onClick={() => router.push('/view/campaign')}>
+                            <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/30 cursor-pointer transition-all duration-150" onClick={() => router.push('/view/campaign')}>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[11px] font-medium truncate">{alert.taskName}</p>
                                 <p className="text-[9px] text-muted-foreground truncate">{alert.campaignName}</p>
                               </div>
                               <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                                <Badge variant="outline" className={cn('text-[9px] px-1 py-0', CATEGORY_COLORS[alert.category]?.text ?? '', CATEGORY_COLORS[alert.category]?.bg ?? '')}>{alert.category}</Badge>
+                                <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-secondary text-secondary-foreground">{alert.category}</Badge>
                                 <span className="text-[9px] text-muted-foreground">{alert.assignee}</span>
                               </div>
                             </div>
@@ -1320,13 +1295,16 @@ export default function DashboardPage() {
             </div>
 
             {/* Assignee Summary */}
-            <Card className="shadow-sm">
+            <Card className="bg-card border border-border">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-indigo-500/10 flex items-center justify-center"><Users className="h-3.5 w-3.5 text-indigo-500" /></div>
-                    담당자별 현황 (일일 체크 + 프로젝트)
-                  </CardTitle>
+                  <div>
+                    <CardTitle className="text-[15px] font-bold flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      담당자별 현황 (일일 체크 + 프로젝트)
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5">각 담당자의 오늘 업무 완료율과 프로젝트 현황이에요.</CardDescription>
+                  </div>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 text-muted-foreground" onClick={() => setActiveTab('assignee')}>
                     자세히 <ChevronRight className="size-3" />
                   </Button>
@@ -1336,13 +1314,13 @@ export default function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-[11px]">이름</TableHead>
-                      <TableHead className="text-center text-[11px]">체크 완료</TableHead>
-                      <TableHead className="text-center text-[11px]">체크 진행</TableHead>
-                      <TableHead className="text-center text-[11px]">체크 미완</TableHead>
-                      <TableHead className="text-center text-[11px]">프로젝트</TableHead>
-                      <TableHead className="text-center text-[11px]">하위업무</TableHead>
-                      <TableHead className="text-center text-[11px]">완료율</TableHead>
+                      <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">이름</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">체크 완료</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">체크 진행</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">체크 미완</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">프로젝트</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">하위업무</TableHead>
+                      <TableHead className="text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wider py-1.5 px-2">완료율</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1351,18 +1329,18 @@ export default function DashboardPage() {
                     ) : (
                       assigneeCombined.map((row) => (
                         <TableRow key={row.userId}>
-                          <TableCell className="font-medium text-[12px]">{row.name}</TableCell>
-                          <TableCell className="text-center"><Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 text-[10px]">{row.checkCompleted}</Badge></TableCell>
-                          <TableCell className="text-center"><Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[10px]">{row.checkInProgress}</Badge></TableCell>
-                          <TableCell className="text-center"><Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-[10px]">{row.checkPending}</Badge></TableCell>
-                          <TableCell className="text-center"><span className="text-[11px] text-muted-foreground">{row.projCompleted}/{row.projAssigned}</span></TableCell>
-                          <TableCell className="text-center"><span className="text-[11px] text-muted-foreground">{row.taskCompleted}/{row.taskAssigned}</span></TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="font-medium text-[12px] py-1.5 px-2">{row.name}</TableCell>
+                          <TableCell className="text-center py-1.5 px-2"><Badge variant="secondary" className="bg-foreground/10 text-foreground text-[10px]">{row.checkCompleted}</Badge></TableCell>
+                          <TableCell className="text-center py-1.5 px-2"><Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px]">{row.checkInProgress}</Badge></TableCell>
+                          <TableCell className="text-center py-1.5 px-2"><Badge variant="secondary" className="bg-secondary text-secondary-foreground text-[10px]">{row.checkPending}</Badge></TableCell>
+                          <TableCell className="text-center py-1.5 px-2"><span className="text-[11px] text-muted-foreground">{row.projCompleted}/{row.projAssigned}</span></TableCell>
+                          <TableCell className="text-center py-1.5 px-2"><span className="text-[11px] text-muted-foreground">{row.taskCompleted}/{row.taskAssigned}</span></TableCell>
+                          <TableCell className="text-center py-1.5 px-2">
                             <div className="flex items-center justify-center gap-1.5">
                               <div className="w-10 h-1.5 rounded-full bg-muted overflow-hidden">
-                                <div className={cn('h-full rounded-full transition-all', row.checkRate >= 80 ? 'bg-emerald-500' : row.checkRate >= 50 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: `${row.checkRate}%` }} />
+                                <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${row.checkRate}%` }} />
                               </div>
-                              <span className={cn('text-[10px] font-semibold tabular-nums', row.checkRate >= 80 ? 'text-emerald-600' : row.checkRate >= 50 ? 'text-amber-600' : 'text-red-600')}>{row.checkRate}%</span>
+                              <span className="text-[10px] font-semibold tabular-nums text-foreground">{row.checkRate}%</span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1377,7 +1355,7 @@ export default function DashboardPage() {
 
         {/* ═══ ASSIGNEE TAB ═══ */}
         {activeTab === 'assignee' && (
-          <motion.div key="assignee" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-4">
+          <motion.div key="assignee" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }} className="space-y-4">
             {/* Filter */}
             <div className="flex items-center gap-2">
               <Filter className="size-3.5 text-muted-foreground" />
@@ -1395,21 +1373,17 @@ export default function DashboardPage() {
             {/* Assignee Cards */}
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {assigneeCombined.filter((a) => assigneeFilter === 'all' || a.userId === assigneeFilter).map((a) => (
-                <Card key={a.userId} className="shadow-sm hover:shadow-md transition-shadow">
+                <Card key={a.userId} className="bg-card border border-border hover:border-foreground/20 transition-all duration-150">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                      <div className="h-9 w-9 rounded-full bg-foreground flex items-center justify-center text-background text-sm font-bold">
                         {a.name.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{a.name}</p>
                         <p className="text-[10px] text-muted-foreground">체크 완료율 {a.checkRate}%</p>
                       </div>
-                      <div className={cn('ml-auto h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold border-2',
-                        a.checkRate >= 80 ? 'border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20'
-                        : a.checkRate >= 50 ? 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20'
-                        : 'border-red-500 text-red-600 bg-red-50 dark:bg-red-950/20'
-                      )}>
+                      <div className="ml-auto h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold border-2 border-foreground/20 text-foreground bg-secondary">
                         {a.checkRate}%
                       </div>
                     </div>
@@ -1418,16 +1392,16 @@ export default function DashboardPage() {
                     <div className="mb-3">
                       <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">일일 체크</p>
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/20">
-                          <p className="text-lg font-bold text-emerald-600">{a.checkCompleted}</p>
+                        <div className="text-center p-1.5 rounded-lg bg-foreground/5">
+                          <p className="text-lg font-bold text-foreground">{a.checkCompleted}</p>
                           <p className="text-[9px] text-muted-foreground">완료</p>
                         </div>
-                        <div className="text-center p-1.5 rounded bg-amber-50 dark:bg-amber-950/20">
-                          <p className="text-lg font-bold text-amber-600">{a.checkInProgress}</p>
+                        <div className="text-center p-1.5 rounded-lg bg-secondary">
+                          <p className="text-lg font-bold text-foreground">{a.checkInProgress}</p>
                           <p className="text-[9px] text-muted-foreground">진행중</p>
                         </div>
-                        <div className="text-center p-1.5 rounded bg-red-50 dark:bg-red-950/20">
-                          <p className="text-lg font-bold text-red-600">{a.checkPending}</p>
+                        <div className="text-center p-1.5 rounded-lg bg-secondary">
+                          <p className="text-lg font-bold text-foreground">{a.checkPending}</p>
                           <p className="text-[9px] text-muted-foreground">미완료</p>
                         </div>
                       </div>
@@ -1437,17 +1411,17 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">프로젝트 & 업무</p>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2 p-1.5 rounded bg-purple-50 dark:bg-purple-950/20">
-                          <FolderKanban className="size-3.5 text-purple-500" />
+                        <div className="flex items-center gap-2 p-1.5 rounded-lg bg-secondary">
+                          <FolderKanban className="size-3.5 text-muted-foreground" />
                           <div>
-                            <p className="text-xs font-semibold text-purple-600">{a.projCompleted}/{a.projAssigned}</p>
+                            <p className="text-xs font-semibold text-foreground">{a.projCompleted}/{a.projAssigned}</p>
                             <p className="text-[9px] text-muted-foreground">프로젝트</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 p-1.5 rounded bg-blue-50 dark:bg-blue-950/20">
-                          <CheckCircle2 className="size-3.5 text-blue-500" />
+                        <div className="flex items-center gap-2 p-1.5 rounded-lg bg-secondary">
+                          <CheckCircle2 className="size-3.5 text-muted-foreground" />
                           <div>
-                            <p className="text-xs font-semibold text-blue-600">{a.taskCompleted}/{a.taskAssigned}</p>
+                            <p className="text-xs font-semibold text-foreground">{a.taskCompleted}/{a.taskAssigned}</p>
                             <p className="text-[9px] text-muted-foreground">하위업무</p>
                           </div>
                         </div>
@@ -1462,7 +1436,7 @@ export default function DashboardPage() {
 
         {/* ═══ CAMPAIGN TAB ═══ */}
         {activeTab === 'campaign' && (
-          <motion.div key="campaign" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-4">
+          <motion.div key="campaign" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }} className="space-y-4">
             {/* Filter */}
             <div className="flex items-center gap-2">
               <Filter className="size-3.5 text-muted-foreground" />
@@ -1486,21 +1460,19 @@ export default function DashboardPage() {
                   const campaign = campaigns.find((cm) => cm.id === c.id);
                   const cfgData = configSetupData.find((cfg) => cfg.id === c.id);
                   return (
-                    <Card key={c.id} className="shadow-sm hover:shadow-md transition-shadow">
+                    <Card key={c.id} className="bg-card border border-border hover:border-foreground/20 transition-all duration-150">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{c.name}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              {campaign?.phase && <Badge variant="outline" className={cn('text-[9px] px-1 py-0', PHASE_CONFIG[campaign.phase]?.color ?? '')}>{PHASE_CONFIG[campaign.phase]?.label ?? campaign.phase}</Badge>}
-                              <Badge variant={campaign?.status === 'active' ? 'default' : 'secondary'} className="text-[9px] px-1 py-0">
+                              {campaign?.phase && <Badge variant="outline" className="text-[9px] px-1 py-0 border-border text-muted-foreground">{PHASE_CONFIG[campaign.phase]?.label ?? campaign.phase}</Badge>}
+                              <Badge variant={campaign?.status === 'active' ? 'default' : 'secondary'} className={cn('text-[9px] px-1 py-0', campaign?.status === 'active' ? 'bg-foreground text-background' : 'bg-secondary text-secondary-foreground')}>
                                 {campaign?.status === 'active' ? '활성' : campaign?.status === 'paused' ? '일시중지' : '완료'}
                               </Badge>
                             </div>
                           </div>
-                          <div className={cn('h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold border-[3px]',
-                            c.rate >= 80 ? 'border-emerald-500 text-emerald-600' : c.rate >= 50 ? 'border-amber-500 text-amber-600' : 'border-red-500 text-red-600'
-                          )}>
+                          <div className="h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold border-[3px] border-foreground/20 text-foreground">
                             {c.rate}%
                           </div>
                         </div>
@@ -1512,7 +1484,7 @@ export default function DashboardPage() {
                             <span className="text-[10px] font-medium">{c.completed}/{c.total}</span>
                           </div>
                           <div className="h-2 rounded-full bg-muted overflow-hidden">
-                            <div className={cn('h-full rounded-full transition-all', c.rate >= 80 ? 'bg-emerald-500' : c.rate >= 50 ? 'bg-amber-500' : 'bg-red-400')} style={{ width: `${c.rate}%` }} />
+                            <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${c.rate}%` }} />
                           </div>
                         </div>
 
@@ -1521,10 +1493,10 @@ export default function DashboardPage() {
                           <div>
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Settings2 className="size-3" />세팅 완료</span>
-                              <span className={cn('text-[10px] font-medium', cfgData.rate >= 100 ? 'text-emerald-600' : 'text-amber-600')}>{cfgData.done}/{cfgData.total}</span>
+                              <span className="text-[10px] font-medium text-foreground">{cfgData.done}/{cfgData.total}</span>
                             </div>
                             <div className="h-2 rounded-full bg-muted overflow-hidden">
-                              <div className={cn('h-full rounded-full transition-all', cfgData.rate >= 100 ? 'bg-cyan-500' : cfgData.rate >= 50 ? 'bg-cyan-400' : 'bg-cyan-300')} style={{ width: `${cfgData.rate}%` }} />
+                              <div className="h-full rounded-full bg-neutral-400 dark:bg-neutral-500 transition-all duration-150" style={{ width: `${cfgData.rate}%` }} />
                             </div>
                           </div>
                         )}
@@ -1538,39 +1510,36 @@ export default function DashboardPage() {
 
         {/* ═══ PROJECT TAB ═══ */}
         {activeTab === 'project' && (
-          <motion.div key="project" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-4">
+          <motion.div key="project" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }} className="space-y-4">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-              <Card className="border-0 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900/40 dark:to-gray-800/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold">{projectStats.total}</p>
+                  <p className="text-2xl font-black text-foreground">{projectStats.total}</p>
                   <p className="text-[10px] text-muted-foreground">전체</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900/40 dark:to-gray-800/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-gray-500">{projectStats.notStarted}</p>
+                  <p className="text-2xl font-black text-muted-foreground">{projectStats.notStarted}</p>
                   <p className="text-[10px] text-muted-foreground">진행전</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/40 dark:to-blue-900/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-blue-600">{projectStats.inProgress}</p>
+                  <p className="text-2xl font-black text-foreground">{projectStats.inProgress}</p>
                   <p className="text-[10px] text-muted-foreground">진행중</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/40 dark:to-emerald-900/20 shadow-sm">
+              <Card className="bg-card border border-border">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-600">{projectStats.completed}</p>
+                  <p className="text-2xl font-black text-foreground">{projectStats.completed}</p>
                   <p className="text-[10px] text-muted-foreground">완료</p>
                 </CardContent>
               </Card>
-              <Card className={cn('border-0 shadow-sm', projectStats.overdue > 0
-                ? 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/40 dark:to-red-900/20'
-                : 'bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900/40 dark:to-gray-800/20'
-              )}>
+              <Card className={cn('bg-card border', projectStats.overdue > 0 ? 'border-red-200 dark:border-red-800/40' : 'border-border')}>
                 <CardContent className="p-3 text-center">
-                  <p className={cn('text-2xl font-bold', projectStats.overdue > 0 ? 'text-red-600' : 'text-gray-400')}>{projectStats.overdue}</p>
+                  <p className={cn('text-2xl font-black', projectStats.overdue > 0 ? 'text-red-600' : 'text-muted-foreground')}>{projectStats.overdue}</p>
                   <p className="text-[10px] text-muted-foreground">마감 초과</p>
                 </CardContent>
               </Card>
@@ -1579,7 +1548,7 @@ export default function DashboardPage() {
             {/* Project List */}
             <div className="space-y-3">
               {projectProgress.map((p) => (
-                <Card key={p.id} className={cn('shadow-sm hover:shadow-md transition-shadow cursor-pointer', p.isOverdue && 'border-red-200 dark:border-red-800/40')}
+                <Card key={p.id} className={cn('bg-card border hover:border-foreground/20 transition-all duration-150 cursor-pointer', p.isOverdue ? 'border-red-200 dark:border-red-800/40' : 'border-border')}
                   onClick={() => router.push(`/roadmap/${p.id}`)}
                 >
                   <CardContent className="p-4">
@@ -1604,14 +1573,10 @@ export default function DashboardPage() {
                         {/* Task progress */}
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className={cn('h-full rounded-full transition-all',
-                              p.taskRate >= 80 ? 'bg-emerald-500' : p.taskRate >= 50 ? 'bg-blue-500' : 'bg-gray-400'
-                            )} style={{ width: `${p.taskRate}%` }} />
+                            <div className="h-full rounded-full bg-foreground transition-all duration-150" style={{ width: `${p.taskRate}%` }} />
                           </div>
                           <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{p.taskDone}/{p.taskTotal} 완료</span>
-                          <span className={cn('text-[10px] font-bold tabular-nums',
-                            p.taskRate >= 80 ? 'text-emerald-600' : p.taskRate >= 50 ? 'text-blue-600' : 'text-gray-500'
-                          )}>{p.taskRate}%</span>
+                          <span className="text-[10px] font-bold tabular-nums text-foreground">{p.taskRate}%</span>
                         </div>
                       </div>
                     </div>

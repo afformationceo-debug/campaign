@@ -104,7 +104,7 @@ export function DataTable<T extends Record<string, any>>({
 
   const SortIcon = ({ columnKey }: { columnKey: string }) => {
     if (sortColumn !== columnKey) {
-      return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground/50" />;
+      return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground/40" />;
     }
     if (sortDirection === 'asc') {
       return <ArrowUp className="ml-1 h-3 w-3 text-foreground" />;
@@ -116,25 +116,25 @@ export function DataTable<T extends Record<string, any>>({
     <div className="space-y-3">
       {(searchKey || searchFn) && (
         <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-9 text-[13px] bg-secondary/50 border-border"
           />
         </div>
       )}
 
-      <div className="rounded-lg border">
-        <Table className="text-xs">
+      <div className="rounded-lg border border-border">
+        <Table className="text-[12px]">
           <TableHeader>
             <TableRow>
               {columns.map((col) => (
                 <TableHead
                   key={col.key}
                   className={cn(
-                    'h-8 px-2 text-[11px]',
+                    'h-8 px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground',
                     col.sortable && 'cursor-pointer select-none hover:bg-muted/50',
                     col.className
                   )}
@@ -162,7 +162,7 @@ export function DataTable<T extends Record<string, any>>({
               filteredAndSortedData.map((row, idx) => (
                 <TableRow key={(row as Record<string, unknown>).id as string ?? idx}>
                   {columns.map((col) => (
-                    <TableCell key={col.key} className={cn('py-1 px-2', col.className)}>
+                    <TableCell key={col.key} className={cn('py-1.5 px-2 text-[12px]', col.className)}>
                       {col.cell(row)}
                     </TableCell>
                   ))}

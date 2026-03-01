@@ -95,7 +95,7 @@ export function FilterBar({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5 rounded-xl border bg-card/60 backdrop-blur-sm p-3">
+    <div className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card p-2.5">
       {/* Date Selector */}
       <div className="flex items-center gap-1">
         <Button
@@ -115,7 +115,7 @@ export function FilterBar({
               size="sm"
               className="min-w-[160px] justify-start text-left font-normal h-7 rounded-lg text-xs"
             >
-              <CalendarDays className="size-3.5 text-primary/70" />
+              <CalendarDays className="size-3.5 text-muted-foreground" />
               <span>
                 {format(parsedDate, 'yyyy년 M월 d일 (EEE)', { locale: ko })}
               </span>
@@ -145,7 +145,7 @@ export function FilterBar({
           variant="ghost"
           size="xs"
           onClick={handleToday}
-          className="text-[11px] text-primary/70 hover:text-primary h-7 rounded-lg"
+          className="text-[11px] text-muted-foreground hover:text-foreground h-7 rounded-lg"
         >
           오늘
         </Button>
@@ -162,7 +162,7 @@ export function FilterBar({
             onUserChange(val === '__all__' ? null : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[110px] h-7 rounded-lg text-xs">
+          <SelectTrigger size="sm" className="min-w-[110px] h-8 rounded-lg text-[13px] bg-secondary/50 border-border">
             <SelectValue placeholder="담당자 선택" />
           </SelectTrigger>
           <SelectContent>
@@ -184,7 +184,7 @@ export function FilterBar({
             onCountryChange(val === '__all__' ? '' : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[90px] h-7 rounded-lg text-xs">
+          <SelectTrigger size="sm" className="min-w-[90px] h-8 rounded-lg text-[13px] bg-secondary/50 border-border">
             <SelectValue placeholder="국가 선택" />
           </SelectTrigger>
           <SelectContent>
@@ -206,7 +206,7 @@ export function FilterBar({
             onStatusFilterChange(val === '__all__' ? '' : val)
           }
         >
-          <SelectTrigger size="sm" className="min-w-[90px] h-7 rounded-lg text-xs">
+          <SelectTrigger size="sm" className="min-w-[90px] h-8 rounded-lg text-[13px] bg-secondary/50 border-border">
             <SelectValue placeholder="상태" />
           </SelectTrigger>
           <SelectContent>
@@ -222,11 +222,11 @@ export function FilterBar({
       {categories && onCategoryChange && selectedCategories && (
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="text-xs h-7 rounded-lg">
+            <Button variant="outline" size="sm" className="text-[13px] h-8 rounded-full border-border">
               카테고리
               {selectedCategories.length > 0 &&
                 selectedCategories.length < CATEGORY_ORDER.length && (
-                  <span className="ml-1 rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+                  <span className="ml-1 rounded-full bg-secondary px-1.5 text-[11px] font-semibold text-foreground">
                     {selectedCategories.length}
                   </span>
                 )}
@@ -242,16 +242,16 @@ export function FilterBar({
                     type="button"
                     onClick={() => handleCategoryToggle(cat)}
                     className={cn(
-                      'flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+                      'flex w-full items-center rounded-full px-2.5 py-1.5 text-xs transition-colors',
                       isActive
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-muted text-muted-foreground'
+                        ? 'bg-secondary text-foreground font-medium'
+                        : 'hover:bg-muted text-muted-foreground border border-transparent'
                     )}
                   >
                     <span
                       className={cn(
                         'mr-2 h-2 w-2 rounded-full transition-colors',
-                        isActive ? 'bg-primary' : 'bg-muted-foreground/30'
+                        isActive ? 'bg-foreground' : 'bg-muted-foreground/30'
                       )}
                     />
                     {cat}
@@ -271,7 +271,7 @@ export function FilterBar({
             value={searchText ?? ''}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="검색..."
-            className="h-7 w-[160px] pl-8 text-xs rounded-lg"
+            className="h-8 w-[160px] pl-8 text-[13px] rounded-lg bg-secondary/50 border-border"
           />
         </div>
       )}

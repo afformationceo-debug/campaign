@@ -70,4 +70,7 @@ export const queryKeys = {
     all: ['campaignPlatforms'] as const,
     byCampaign: (campaignId: string) => ['campaignPlatforms', 'campaign', campaignId] as const,
   },
+  taskSteps: {
+    byTask: (taskId: string) => ['taskSteps', taskId] as const,
+  },
 };

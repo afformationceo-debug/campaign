@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "어포메이션 CMS",
-  description: "캠페인 관리 솔루션 - 실시간 업무 체크리스트",
+  title: "어포메이션 - 캠페인 관리, 내가 다 해줄게.",
+  description: "의료관광 캠페인의 기획부터 실행까지. 실시간 데이터 기반의 통합 관리 플랫폼.",
 };
 
 export default function RootLayout({

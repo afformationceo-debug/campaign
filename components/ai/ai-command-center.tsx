@@ -128,16 +128,16 @@ function formatTime(date: Date) {
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-3 px-5 py-4">
-      <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
-        <Bot className="size-3.5 text-white" />
+      <div className="size-7 rounded-full bg-foreground flex items-center justify-center shrink-0">
+        <Bot className="size-3.5 text-background" />
       </div>
       <div className="flex flex-col gap-1 pt-1">
-        <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">AI Agent</span>
+        <span className="text-[11px] font-semibold text-muted-foreground">AI Agent</span>
         <div className="flex items-center gap-2 bg-muted/50 rounded-2xl px-4 py-2.5">
           <div className="flex gap-1">
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
-            <span className="size-2 rounded-full bg-indigo-400/80 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '0.8s' }} />
+            <span className="size-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '0.8s' }} />
           </div>
           <span className="text-[11px] text-muted-foreground">데이터 분석 중...</span>
         </div>
@@ -462,10 +462,10 @@ export function AiCommandCenter({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="size-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm shadow-indigo-500/20">
-                  <Bot className="size-4.5 text-white" />
+                <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
+                  <Bot className="size-4.5 text-background" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 border-[1.5px] border-background" />
+                <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-foreground/60 border-[1.5px] border-background" />
               </div>
               <div className="flex flex-col">
                 <span className="text-[14px] font-semibold text-foreground">
@@ -536,7 +536,7 @@ export function AiCommandCenter({
         {/* ─── Streaming indicator bar ─── */}
         {isLoading && (
           <div className="h-0.5 w-full bg-muted overflow-hidden shrink-0">
-            <div className="h-full w-1/3 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 animate-shimmer rounded-full" />
+            <div className="h-full w-1/3 bg-foreground/60 animate-shimmer rounded-full" />
           </div>
         )}
 
@@ -575,8 +575,8 @@ export function AiCommandCenter({
           {!hasMessages && !isLoading && (
             <div className="flex flex-col items-center justify-center gap-7 pt-8 pb-6 px-5">
               <div className="flex flex-col items-center gap-3">
-                <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <Sparkles className="size-8 text-white" />
+                <div className="size-16 rounded-2xl bg-foreground flex items-center justify-center shadow-lg">
+                  <Sparkles className="size-8 text-background" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-[18px] font-bold text-foreground">오늘 어포메이션은 어떤가요?</h3>
@@ -644,25 +644,25 @@ export function AiCommandCenter({
                 className={cn(
                   'px-5 py-4',
                   isUser && 'bg-transparent',
-                  !isUser && 'bg-muted/20'
+                  !isUser && 'bg-secondary/50'
                 )}
               >
                 <div className="max-w-[680px] mx-auto">
                   <div className="flex items-start gap-3">
                     {isUser ? (
-                      <div className="size-7 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shrink-0 shadow-sm text-[11px] font-bold text-white">
+                      <div className="size-7 rounded-full bg-secondary flex items-center justify-center shrink-0 text-[11px] font-bold text-foreground">
                         {user?.email?.charAt(0).toUpperCase() || 'U'}
                       </div>
                     ) : (
-                      <div className="size-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm">
-                        <Bot className="size-3.5 text-white" />
+                      <div className="size-7 rounded-full bg-foreground flex items-center justify-center shrink-0">
+                        <Bot className="size-3.5 text-background" />
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0 group">
                       <span className={cn(
                         'text-[11px] font-semibold block mb-1',
-                        isUser ? 'text-blue-600 dark:text-blue-400' : 'text-indigo-600 dark:text-indigo-400'
+                        isUser ? 'text-foreground' : 'text-muted-foreground'
                       )}>
                         {isUser ? '나' : 'AI Agent'}
                       </span>
@@ -677,7 +677,7 @@ export function AiCommandCenter({
                             prose-p:leading-[1.8] prose-li:leading-[1.8]
                             prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5
                             prose-strong:text-foreground prose-strong:font-semibold
-                            prose-a:text-indigo-600 dark:prose-a:text-indigo-400
+                            prose-a:text-foreground prose-a:underline
                             prose-code:text-[12px] prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-normal
                             prose-pre:bg-slate-900 prose-pre:rounded-xl prose-pre:shadow-sm">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -685,7 +685,7 @@ export function AiCommandCenter({
                             </ReactMarkdown>
                           </div>
                           {isStreaming && (
-                            <span className="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse rounded-full ml-0.5 align-middle" />
+                            <span className="inline-block w-0.5 h-4 bg-foreground animate-pulse rounded-full ml-0.5 align-middle" />
                           )}
                           {!isLoading && msg.content && (
                             <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -745,8 +745,7 @@ export function AiCommandCenter({
           <div className="max-w-[680px] mx-auto">
             <div className={cn(
               'relative flex items-end gap-2 rounded-2xl border bg-muted/30 px-4 py-2.5 transition-all',
-              'focus-within:border-indigo-400/50 focus-within:bg-background focus-within:shadow-md focus-within:shadow-indigo-500/10',
-              'dark:focus-within:border-indigo-600/50'
+              'focus-within:border-border focus-within:bg-background focus-within:shadow-sm'
             )}>
               <textarea
                 ref={inputRef}
@@ -769,7 +768,7 @@ export function AiCommandCenter({
                 className={cn(
                   'size-8 rounded-xl flex items-center justify-center shrink-0 transition-all mb-0.5',
                   inputValue.trim() && !isLoading
-                    ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white hover:opacity-90 active:scale-95 shadow-sm'
+                    ? 'bg-foreground text-background hover:opacity-80 active:scale-95'
                     : 'bg-muted text-muted-foreground/40 cursor-not-allowed'
                 )}
               >

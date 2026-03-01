@@ -29,11 +29,11 @@ export default function CampaignViewPage() {
     >
       {/* Page Header */}
       <motion.div variants={fadeUpItem}>
-        <h1 className="text-xl font-bold tracking-tight">
-          캠페인별 전체 행위 체크
+        <h1 className="text-2xl font-black tracking-tight">
+          캠페인 전체 현황, 한눈에 보여줄게.
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          모든 캠페인의 업무 수행 현황을 매트릭스 형태로 확인할 수 있습니다.
+          각 캠페인의 업무 수행 상태를 매트릭스로 확인하세요. 어디가 비었는지 바로 알 수 있어요.
         </p>
       </motion.div>
 

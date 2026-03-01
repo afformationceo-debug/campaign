@@ -217,13 +217,12 @@ export function CampaignGrid({
 
   return (
     <TooltipProvider>
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-      <div className="px-3 py-1.5 border-b bg-blue-50 dark:bg-blue-950/20 flex items-center gap-2">
-        <div className="w-1.5 h-4 rounded-full bg-blue-400" />
-        <h3 className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 border-b border-border bg-secondary/50 flex items-center gap-2">
+        <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           일일 캠페인별 업무
         </h3>
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-auto">
+        <Badge variant="secondary" className="text-[11px] rounded-full px-2 py-0 ml-auto">
           {filteredCampaigns.length}개 캠페인
         </Badge>
       </div>
@@ -251,20 +250,16 @@ export function CampaignGrid({
                   key={task.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-0.5',
+                    'bg-secondary/50 border-b border-border px-0.5 py-0.5',
                     'text-center min-w-[34px] max-w-[38px]',
-                    taskIdx === 0 && 'border-l',
-                    taskIdx === 0 && catColors.border
+                    taskIdx === 0 && 'border-l border-border'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex flex-col items-center gap-1 cursor-help">
                         <span
-                          className={cn(
-                            'inline-block w-2 h-2 rounded-full flex-shrink-0',
-                            catColors.text.replace('text-', 'bg-')
-                          )}
+                          className="inline-block w-1 h-1 rounded-full flex-shrink-0 bg-muted-foreground/40"
                         />
                         <span className="text-[9px] font-semibold text-muted-foreground leading-none">
                           {task.task_name.slice(0, 2)}
@@ -324,8 +319,7 @@ export function CampaignGrid({
                 key={campaign.id}
                 className={cn(
                   'hover:bg-muted/30 transition-colors',
-                  onCampaignClick && 'cursor-pointer',
-                  pct === 100 && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                  onCampaignClick && 'cursor-pointer'
                 )}
                 onClick={() => onCampaignClick?.(campaign.id)}
               >
@@ -333,24 +327,20 @@ export function CampaignGrid({
                 <td
                   className={cn(
                     'sticky left-0 z-10',
-                    'border-b border-r px-2 py-0',
-                    'text-[10px] font-medium text-foreground',
+                    'border-b border-r border-border px-2 py-0',
+                    'text-[12px] font-medium text-foreground',
                     'min-w-[200px] max-w-[260px]',
-                    pct === 100
-                      ? 'bg-gradient-to-r from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-l-[3px] border-l-emerald-400'
-                      : 'bg-background'
+                    'bg-background'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1.5 truncate cursor-default">
                         {pct === 100 && (
-                          <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                            <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
-                          </div>
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                         )}
-                        <span className={cn('font-semibold truncate', pct === 100 && 'text-emerald-800 dark:text-emerald-300')}>{campaign.client_name}</span>
-                        <span className={cn('truncate text-[10px]', pct === 100 ? 'text-emerald-600/70 dark:text-emerald-400/70' : 'text-muted-foreground')}>
+                        <span className="font-medium truncate text-[12px]">{campaign.client_name}</span>
+                        <span className="truncate text-[12px] text-muted-foreground">
                           {campaign.campaign_name}
                         </span>
                         {campaign.target_country && (
@@ -381,10 +371,8 @@ export function CampaignGrid({
                       <td
                         key={task.id}
                         className={cn(
-                          'border-b px-0.5 py-0 text-center',
-                          taskIdx === 0 && 'border-l',
-                          taskIdx === 0 &&
-                            CATEGORY_COLORS[group.category].border
+                          'border-b border-border px-0.5 py-0 text-center',
+                          taskIdx === 0 && 'border-l border-border'
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -409,9 +397,7 @@ export function CampaignGrid({
                     'sticky right-0 z-10',
                     'border-b border-l px-1.5 py-0',
                     'text-center',
-                    pct === 100
-                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20'
-                      : 'bg-background'
+                    'bg-background'
                   )}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -419,26 +405,12 @@ export function CampaignGrid({
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {summary?.completed ?? 0}/{summary?.applicable ?? 0}
                     </span>
-                    {pct === 100 ? (
-                      <Badge
-                        variant="secondary"
-                        className="text-[9px] px-1.5 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 gap-0.5"
-                      >
-                        <CheckCircle2 className="size-2.5" />
-                        100%
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'text-[9px] px-1.5 py-0',
-                          pct > 0 && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                          pct === 0 && 'bg-gray-100 text-gray-500'
-                        )}
-                      >
-                        {pct}%
-                      </Badge>
-                    )}
+                    <Badge
+                      variant="secondary"
+                      className="text-[11px] rounded-full px-1.5 py-0"
+                    >
+                      {pct}%
+                    </Badge>
                   </div>
                 </td>
               </tr>

@@ -72,9 +72,9 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const ACTION_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileEdit; className: string }> = {
-  insert: { label: '생성', icon: Plus, className: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' },
-  update: { label: '수정', icon: FileEdit, className: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30' },
-  delete: { label: '삭제', icon: Trash2, className: 'text-red-600 bg-red-50 dark:bg-red-950/30' },
+  insert: { label: '생성', icon: Plus, className: 'text-foreground bg-secondary' },
+  update: { label: '수정', icon: FileEdit, className: 'text-foreground bg-secondary' },
+  delete: { label: '삭제', icon: Trash2, className: 'text-foreground bg-secondary' },
 };
 
 function getActionConfig(actionType: string) {
@@ -155,7 +155,7 @@ function DiffDisplay({
             </span>
             <div className="flex items-center gap-1 flex-wrap">
               {oldV !== undefined && (
-                <span className="bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 px-1.5 py-0.5 rounded text-[11px] line-through">
+                <span className="bg-secondary text-muted-foreground px-1.5 py-0.5 rounded text-[11px] line-through">
                   {resolveValue(key, oldV)}
                 </span>
               )}
@@ -163,7 +163,7 @@ function DiffDisplay({
                 <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
               )}
               {newV !== undefined && (
-                <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[11px]">
+                <span className="bg-secondary text-foreground px-1.5 py-0.5 rounded text-[11px]">
                   {resolveValue(key, newV)}
                 </span>
               )}
@@ -318,7 +318,7 @@ export default function LogsPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
       </div>
     );
   }
@@ -327,7 +327,7 @@ export default function LogsPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
           <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
@@ -345,12 +345,12 @@ export default function LogsPage() {
     >
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">활동 로그</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            시스템 활동 내역을 확인합니다.
+          <h1 className="text-2xl font-black tracking-tight">활동 로그, 다 기록해두고 있어.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            누가, 언제, 무엇을 변경했는지 투명하게 확인하세요. 모든 변경 이력이 여기 있어요.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-lg">
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-lg border-border">
           <RefreshCw className="h-4 w-4" />
           새로고침
         </Button>
@@ -389,7 +389,7 @@ export default function LogsPage() {
         {/* Date From */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 border-border">
               <CalendarIcon className="h-3.5 w-3.5" />
               {dateFrom ? format(dateFrom, 'MM/dd', { locale: ko }) : '시작일'}
             </Button>
@@ -408,7 +408,7 @@ export default function LogsPage() {
         {/* Date To */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 border-border">
               <CalendarIcon className="h-3.5 w-3.5" />
               {dateTo ? format(dateTo, 'MM/dd', { locale: ko }) : '종료일'}
             </Button>
@@ -442,13 +442,13 @@ export default function LogsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
             <span className="text-sm">데이터를 불러오는 중...</span>
           </div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border rounded-lg gap-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border border-border rounded-lg gap-2">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
             <span className="text-lg">📋</span>
           </div>
           활동 로그가 없습니다.
@@ -482,7 +482,7 @@ export default function LogsPage() {
                   </div>
                 )}
 
-                <Card className="py-3">
+                <Card className="py-3 border-border">
                   <CardContent className="flex gap-3 px-4 py-0">
                     <div
                       className={cn(
@@ -497,7 +497,7 @@ export default function LogsPage() {
                         <span className="text-sm font-medium">
                           {user?.name ?? '시스템'}
                         </span>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="secondary" className="text-[10px] rounded-full">
                           {config.label}
                         </Badge>
                         {log.target_table && (
@@ -550,6 +550,7 @@ export default function LogsPage() {
                 variant="outline"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
+                className="border-border"
               >
                 {isFetchingNextPage ? '로딩 중...' : '더 보기'}
                 <ChevronDown className="h-4 w-4 ml-1" />

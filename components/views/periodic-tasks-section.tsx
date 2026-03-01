@@ -47,9 +47,9 @@ interface PeriodicTasksSectionProps {
 }
 
 const FREQ_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  monthly: { label: '월간', color: 'text-indigo-700 dark:text-indigo-300', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
-  once: { label: '1회성', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-  as_needed: { label: '수시', color: 'text-teal-700 dark:text-teal-300', bg: 'bg-teal-50 dark:bg-teal-950/30' },
+  monthly: { label: '월간', color: 'text-muted-foreground', bg: 'bg-secondary' },
+  once: { label: '1회성', color: 'text-muted-foreground', bg: 'bg-secondary' },
+  as_needed: { label: '수시', color: 'text-muted-foreground', bg: 'bg-secondary' },
 };
 
 // ─── Inline Completion Date Cell ──────────────────────
@@ -603,7 +603,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-lg border border-border bg-card">
         {/* Header */}
         <div
           role="button"
@@ -614,7 +614,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
         >
           {expanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
           <div className="flex items-center gap-2">
-            <CalendarDays className="size-4 text-indigo-500" />
+            <CalendarDays className="size-4 text-muted-foreground" />
             <span className="text-sm font-semibold">월간/주기별 업무</span>
           </div>
           <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
@@ -647,13 +647,13 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
             <div className="overflow-x-auto">
               <table className="w-full text-left table-fixed">
                 <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20px' }}></th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '20%' }}>업무 / 캠페인</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '10%' }}>담당자</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground text-center" style={{ width: '14%' }}>진행율 / 상태</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '40%' }}>결과값</th>
-                    <th className="px-2 py-1 text-[10px] font-semibold text-muted-foreground" style={{ width: '14%' }}>완료일</th>
+                  <tr className="border-b border-border bg-secondary/50">
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '20px' }}></th>
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '20%' }}>업무 / 캠페인</th>
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '10%' }}>담당자</th>
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '14%' }}>진행율 / 상태</th>
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '40%' }}>결과값</th>
+                    <th className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '14%' }}>완료일</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -691,7 +691,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                         <tr
                           className={cn(
                             'border-b border-border/60 cursor-pointer hover:bg-accent/20 transition-colors h-8',
-                            allDone && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent'
+                            allDone && 'bg-muted/20'
                           )}
                           onClick={() => toggleGroup(group.task.id)}
                         >
@@ -705,20 +705,18 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                           {/* Task Name + Badges */}
                           <td className={cn(
                             'px-2 py-0.5',
-                            allDone && 'border-l-[3px] border-l-emerald-400'
+                            allDone && 'border-l-[3px] border-l-foreground/30'
                           )}>
                             <div className="flex items-center gap-1 min-w-0">
                               {allDone && (
-                                <div className="flex items-center justify-center size-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                  <Trophy className="size-2.5 text-emerald-600 dark:text-emerald-400" />
-                                </div>
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                               )}
                               <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', freqCfg.color, freqCfg.bg)}>
                                 {freqCfg.label}
                               </Badge>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className={cn('text-[11px] font-semibold truncate cursor-default', allDone && 'text-emerald-800 dark:text-emerald-300')}>{group.task.task_name}</span>
+                                  <span className={cn('text-[11px] font-semibold truncate cursor-default', allDone && 'text-foreground')}>{group.task.task_name}</span>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-[300px]">
                                   <p className="text-xs font-medium">{group.task.task_name}</p>
@@ -744,7 +742,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 {group.task.category}
                               </Badge>
                               {group.targetCount != null && (
-                                <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
+                                <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-secondary text-muted-foreground">
                                   목표: {group.completedCount}/{group.targetCount}건
                                 </Badge>
                               )}
@@ -761,12 +759,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 <div
                                   className={cn(
                                     'h-full rounded-full transition-all',
-                                    allDone ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : progressPct > 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-transparent'
+                                    allDone ? 'bg-foreground' : progressPct > 0 ? 'bg-foreground/40' : 'bg-transparent'
                                   )}
                                   style={{ width: `${progressPct}%` }}
                                 />
                               </div>
-                              <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', allDone ? 'text-emerald-600' : 'text-muted-foreground')}>
+                              <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', allDone ? 'text-foreground' : 'text-muted-foreground')}>
                                 {progressPct}% ({group.completedCount}/{groupTotalRows})
                               </span>
                             </div>
@@ -796,7 +794,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                     <button
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); handleBulkCompleteGroup(group); }}
-                                      className="ml-auto shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/30 transition-colors"
+                                      className="ml-auto shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors"
                                     >
                                       <ListChecks className="size-2.5" />
                                       일괄완료
@@ -820,7 +818,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             <tr
                               className={cn(
                                 'bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors',
-                                subAllDone && 'bg-emerald-50/30 dark:bg-emerald-950/10',
+                                subAllDone && 'bg-muted/20',
                               )}
                               onClick={() => toggleSubTask(subGroup.task.id)}
                             >
@@ -836,21 +834,15 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                 <div className="flex items-center gap-2 pl-2">
                                   <CornerDownRight className="size-3 text-muted-foreground/50 shrink-0" />
                                   {subAllDone && (
-                                    <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                      <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
-                                    </div>
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                                   )}
                                   <span className={cn(
                                     'text-xs font-medium',
-                                    subAllDone && 'text-emerald-700 dark:text-emerald-300',
+                                    subAllDone && 'text-foreground',
                                   )}>
                                     {subGroup.task.task_name}
                                   </span>
-                                  <Badge variant="secondary" className={cn(
-                                    'text-[9px] px-1.5 py-0',
-                                    subAllDone && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30',
-                                    subPct > 0 && !subAllDone && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30',
-                                  )}>
+                                  <Badge variant="secondary" className="text-[11px] rounded-full px-1.5 py-0">
                                     {subGroup.completedCount}/{subGroup.rows.length}
                                   </Badge>
                                 </div>
@@ -861,12 +853,12 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                     <div
                                       className={cn(
                                         'h-full rounded-full transition-all',
-                                        subAllDone ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : subPct > 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-transparent'
+                                        subAllDone ? 'bg-foreground' : subPct > 0 ? 'bg-foreground/40' : 'bg-transparent'
                                       )}
                                       style={{ width: `${subPct}%` }}
                                     />
                                   </div>
-                                  <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', subAllDone ? 'text-emerald-600' : 'text-muted-foreground')}>
+                                  <span className={cn('text-[9px] font-medium tabular-nums whitespace-nowrap', subAllDone ? 'text-foreground' : 'text-muted-foreground')}>
                                     {subPct}%
                                   </span>
                                 </div>
@@ -881,29 +873,27 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                                   key={`${row.campaign.id}:${row.task.id}`}
                                   className={cn(
                                     'border-b border-border/30 hover:bg-accent/10 transition-colors h-7',
-                                    rowCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent',
+                                    rowCompleted && 'bg-muted/20',
                                     row.onceCompleted && 'opacity-60'
                                   )}
                                 >
                                   <td className="px-2 py-0.5"></td>
                                   <td className={cn(
                                     'px-2 py-0.5',
-                                    rowCompleted && 'border-l-[3px] border-l-emerald-400'
+                                    rowCompleted && 'border-l-[3px] border-l-foreground/30'
                                   )}>
                                     <div className="flex items-center gap-1 pl-8 min-w-0">
                                       {rowCompleted && !row.onceCompleted && (
-                                        <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                          <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
-                                        </div>
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                                       )}
                                       <span className={cn(
                                         'text-[10px] truncate',
-                                        row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-emerald-800 dark:text-emerald-300 font-medium' : 'text-foreground/80'
+                                        row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-foreground font-medium' : 'text-foreground/80'
                                       )}>
                                         {row.campaign.campaign_name}
                                       </span>
                                       {row.onceCompleted && (
-                                        <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                                        <Badge variant="secondary" className="text-[11px] rounded-full px-1.5 py-0 shrink-0">
                                           완료됨
                                         </Badge>
                                       )}
@@ -975,29 +965,27 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
                             key={`${row.campaign.id}:${row.task.id}`}
                             className={cn(
                               'border-b border-border/30 hover:bg-accent/10 transition-colors h-7',
-                              rowCompleted && 'bg-gradient-to-r from-emerald-50/60 via-emerald-50/30 to-transparent dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-transparent',
+                              rowCompleted && 'bg-muted/20',
                               row.onceCompleted && 'opacity-60'
                             )}
                           >
                             <td className="px-2 py-0.5"></td>
                             <td className={cn(
                               'px-2 py-0.5',
-                              rowCompleted && 'border-l-[3px] border-l-emerald-400'
+                              rowCompleted && 'border-l-[3px] border-l-foreground/30'
                             )}>
                               <div className="flex items-center gap-1 pl-4 min-w-0">
                                 {rowCompleted && !row.onceCompleted && (
-                                  <div className="flex items-center justify-center size-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 shrink-0">
-                                    <Trophy className="size-2 text-emerald-600 dark:text-emerald-400" />
-                                  </div>
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                                 )}
                                 <span className={cn(
                                   'text-[10px] truncate',
-                                  row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-emerald-800 dark:text-emerald-300 font-medium' : 'text-foreground/80'
+                                  row.onceCompleted ? 'text-muted-foreground line-through' : rowCompleted ? 'text-foreground font-medium' : 'text-foreground/80'
                                 )}>
                                   {row.campaign.campaign_name}
                                 </span>
                                 {row.onceCompleted && (
-                                  <Badge variant="secondary" className="text-[8px] px-1 py-0 shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">
+                                  <Badge variant="secondary" className="text-[11px] rounded-full px-1.5 py-0 shrink-0">
                                     완료됨
                                   </Badge>
                                 )}

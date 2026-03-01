@@ -5,30 +5,35 @@ export const STATUS_COLORS: Record<CheckStatus, {
   text: string;
   darkBg: string;
   ring: string;
+  dot: string;
 }> = {
   '완료': {
-    bg: 'bg-emerald-100',
+    bg: 'bg-emerald-50',
     text: 'text-emerald-700',
-    darkBg: 'dark:bg-emerald-900/30',
-    ring: 'ring-emerald-500',
+    darkBg: 'dark:bg-emerald-950/20',
+    ring: 'ring-emerald-500/30',
+    dot: 'bg-emerald-500',
   },
   '진행중': {
-    bg: 'bg-amber-100',
+    bg: 'bg-amber-50',
     text: 'text-amber-700',
-    darkBg: 'dark:bg-amber-900/30',
-    ring: 'ring-amber-500',
+    darkBg: 'dark:bg-amber-950/20',
+    ring: 'ring-amber-500/30',
+    dot: 'bg-amber-500',
   },
   '미완료': {
-    bg: 'bg-red-100',
-    text: 'text-red-700',
-    darkBg: 'dark:bg-red-900/30',
-    ring: 'ring-red-500',
+    bg: 'bg-secondary',
+    text: 'text-muted-foreground',
+    darkBg: 'dark:bg-secondary',
+    ring: 'ring-border',
+    dot: 'bg-muted-foreground/30',
   },
   '해당없음': {
-    bg: 'bg-gray-100',
-    text: 'text-gray-400',
-    darkBg: 'dark:bg-gray-800/30',
-    ring: 'ring-gray-300',
+    bg: 'bg-secondary/50',
+    text: 'text-muted-foreground/50',
+    darkBg: 'dark:bg-secondary/30',
+    ring: 'ring-border/50',
+    dot: 'bg-muted-foreground/20',
   },
 };
 

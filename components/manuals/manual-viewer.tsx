@@ -6,13 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { PlatformManual } from '@/lib/types/database';
 
-const MANUAL_TYPE_CONFIG: Record<string, { className: string }> = {
-  '세팅가이드': { className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' },
-  '운영가이드': { className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30' },
-  'FAQ': { className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30' },
-  '트러블슈팅': { className: 'bg-red-100 text-red-700 dark:bg-red-900/30' },
-};
-
 /** Render inline markdown formatting: bold and links */
 function InlineFormat({ text }: { text: string }) {
   const parts: React.ReactNode[] = [];
@@ -28,7 +21,7 @@ function InlineFormat({ text }: { text: string }) {
       parts.push(<strong key={m.index} className="font-semibold">{m[2]}</strong>);
     } else if (m[3] && m[4]) {
       parts.push(
-        <a key={m.index} href={m[4]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{m[3]}</a>
+        <a key={m.index} href={m[4]} target="_blank" rel="noopener noreferrer" className="text-foreground underline hover:text-foreground/80">{m[3]}</a>
       );
     }
     lastIdx = pattern.lastIndex;
@@ -92,16 +85,14 @@ export function ManualViewer({
   onToggle: () => void;
   onDelete?: () => void;
 }) {
-  const typeConfig = MANUAL_TYPE_CONFIG[manual.manual_type] ?? MANUAL_TYPE_CONFIG['세팅가이드'];
-
   return (
     <div className={cn(
-      'rounded-xl border bg-card transition-all duration-200',
+      'rounded-lg border border-border bg-card transition-all duration-200',
       isExpanded && 'shadow-sm'
     )}>
       <div
         onClick={onToggle}
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-xl"
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-secondary/30 transition-colors rounded-lg"
       >
         {isExpanded ? (
           <ChevronDown className="size-4 text-muted-foreground shrink-0" />
@@ -111,11 +102,11 @@ export function ManualViewer({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium truncate">{manual.title}</h3>
-            <Badge variant="secondary" className={cn('text-[9px] px-1.5 py-0 shrink-0', typeConfig.className)}>
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 shrink-0 rounded-full">
               {manual.manual_type}
             </Badge>
             {manual.country && (
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-0.5">
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 gap-0.5 border-border">
                 <Globe className="size-2.5" />
                 {manual.country}
               </Badge>
@@ -132,13 +123,13 @@ export function ManualViewer({
               if (confirm('이 매뉴얼을 삭제하시겠습니까?')) onDelete();
             }}
           >
-            <Trash2 className="size-3.5 text-red-500" />
+            <Trash2 className="size-3.5 text-muted-foreground" />
           </Button>
         )}
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-4 border-t pt-3">
+        <div className="px-4 pb-4 border-t border-border pt-3">
           <MarkdownContent text={manual.content} />
         </div>
       )}

@@ -21,17 +21,17 @@ export function PresenceIndicator({ isCollapsed }: { isCollapsed: boolean }) {
         <TooltipTrigger asChild>
           <div className="flex justify-center">
             <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-foreground">
                 {onlineUsers.length}
               </div>
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background" />
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border-[1.5px] border-background" />
             </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="right">
-          <p className="font-medium mb-1">접속 중 ({onlineUsers.length}명)</p>
+        <TooltipContent side="right" className="text-xs">
+          <p className="font-semibold mb-1">접속 중 ({onlineUsers.length}명)</p>
           {onlineUsers.map((u) => (
-            <p key={u.user_id} className="text-xs">{u.name}</p>
+            <p key={u.user_id} className="text-[11px]">{u.name}</p>
           ))}
         </TooltipContent>
       </Tooltip>
@@ -39,25 +39,25 @@ export function PresenceIndicator({ isCollapsed }: { isCollapsed: boolean }) {
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        접속 중 <span className="text-emerald-600 font-medium">{onlineUsers.length}명</span>
+    <div className="space-y-1.5">
+      <p className="text-[10px] text-muted-foreground font-medium">
+        접속 중 <span className="text-foreground font-semibold">{onlineUsers.length}명</span>
       </p>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-0.5">
         {onlineUsers.slice(0, 6).map((u) => (
           <Tooltip key={u.user_id} delayDuration={0}>
             <TooltipTrigger asChild>
-              <Avatar className={cn('h-7 w-7 border-2 border-emerald-400')}>
-                <AvatarFallback className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <Avatar className={cn('h-6 w-6 border border-border')}>
+                <AvatarFallback className="text-[9px] font-medium bg-secondary text-foreground">
                   {u.name.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
             </TooltipTrigger>
-            <TooltipContent>{u.name}</TooltipContent>
+            <TooltipContent className="text-xs">{u.name}</TooltipContent>
           </Tooltip>
         ))}
         {onlineUsers.length > 6 && (
-          <span className="text-xs text-muted-foreground self-center ml-1">
+          <span className="text-[10px] text-muted-foreground self-center ml-0.5">
             +{onlineUsers.length - 6}
           </span>
         )}

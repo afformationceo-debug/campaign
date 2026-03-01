@@ -175,21 +175,18 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
                   'flex items-center justify-center w-6 h-6 rounded-md',
                   'transition-all duration-200 cursor-pointer',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  'hover:scale-110 hover:shadow-md active:scale-95',
-                  colors.bg,
-                  colors.darkBg,
+                  'hover:scale-110 active:scale-95',
+                  'border border-border/50 bg-card',
                   colors.text,
-                  pulse && 'animate-pulse ring-2',
-                  pulse && colors.ring,
-                  check.note && 'ring-1 ring-offset-1',
-                  check.note && colors.ring
+                  pulse && 'animate-pulse ring-1 ring-border',
+                  check.note && 'ring-1 ring-offset-1 ring-border'
                 )}
                 aria-label={`상태: ${STATUS_LABELS[status]}`}
               >
                 <Icon className="size-3" />
               </button>
               {check.note && (
-                <div className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500 border border-white dark:border-gray-900" />
+                <div className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-foreground border border-background" />
               )}
             </div>
           </PopoverTrigger>
@@ -204,14 +201,14 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
       </Tooltip>
 
       <PopoverContent
-        className="w-64"
+        className="w-64 bg-card border-border"
         side="bottom"
         align="center"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="space-y-3">
           <div>
-            <Label htmlFor="note-input" className="text-xs text-muted-foreground">
+            <Label htmlFor="note-input" className="text-[11px] text-muted-foreground">
               메모
             </Label>
             <Input
@@ -219,7 +216,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
               value={noteValue}
               onChange={(e) => setNoteValue(e.target.value)}
               placeholder="메모를 입력하세요..."
-              className="mt-1 h-8 text-sm rounded-lg"
+              className="mt-1 h-8 text-[13px] rounded-lg bg-secondary/50 border-border"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleNoteSave();
               }}

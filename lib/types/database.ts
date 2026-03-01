@@ -5,6 +5,7 @@ export type CheckStatus = '완료' | '진행중' | '미완료' | '해당없음';
 export type UserRole = 'admin' | 'member';
 export type TaskCategory = '보고' | '영업' | '온보딩' | '발송' | 'CS-인플' | 'CS-고객' | 'CRM' | '컨텐츠' | '회계' | '이커머스';
 export type TaskScope = 'campaign' | 'global';
+export type TaskPriority = '긴급' | '높음' | '보통' | '낮음';
 export type ProjectState = '진행전' | '진행중' | '완료';
 export type InterpreterStatus = '통역 필요 없음' | '돈받고 지원 (상시)' | '돈받고 지원 (요청시)' | '무료로 지원(요청시)' | '무료로 지원(상시)';
 export type CampaignType = '해외마케팅' | '국내챗닥' | '제품브랜드';
@@ -110,6 +111,9 @@ export interface Task {
   scope: TaskScope;
   parent_task_id: string | null;
   sub_order: number;
+  priority: TaskPriority;
+  estimated_minutes: number | null;
+  instruction_url: string | null;
   created_at: string;
 }
 
@@ -145,6 +149,7 @@ export interface DailyCheck {
   assigned_user_id: string | null;
   note: string | null;
   result_value: string | null;
+  started_at: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -252,6 +257,16 @@ export interface OnboardingManualSection {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TaskStep {
+  id: string;
+  task_id: string;
+  step_order: number;
+  step_name: string;
+  step_description: string | null;
+  tool_url: string | null;
+  created_at: string;
 }
 
 // Join 타입

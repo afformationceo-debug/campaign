@@ -8,7 +8,7 @@ import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
 import { queryKeys } from '@/lib/utils/query-keys';
-import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { cn } from '@/lib/utils';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { useRealtimeTaskConfig } from '@/hooks/use-realtime-task-config';
@@ -153,7 +153,6 @@ function TaskConfigMatrix({
       <div className="flex items-center gap-1 flex-wrap">
         <span className="text-[10px] text-muted-foreground mr-1">카테고리 일괄:</span>
         {tasksByCategory.map(({ category, tasks: catTasks }) => {
-          const color = CATEGORY_COLORS[category];
           return (
             <div key={category} className="flex items-center gap-0.5">
               <Tooltip>
@@ -161,7 +160,7 @@ function TaskConfigMatrix({
                   <Button
                     variant="ghost"
                     size="xs"
-                    className={`${color.bg} ${color.text} ${color.darkBg} text-[10px]`}
+                    className="bg-secondary text-secondary-foreground text-[10px]"
                     onClick={() => onBulkToggleCategory(category, catTasks, campaigns, true)}
                   >
                     {category}
@@ -188,17 +187,11 @@ function TaskConfigMatrix({
                 <span className="text-muted-foreground font-medium">캠페인</span>
               </th>
               {tasksByCategory.map(({ category, tasks: catTasks }) => {
-                const color = CATEGORY_COLORS[category];
                 return (
                   <th
                     key={category}
                     colSpan={catTasks.length}
-                    className={cn(
-                      'p-1 text-center border-r border-b-0 font-medium',
-                      color.bg,
-                      color.text,
-                      color.darkBg
-                    )}
+                    className="p-1 text-center border-r border-b-0 font-medium bg-secondary text-secondary-foreground"
                   >
                     <div className="flex items-center justify-center gap-1">
                       {category}
@@ -243,7 +236,7 @@ function TaskConfigMatrix({
                             하위업무: {childTaskMap.get(task.id)!.map(c => c.task_name).join(', ')}
                           </p>
                         )}
-                        <p className="text-[10px] text-blue-400 mt-0.5">클릭하여 전체 토글</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">클릭하여 전체 토글</p>
                       </TooltipContent>
                     </Tooltip>
                   </th>
@@ -308,7 +301,7 @@ function TaskConfigMatrix({
                         className={cn(
                           'p-0 text-center border-r',
                           idx === catTasks.length - 1 && 'border-r-2',
-                          isApplicable && 'bg-emerald-50/50 dark:bg-emerald-950/20'
+                          isApplicable && 'bg-foreground/[0.03] dark:bg-foreground/[0.06]'
                         )}
                       >
                         <div className={cn(
@@ -381,20 +374,13 @@ function GlobalTasksList({
       </p>
 
       {grouped.map(({ category, tasks: catTasks }) => {
-        const color = CATEGORY_COLORS[category];
         return (
           <div key={category} className="rounded-lg border overflow-hidden">
-            <div
-              className={cn(
-                'px-3 py-1.5 border-b flex items-center gap-2',
-                color.bg,
-                color.darkBg
-              )}
-            >
-              <span className={cn('text-[11px] font-semibold', color.text)}>
+            <div className="px-3 py-1.5 border-b flex items-center gap-2 bg-secondary/50">
+              <span className="text-[11px] font-semibold text-foreground">
                 {category}
               </span>
-              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                 {catTasks.length}
               </Badge>
             </div>
@@ -842,36 +828,34 @@ export default function TaskConfigPage() {
       >
         {/* Page Header */}
         <motion.div variants={fadeUpItem}>
-          <h1 className="text-xl font-bold tracking-tight">Task 적용설정</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            캠페인별/전역 업무 적용 여부를 유형별로 구분하여 설정합니다.
+          <h1 className="text-2xl font-black tracking-tight">업무 적용, 캠페인별로 설정해줄게.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            어떤 캠페인에 어떤 업무를 적용할지, 담당자 오버라이드와 목표 건수까지 세밀하게 조정하세요.
           </p>
         </motion.div>
 
         {/* AI Agent Guide Banner */}
         <motion.div variants={fadeUpItem}>
-          <div className="relative rounded-xl border border-amber-100 dark:border-amber-900/30 bg-gradient-to-r from-amber-50/80 via-yellow-50/50 to-transparent dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-transparent px-4 py-3.5 overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-100/30 to-transparent dark:from-amber-900/15 rounded-bl-full" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-yellow-100/20 to-transparent dark:from-yellow-900/10 rounded-tr-full" />
+          <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
             <div className="flex gap-3 items-start relative">
               <div className="relative shrink-0 mt-0.5">
-                <div className="size-9 rounded-full bg-gradient-to-br from-amber-500 via-yellow-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-200/50 dark:shadow-amber-900/30 ring-2 ring-white/80 dark:ring-white/10">
-                  <Bot className="size-4 text-white" />
+                <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
+                  <Bot className="size-4 text-background" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-900" />
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground/60 border-2 border-background" />
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[12px] font-bold text-amber-900 dark:text-amber-200">어포메이션 본질 AI Agent</p>
-                  <span className="text-[9px] font-medium text-amber-500/60 dark:text-amber-400/50 bg-amber-100/60 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">적용설정 가이드</span>
+                  <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
+                  <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">적용설정 가이드</span>
                 </div>
-                <div className="text-[11px] text-amber-800/80 dark:text-amber-300/70 leading-[1.7] space-y-1">
+                <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
                   <p>안녕하세요, 어포메이션 임직원 여러분! Task 적용설정 페이지를 안내해 드립니다.</p>
-                  <div className="bg-white/50 dark:bg-white/5 rounded-lg px-3 py-2 space-y-0.5 border border-amber-100/50 dark:border-amber-800/20">
-                    <p>행위 관리에서 등록한 업무가 <strong className="text-amber-700 dark:text-amber-300">어느 캠페인에 적용될지</strong>를 이 페이지에서 ON/OFF 합니다.</p>
-                    <p><strong className="text-orange-700 dark:text-orange-300">토글을 켜면</strong> 해당 캠페인의 일일 체크리스트에 업무가 나타나고, <strong className="text-orange-700 dark:text-orange-300">끄면</strong> 숨겨집니다.</p>
+                  <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+                    <p>행위 관리에서 등록한 업무가 <strong className="text-foreground">어느 캠페인에 적용될지</strong>를 이 페이지에서 ON/OFF 합니다.</p>
+                    <p><strong className="text-foreground">토글을 켜면</strong> 해당 캠페인의 일일 체크리스트에 업무가 나타나고, <strong className="text-foreground">끄면</strong> 숨겨집니다.</p>
                   </div>
-                  <p className="text-[10px] text-amber-600/60 dark:text-amber-400/40">새 캠페인 추가 시 필요한 업무를 여기서 활성화하는 것을 잊지 마세요!</p>
+                  <p className="text-[10px] text-muted-foreground/60">새 캠페인 추가 시 필요한 업무를 여기서 활성화하는 것을 잊지 마세요!</p>
                 </div>
               </div>
             </div>
@@ -918,22 +902,22 @@ export default function TaskConfigPage() {
         ) : (
           <motion.div variants={fadeUpItem}>
             <Tabs defaultValue="daily-weekly">
-              <TabsList>
-                <TabsTrigger value="daily-weekly" className="text-xs gap-1.5">
+              <TabsList className="bg-secondary/50 p-1 rounded-full">
+                <TabsTrigger value="daily-weekly" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
                   일일/주간 업무
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {dailyWeeklyTasks.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="periodic" className="text-xs gap-1.5">
+                <TabsTrigger value="periodic" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
                   월간/주기별 업무
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {periodicTasks.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="global" className="text-xs gap-1.5">
+                <TabsTrigger value="global" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
                   전역 업무
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {globalTasks.length}
                   </Badge>
                 </TabsTrigger>
