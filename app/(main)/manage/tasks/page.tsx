@@ -1064,84 +1064,82 @@ export default function TasksPage() {
               </div>
             </div>
 
-            {/* Task Steps Section - visible when editing an existing task */}
-            {editingTask && (
-              <div className="space-y-3 pt-2">
-                <div className="border-t border-border pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-sm font-semibold">업무 단계</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addStep}
-                      className="h-7 text-[11px] rounded-md border-border"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      추가
-                    </Button>
-                  </div>
-
-                  {stepsLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="size-4 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {steps.filter((s) => !s._deleted).length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground text-center py-3 bg-secondary/30 rounded-md border border-border">
-                          등록된 업무 단계가 없습니다
-                        </p>
-                      ) : (
-                        steps.map((step, index) => {
-                          if (step._deleted) return null;
-                          return (
-                            <div key={step.id ?? `new-${index}`} className="rounded-md border border-border bg-secondary/20 p-3 space-y-2">
-                              <div className="flex items-start gap-2">
-                                <span className="text-[10px] text-muted-foreground font-mono mt-2 shrink-0 w-5 text-center">
-                                  {step.step_order}
-                                </span>
-                                <div className="flex-1 space-y-2">
-                                  <Input
-                                    value={step.step_name}
-                                    onChange={(e) => updateStep(index, 'step_name', e.target.value)}
-                                    placeholder="단계 이름 *"
-                                    className="bg-background border-border h-8 text-[12px]"
-                                    required
-                                  />
-                                  <Textarea
-                                    value={step.step_description}
-                                    onChange={(e) => updateStep(index, 'step_description', e.target.value)}
-                                    placeholder="단계 설명 (선택)"
-                                    rows={2}
-                                    className="bg-background border-border text-[12px] min-h-0"
-                                  />
-                                  <Input
-                                    value={step.tool_url}
-                                    onChange={(e) => updateStep(index, 'tool_url', e.target.value)}
-                                    placeholder="도구/링크 URL (선택)"
-                                    className="bg-background border-border h-8 text-[12px]"
-                                  />
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  className="text-destructive hover:text-destructive mt-1"
-                                  onClick={() => deleteStep(index)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+            {/* Task Steps Section */}
+            <div className="space-y-3 pt-2">
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-semibold">업무 단계</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addStep}
+                    className="h-7 text-[11px] rounded-md border-border"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    추가
+                  </Button>
                 </div>
+
+                {stepsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="size-4 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {steps.filter((s) => !s._deleted).length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground text-center py-3 bg-secondary/30 rounded-md border border-border">
+                        등록된 업무 단계가 없습니다
+                      </p>
+                    ) : (
+                      steps.map((step, index) => {
+                        if (step._deleted) return null;
+                        return (
+                          <div key={step.id ?? `new-${index}`} className="rounded-md border border-border bg-secondary/20 p-3 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <span className="text-[10px] text-muted-foreground font-mono mt-2 shrink-0 w-5 text-center">
+                                {step.step_order}
+                              </span>
+                              <div className="flex-1 space-y-2">
+                                <Input
+                                  value={step.step_name}
+                                  onChange={(e) => updateStep(index, 'step_name', e.target.value)}
+                                  placeholder="단계 이름 *"
+                                  className="bg-background border-border h-8 text-[12px]"
+                                  required
+                                />
+                                <Textarea
+                                  value={step.step_description}
+                                  onChange={(e) => updateStep(index, 'step_description', e.target.value)}
+                                  placeholder="단계 설명 (선택)"
+                                  rows={2}
+                                  className="bg-background border-border text-[12px] min-h-0"
+                                />
+                                <Input
+                                  value={step.tool_url}
+                                  onChange={(e) => updateStep(index, 'tool_url', e.target.value)}
+                                  placeholder="도구/링크 URL (선택)"
+                                  className="bg-background border-border h-8 text-[12px]"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                className="text-destructive hover:text-destructive mt-1"
+                                onClick={() => deleteStep(index)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={closeDialog} className="rounded-lg border-border">
