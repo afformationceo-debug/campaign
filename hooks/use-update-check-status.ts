@@ -29,19 +29,30 @@ export function useUpdateCheckStatus() {
 
   return useMutation({
     mutationFn: async (params: UpdateParams) => {
-      const updateData: Record<string, unknown> = { status: params.status };
+      const now = new Date().toISOString();
+      const updateData: Record<string, unknown> = {
+        status: params.status,
+        updated_at: now,
+      };
       if (params.note !== undefined) updateData.note = params.note;
       if (params.result_value !== undefined) updateData.result_value = params.result_value;
 
-      // Track started_at / completed_at based on status
-      if (params.status === '진행중') {
-        updateData.started_at = new Date().toISOString();
-        updateData.completed_at = null;
-      } else if (params.status === '완료') {
-        updateData.completed_at = new Date().toISOString();
+      // started_at = 최초 입력 시간 (한번 설정되면 유지)
+      // First, check if started_at already exists
+      const { data: existing } = await supabase
+        .from('daily_checks')
+        .select('started_at')
+        .eq('id', params.id)
+        .single();
+
+      if (!existing?.started_at) {
+        updateData.started_at = now;
+      }
+
+      // completed_at tracks completion
+      if (params.status === '완료') {
+        updateData.completed_at = now;
       } else {
-        // 미완료 or 해당없음 — reset timing
-        updateData.started_at = null;
         updateData.completed_at = null;
       }
 
@@ -72,20 +83,22 @@ export function useUpdateCheckStatus() {
 
       // Build optimistic timestamp fields
       const now = new Date().toISOString();
-      const timestampFields: Record<string, string | null> =
-        status === '진행중'
-          ? { started_at: now, completed_at: null }
-          : status === '완료'
-            ? { completed_at: now }
-            : { started_at: null, completed_at: null };
 
       allQueries.forEach(([key]) => {
         queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
-          (old || []).map((item) =>
-            item.id === id
-              ? { ...item, status, ...timestampFields, ...(note !== undefined && { note }), ...(result_value !== undefined && { result_value }) }
-              : item
-          )
+          (old || []).map((item) => {
+            if (item.id !== id) return item;
+            return {
+              ...item,
+              status,
+              updated_at: now,
+              // started_at: keep existing or set if first time
+              started_at: item.started_at || now,
+              completed_at: status === '완료' ? now : null,
+              ...(note !== undefined && { note }),
+              ...(result_value !== undefined && { result_value }),
+            };
+          })
         );
       });
       return { previousMap };
@@ -147,12 +160,11 @@ export function useCreateCheck() {
       if (params.note !== undefined) insertData.note = params.note;
       if (params.result_value !== undefined) insertData.result_value = params.result_value;
 
-      // Track started_at / completed_at based on status
-      if (params.status === '진행중') {
-        insertData.started_at = new Date().toISOString();
-      } else if (params.status === '완료') {
-        const now = new Date().toISOString();
-        insertData.started_at = now;
+      // Always set started_at on first creation (최초 입력시간)
+      const now = new Date().toISOString();
+      insertData.started_at = now;
+      insertData.updated_at = now;
+      if (params.status === '완료') {
         insertData.completed_at = now;
       }
 

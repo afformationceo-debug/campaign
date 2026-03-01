@@ -732,13 +732,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 {check?.started_at ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="text-[9px] tabular-nums text-muted-foreground font-medium cursor-default">
-                                        {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                                      </span>
+                                      <div className="flex flex-col items-center leading-tight cursor-default">
+                                        <span className="text-[8px] tabular-nums text-muted-foreground/60">
+                                          {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        <span className="text-[9px] tabular-nums text-foreground font-semibold">
+                                          {new Date(check.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      </div>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">
                                       <div className="text-xs space-y-0.5">
-                                        <p>시작: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                        <p>최초: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                        <p>최근: {new Date(check.updated_at).toLocaleString('ko-KR')}</p>
                                         {check.completed_at && <p>완료: {new Date(check.completed_at).toLocaleString('ko-KR')}</p>}
                                       </div>
                                     </TooltipContent>
@@ -855,13 +861,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         {check?.started_at ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-[9px] tabular-nums text-muted-foreground font-medium cursor-default">
-                                {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                              <div className="flex flex-col items-center leading-tight cursor-default">
+                                <span className="text-[8px] tabular-nums text-muted-foreground/60">
+                                  {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-[9px] tabular-nums text-foreground font-semibold">
+                                  {new Date(check.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent side="top">
                               <div className="text-xs space-y-0.5">
-                                <p>시작: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                <p>최초: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                <p>최근: {new Date(check.updated_at).toLocaleString('ko-KR')}</p>
                                 {check.completed_at && <p>완료: {new Date(check.completed_at).toLocaleString('ko-KR')}</p>}
                               </div>
                             </TooltipContent>
