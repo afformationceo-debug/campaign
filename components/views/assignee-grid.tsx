@@ -535,12 +535,13 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
         <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '35%' }}>업무</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '30%' }}>업무</th>
               <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '7%' }}>카테고리</th>
               <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '9%' }}>담당자</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '9%' }}>도구</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '8%' }}>상태</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '32%' }}>결과값</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '8%' }}>도구</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '9%' }}>시간</th>
+              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '30%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -550,7 +551,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 {globalTasksByAssignee.length > 1 && (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-1.5 py-0.5 bg-secondary/30 border-b border-border"
                     >
                       <div className="flex items-center gap-1.5">
@@ -680,6 +681,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </span>
                             </div>
                           </td>
+                          <td className="px-1.5 py-0 text-center">
+                            <span className="text-[9px] text-muted-foreground/30">-</span>
+                          </td>
                           <td className="px-1.5 py-0">
                             <span className="text-[9px] text-muted-foreground/40">펼쳐서 입력</span>
                           </td>
@@ -723,6 +727,25 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                     </Tooltip>
                                   )}
                                 </div>
+                              </td>
+                              <td className="px-1.5 py-0 text-center">
+                                {check?.started_at ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-[9px] tabular-nums text-muted-foreground font-medium cursor-default">
+                                        {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <div className="text-xs space-y-0.5">
+                                        <p>시작: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                        {check.completed_at && <p>완료: {new Date(check.completed_at).toLocaleString('ko-KR')}</p>}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="text-[9px] text-muted-foreground/30">-</span>
+                                )}
                               </td>
                               <td className="px-1.5 py-0">
                                 <ResultValueInput
@@ -827,6 +850,25 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </Tooltip>
                           )}
                         </div>
+                      </td>
+                      <td className="px-1.5 py-0 text-center">
+                        {check?.started_at ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-[9px] tabular-nums text-muted-foreground font-medium cursor-default">
+                                {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <div className="text-xs space-y-0.5">
+                                <p>시작: {new Date(check.started_at).toLocaleString('ko-KR')}</p>
+                                {check.completed_at && <p>완료: {new Date(check.completed_at).toLocaleString('ko-KR')}</p>}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground/30">-</span>
+                        )}
                       </td>
                       <td className="px-1.5 py-0">
                         <ResultValueInput
