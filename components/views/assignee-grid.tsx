@@ -641,11 +641,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               )}
                               <button
                                 type="button"
-                                className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors"
+                                className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 transition-colors"
                                 onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                                 title="단계 보기"
                               >
-                                <ListChecks className="size-3 text-muted-foreground/60 hover:text-primary" />
+                                <ListChecks className="size-2.5 text-muted-foreground" />
+                                <span className="text-[8px] font-medium text-muted-foreground">Step</span>
                               </button>
                             </div>
                           </td>
@@ -783,11 +784,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           )}
                           <button
                             type="button"
-                            className="shrink-0 p-0.5 rounded hover:bg-muted/60 transition-colors"
+                            className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 transition-colors"
                             onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                             title="단계 보기"
                           >
-                            <ListChecks className="size-3 text-muted-foreground/60 hover:text-primary" />
+                            <ListChecks className="size-2.5 text-muted-foreground" />
+                            <span className="text-[8px] font-medium text-muted-foreground">Step</span>
                           </button>
                         </div>
                       </td>
@@ -797,7 +799,11 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         </Badge>
                       </td>
                       <td className="px-1.5 py-0">
-                        <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{assignees || '-'}</span>
+                        {assignees ? (
+                          <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{assignees}</span>
+                        ) : (
+                          <span className="text-[9px] text-destructive font-medium truncate block whitespace-nowrap">지정안됨</span>
+                        )}
                       </td>
                       <td className="px-1.5 py-0">
                         <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
