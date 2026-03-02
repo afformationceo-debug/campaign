@@ -89,8 +89,13 @@ export default function AssigneeViewPage() {
 
   // ─── KPI Computation (전역 + 캠페인별 업무 모두 포함) ───
   const kpiStats = useMemo(() => {
-    const dailyTasks = tasks.filter(
-      (t) => !t.parent_task_id && (t.frequency === 'daily' || t.frequency === 'weekly')
+    // Campaign-scope: daily/weekly only
+    const campaignDailyTasks = tasks.filter(
+      (t) => !t.parent_task_id && t.scope !== 'global' && (t.frequency === 'daily' || t.frequency === 'weekly')
+    );
+    // Global-scope: ALL frequencies (same as assignee grid)
+    const globalAllTasks = tasks.filter(
+      (t) => !t.parent_task_id && t.scope === 'global'
     );
 
     const configMap = new Map<string, CampaignTaskConfig>();
@@ -111,9 +116,8 @@ export default function AssigneeViewPage() {
     let incomplete = 0;
 
     // 1) Campaign-scope tasks
-    const campaignTasks = dailyTasks.filter((t) => t.scope !== 'global');
     for (const campaign of campaigns) {
-      for (const task of campaignTasks) {
+      for (const task of campaignDailyTasks) {
         const config = configMap.get(`${campaign.id}:${task.id}`);
         const applicable = config ? config.is_applicable : task.is_applicable_default;
         if (!applicable) continue;
@@ -130,8 +134,8 @@ export default function AssigneeViewPage() {
       }
     }
 
-    // 2) Global-scope tasks (per-assignee)
-    const globalTasks = dailyTasks.filter((t) => t.scope === 'global');
+    // 2) Global-scope tasks (per-assignee, all frequencies)
+    const globalTasks = globalAllTasks;
     for (const task of globalTasks) {
       const assigneeNames = task.default_assignees?.length ? task.default_assignees : [];
       if (assigneeNames.length === 0) continue;

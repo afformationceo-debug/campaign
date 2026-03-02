@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -40,6 +40,7 @@ import type {
   CampaignTaskConfig,
   TaskCategory,
   User,
+  TaskStep,
 } from '@/lib/types/database';
 
 // ─── Status config for dropdown ───────────────────────
@@ -301,6 +302,40 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     queryFn: () => fetchAll<CampaignTaskConfig>(supabase, 'campaign_task_config'),
   });
 
+  // Fetch all task_steps for step count display
+  const { data: allSteps = [] } = useQuery({
+    queryKey: ['taskSteps', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('task_steps')
+        .select('*')
+        .order('step_order', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as TaskStep[];
+    },
+  });
+
+  // Build task_id → steps[] lookup
+  const stepsMap = useMemo(() => {
+    const map = new Map<string, TaskStep[]>();
+    allSteps.forEach((step) => {
+      if (!map.has(step.task_id)) map.set(step.task_id, []);
+      map.get(step.task_id)!.push(step);
+    });
+    return map;
+  }, [allSteps]);
+
+  // Track which tasks have their steps expanded inline
+  const [expandedStepTaskIds, setExpandedStepTaskIds] = useState<Set<string>>(new Set());
+  const toggleStepExpand = useCallback((taskId: string) => {
+    setExpandedStepTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  }, []);
+
   // Build config lookup: campaign_id + task_id -> config
   const configMap = useMemo(() => {
     const map = new Map<string, CampaignTaskConfig>();
@@ -328,7 +363,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
   }, [checks]);
 
   // Filter tasks by selected categories AND by assignee's default_assignees
-  // Also exclude monthly/once/as_needed tasks (they go to periodic section)
+  // Campaign-scope: only daily/weekly (monthly/once/as_needed go to periodic section)
+  // Global-scope: ALL frequencies (global tasks don't go to periodic section)
   const filteredTasks = useMemo(() => {
     let filtered = tasks.filter((t) => !t.parent_task_id && (t.frequency === 'daily' || t.frequency === 'weekly'));
 
@@ -367,14 +403,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     return map;
   }, [tasks]);
 
-  // Split into campaign-scope and global-scope tasks
+  // Campaign-scope tasks: from filteredTasks (daily/weekly only)
   const campaignScopeTasks = useMemo(() => {
     return filteredTasks.filter((t) => t.scope !== 'global');
   }, [filteredTasks]);
 
+  // Global-scope tasks: ALL frequencies (not limited to daily/weekly)
+  // Global tasks are per-assignee and don't appear in periodic section
   const globalTasks = useMemo(() => {
-    return filteredTasks.filter((t) => t.scope === 'global');
-  }, [filteredTasks]);
+    let filtered = tasks.filter((t) => !t.parent_task_id && t.scope === 'global');
+
+    if (categories.length > 0) {
+      filtered = filtered.filter((task) => categories.includes(task.category));
+    }
+
+    if (assigneeName) {
+      filtered = filtered.filter((task) => {
+        if (!task.default_assignees || task.default_assignees.length === 0) {
+          return true;
+        }
+        return task.default_assignees.some(
+          (name) => name.trim() === assigneeName
+        );
+      });
+    }
+
+    return filtered;
+  }, [tasks, categories, assigneeName]);
 
   // Group global tasks by assignee combo for better visibility
   // e.g. ['강상우','심윤우','쇼코'] → one group "강상우, 심윤우, 쇼코"
@@ -647,6 +702,16 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
                                 </TooltipContent>
                               </Tooltip>
+                              {task.frequency !== 'daily' && (
+                                <span className={cn(
+                                  'text-[7px] px-1 py-0 rounded-sm font-medium shrink-0',
+                                  task.frequency === 'weekly' ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                    : task.frequency === 'monthly' ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400'
+                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
+                                )}>
+                                  {task.frequency === 'weekly' ? '주간' : task.frequency === 'monthly' ? '월간' : task.frequency === 'once' ? '1회' : '수시'}
+                                </span>
+                              )}
                               {task.description && (
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -660,15 +725,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   </PopoverContent>
                                 </Popover>
                               )}
-                              <button
-                                type="button"
-                                className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 transition-colors"
-                                onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                                title="단계 보기"
-                              >
-                                <ListChecks className="size-2.5 text-muted-foreground" />
-                                <span className="text-[8px] font-medium text-muted-foreground">Step</span>
-                              </button>
+                              {(() => {
+                                const taskSteps = stepsMap.get(task.id) || [];
+                                return taskSteps.length > 0 ? (
+                                  <button
+                                    type="button"
+                                    className={cn(
+                                      'shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border transition-colors',
+                                      expandedStepTaskIds.has(task.id)
+                                        ? 'border-primary/40 bg-primary/10 text-primary'
+                                        : 'border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 text-muted-foreground'
+                                    )}
+                                    onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
+                                    title="단계 보기"
+                                  >
+                                    <ListChecks className="size-2.5" />
+                                    <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border/50 bg-transparent opacity-30 cursor-default"
+                                    title="등록된 단계 없음"
+                                  >
+                                    <ListChecks className="size-2.5 text-muted-foreground" />
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </td>
                           <td className="px-1.5 py-0">
@@ -821,6 +904,25 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </tr>
                           );
                         })}
+                        {/* Inline Step rows */}
+                        {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
+                          <tr key={`step-${step.id}`} className="border-b border-border/20 h-[20px] bg-primary/5">
+                            <td colSpan={7} className="px-1.5 py-0">
+                              <div className="flex items-center gap-1.5 pl-5">
+                                <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
+                                <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
+                                {step.step_description && (
+                                  <span className="text-[9px] text-muted-foreground/60 truncate">— {step.step_description}</span>
+                                )}
+                                {step.tool_url && (
+                                  <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
+                                    <ExternalLink className="size-2.5" />
+                                  </a>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                       </Fragment>
                     );
                   }
@@ -857,6 +959,16 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               {task.description && <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>}
                             </TooltipContent>
                           </Tooltip>
+                          {task.frequency !== 'daily' && (
+                            <span className={cn(
+                              'text-[7px] px-1 py-0 rounded-sm font-medium shrink-0',
+                              task.frequency === 'weekly' ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                : task.frequency === 'monthly' ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400'
+                                : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
+                            )}>
+                              {task.frequency === 'weekly' ? '주간' : task.frequency === 'monthly' ? '월간' : task.frequency === 'once' ? '1회' : '수시'}
+                            </span>
+                          )}
                           {task.description && (
                             <Popover>
                               <PopoverTrigger asChild>
@@ -870,15 +982,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </PopoverContent>
                             </Popover>
                           )}
-                          <button
-                            type="button"
-                            className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 transition-colors"
-                            onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                            title="단계 보기"
-                          >
-                            <ListChecks className="size-2.5 text-muted-foreground" />
-                            <span className="text-[8px] font-medium text-muted-foreground">Step</span>
-                          </button>
+                          {(() => {
+                            const taskSteps = stepsMap.get(task.id) || [];
+                            return taskSteps.length > 0 ? (
+                              <button
+                                type="button"
+                                className={cn(
+                                  'shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border transition-colors',
+                                  expandedStepTaskIds.has(task.id)
+                                    ? 'border-primary/40 bg-primary/10 text-primary'
+                                    : 'border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 text-muted-foreground'
+                                )}
+                                onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
+                                title="단계 보기"
+                              >
+                                <ListChecks className="size-2.5" />
+                                <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-border/50 bg-transparent opacity-30 cursor-default"
+                                title="등록된 단계 없음"
+                              >
+                                <ListChecks className="size-2.5 text-muted-foreground" />
+                              </button>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="px-1.5 py-0">
@@ -987,6 +1117,25 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         </tr>
                       );
                     })}
+                    {/* Inline Step rows */}
+                    {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
+                      <tr key={`step-${step.id}`} className="border-b border-border/20 h-[20px] bg-primary/5">
+                        <td colSpan={7} className="px-1.5 py-0">
+                          <div className="flex items-center gap-1.5 pl-4">
+                            <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
+                            <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
+                            {step.step_description && (
+                              <span className="text-[9px] text-muted-foreground/60 truncate">— {step.step_description}</span>
+                            )}
+                            {step.tool_url && (
+                              <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
+                                <ExternalLink className="size-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                     </Fragment>
                   );
                 })}
@@ -1193,12 +1342,31 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   onClick={() => handleBulkComplete(task)}
                                   className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors"
                                 >
-                                  <ListChecks className="size-3" />
+                                  <Trophy className="size-3" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent side="right"><p className="text-xs">캠페인 전체 완료</p></TooltipContent>
                             </Tooltip>
                           )}
+                          {(() => {
+                            const taskSteps = stepsMap.get(task.id) || [];
+                            return taskSteps.length > 0 ? (
+                              <button
+                                type="button"
+                                className={cn(
+                                  'shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded border transition-colors',
+                                  expandedStepTaskIds.has(task.id)
+                                    ? 'border-primary/40 bg-primary/10 text-primary'
+                                    : 'border-border bg-secondary/50 hover:bg-secondary hover:border-foreground/20 text-muted-foreground'
+                                )}
+                                onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
+                                title="단계 보기"
+                              >
+                                <ListChecks className="size-2.5" />
+                                <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                              </button>
+                            ) : null;
+                          })()}
                         </div>
                         {!assigneeName && task.default_assignees && task.default_assignees.length > 0 && (
                           <span className="text-[9px] text-muted-foreground/70 truncate block">
@@ -1291,6 +1459,28 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         <td className={cn('sticky right-0 z-10', 'border-b border-l px-1.5 py-0', 'text-center', 'bg-background')}>
                           <span className="text-[9px] text-muted-foreground/40">-</span>
                         </td>
+                      </tr>
+                    ))}
+                    {/* Inline Step rows for campaign-scope tasks */}
+                    {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
+                      <tr key={`step-${step.id}`} className="h-[20px] bg-primary/5">
+                        <td
+                          className={cn('sticky left-0 z-10', 'border-b border-r border-border px-2 py-0', 'bg-primary/5', 'min-w-[180px] max-w-[220px]')}
+                        >
+                          <div className="flex items-center gap-1.5 pl-4">
+                            <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
+                            <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
+                            {step.tool_url && (
+                              <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
+                                <ExternalLink className="size-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                        {visibleCampaigns.map((campaign) => (
+                          <td key={campaign.id} className="border-b px-0.5 py-0 bg-primary/5" />
+                        ))}
+                        <td className={cn('sticky right-0 z-10', 'border-b border-l px-1.5 py-0', 'bg-primary/5')} />
                       </tr>
                     ))}
                     </Fragment>
