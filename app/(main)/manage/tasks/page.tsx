@@ -717,7 +717,7 @@ export default function TasksPage() {
                       {isExpanded && children.map((child) => (
                         <tr key={child.id} className="border-b border-border hover:bg-secondary/20 transition-colors bg-secondary/5">
                           <td className="px-3 py-1.5">
-                            <span className="text-muted-foreground/50 text-[10px] font-mono pl-2">{child.sub_order}</span>
+                            <span className="text-muted-foreground/50 text-[10px] font-mono pl-2">{task.loop_order}-{child.sub_order}</span>
                           </td>
                           <td className="px-3 py-1.5">
                             <div className="flex items-center gap-2 pl-6">

@@ -269,6 +269,48 @@ export interface TaskStep {
   created_at: string;
 }
 
+// ── 교육 이수 추적 ──
+export interface TaskTraining {
+  id: string;
+  task_id: string;
+  user_id: string;
+  is_trained: boolean;
+  trained_at: string | null;
+  trainer_id: string | null;
+  steps_confirmed: boolean;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── 일일 보고서 ──
+export type ReportStatus = '미제출' | '제출완료' | '확인완료';
+
+export interface DailyReport {
+  id: string;
+  user_id: string;
+  report_date: string;
+  summary: string | null;
+  issues: string | null;
+  tomorrow_plan: string | null;
+  status: ReportStatus;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Step별 완료 추적 ──
+export interface StepCheck {
+  id: string;
+  daily_check_id: string;
+  step_id: string;
+  is_completed: boolean;
+  result_value: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
 // Join 타입
 export interface DailyCheckWithRelations extends DailyCheck {
   campaigns: Campaign;
@@ -279,4 +321,14 @@ export interface DailyCheckWithRelations extends DailyCheck {
 export interface CampaignTaskConfigWithRelations extends CampaignTaskConfig {
   campaigns: Campaign;
   tasks: Task;
+}
+
+export interface TaskTrainingWithRelations extends TaskTraining {
+  tasks: Task;
+  users: User;
+  trainer: User | null;
+}
+
+export interface DailyReportWithUser extends DailyReport {
+  users: User;
 }

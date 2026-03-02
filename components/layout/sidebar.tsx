@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  ClipboardCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar-store';
@@ -34,6 +36,7 @@ const mainNav = [
 const viewNav = [
   { href: '/view/assignee', label: '담당자별', icon: Users },
   { href: '/view/results', label: '일일 결과값', icon: FileText },
+  { href: '/view/daily-report', label: '일일 보고서', icon: ClipboardCheck },
 ];
 
 const manageNav = [
@@ -43,6 +46,7 @@ const manageNav = [
   { href: '/manage/task-config', label: 'Task 적용설정', icon: Settings2 },
   { href: '/manage/users', label: '담당자 관리', icon: UserCog },
   { href: '/manage/configs', label: '캠페인 세팅', icon: Wrench },
+  { href: '/manage/training', label: '교육 관리', icon: GraduationCap },
 ];
 
 const projectNav = [

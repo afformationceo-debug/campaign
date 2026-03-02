@@ -73,4 +73,17 @@ export const queryKeys = {
   taskSteps: {
     byTask: (taskId: string) => ['taskSteps', taskId] as const,
   },
+  training: {
+    all: ['training'] as const,
+    byTask: (taskId: string) => ['training', 'task', taskId] as const,
+    byUser: (userId: string) => ['training', 'user', userId] as const,
+  },
+  dailyReports: {
+    byDate: (date: string) => ['dailyReports', date] as const,
+    byDateAndUser: (date: string, userId: string) => ['dailyReports', date, userId] as const,
+  },
+  stepChecks: {
+    byDailyCheck: (dailyCheckId: string) => ['stepChecks', dailyCheckId] as const,
+    byDate: (date: string) => ['stepChecks', 'date', date] as const,
+  },
 };

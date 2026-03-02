@@ -353,6 +353,20 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     return filtered;
   }, [tasks, categories, assigneeName]);
 
+  // Build parent → children map for sub-tasks (하위 업무)
+  // Sub-tasks follow their parent regardless of their own frequency
+  const childTasksMap = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    tasks.forEach((t) => {
+      if (!t.parent_task_id) return;
+      if (!map.has(t.parent_task_id)) map.set(t.parent_task_id, []);
+      map.get(t.parent_task_id)!.push(t);
+    });
+    // Sort each group by sub_order
+    map.forEach((children) => children.sort((a, b) => a.sub_order - b.sub_order));
+    return map;
+  }, [tasks]);
+
   // Split into campaign-scope and global-scope tasks
   const campaignScopeTasks = useMemo(() => {
     return filteredTasks.filter((t) => t.scope !== 'global');
@@ -377,13 +391,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
       assigneeMap.get(key)!.push(task);
     });
 
-    // '전체' first, then alphabetical
+    // '전체' first, then sort groups by their tasks' minimum loop_order (퍼널 순서 유지)
     if (assigneeMap.has('전체')) {
       groups.push({ assignee: '전체', tasks: assigneeMap.get('전체')! });
     }
     Array.from(assigneeMap.entries())
       .filter(([key]) => key !== '전체')
-      .sort(([a], [b]) => a.localeCompare(b, 'ko'))
+      .sort(([, tasksA], [, tasksB]) => {
+        const minA = Math.min(...tasksA.map((t) => t.loop_order));
+        const minB = Math.min(...tasksB.map((t) => t.loop_order));
+        return minA - minB;
+      })
       .forEach(([assignee, tasks]) => groups.push({ assignee, tasks }));
 
     return groups;
@@ -574,6 +592,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 )}
                 {group.tasks.map((task) => {
                   const catColor = CATEGORY_COLORS[task.category];
+                  const subTasks = childTasksMap.get(task.id) || [];
 
                   // Multi-assignee: collapsible rows (default collapsed)
                   const taskAssigneeNames = task.default_assignees && task.default_assignees.length > 0
@@ -610,6 +629,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   ? <ChevronDown className="size-3 text-muted-foreground" />
                                   : <ChevronRight className="size-3 text-muted-foreground" />}
                               </button>
+                              <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
                               {allDone && (
                                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                               )}
@@ -764,6 +784,43 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </tr>
                           );
                         })}
+                        {/* Sub-tasks (하위 업무) for multi-assignee parent */}
+                        {subTasks.map((subTask) => {
+                          const subCatColor = CATEGORY_COLORS[subTask.category];
+                          const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
+                          return (
+                            <tr key={`sub-${subTask.id}`} className="border-b border-border/20 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/10">
+                              <td className="px-1.5 py-0 max-w-0">
+                                <div className="flex items-center gap-1 pl-5">
+                                  <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
+                                  <span className="text-[10px] text-muted-foreground font-medium truncate">{subTask.task_name}</span>
+                                </div>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
+                                  {subTask.category}
+                                </Badge>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <span className="text-[9px] text-muted-foreground truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <div className="flex items-center justify-center">
+                                  <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                                </div>
+                              </td>
+                              <td className="px-1.5 py-0 text-center">
+                                <span className="text-[9px] text-muted-foreground/30">-</span>
+                              </td>
+                              <td className="px-1.5 py-0">
+                                <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </Fragment>
                     );
                   }
@@ -773,6 +830,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   const assignees = task.default_assignees?.join(', ') || null;
                   const isCompleted = check?.status === '완료';
                   return (
+                    <Fragment key={`${group.assignee}-${task.id}-wrap`}>
                     <tr key={`${group.assignee}-${task.id}`} className={cn(
                       'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
                       isCompleted && 'bg-muted/20',
@@ -783,6 +841,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         isCompleted && 'border-l-[2px] border-l-foreground/30'
                       )}>
                         <div className="flex items-center gap-1">
+                          <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
                           {isCompleted && (
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
@@ -891,6 +950,44 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         />
                       </td>
                     </tr>
+                    {/* Sub-tasks (하위 업무) for single-assignee parent */}
+                    {subTasks.map((subTask) => {
+                      const subCatColor = CATEGORY_COLORS[subTask.category];
+                      const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
+                      return (
+                        <tr key={`sub-${subTask.id}`} className="border-b border-border/20 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/10">
+                          <td className="px-1.5 py-0 max-w-0">
+                            <div className="flex items-center gap-1 pl-4">
+                              <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
+                              <span className="text-[10px] text-muted-foreground font-medium truncate">{subTask.task_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-1.5 py-0">
+                            <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
+                              {subTask.category}
+                            </Badge>
+                          </td>
+                          <td className="px-1.5 py-0">
+                            <span className="text-[9px] text-muted-foreground truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
+                          </td>
+                          <td className="px-1.5 py-0">
+                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
+                          </td>
+                          <td className="px-1.5 py-0">
+                            <div className="flex items-center justify-center">
+                              <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                            </div>
+                          </td>
+                          <td className="px-1.5 py-0 text-center">
+                            <span className="text-[9px] text-muted-foreground/30">-</span>
+                          </td>
+                          <td className="px-1.5 py-0">
+                            <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    </Fragment>
                   );
                 })}
               </Fragment>
@@ -1037,8 +1134,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                     summary && summary.total > 0
                       ? Math.round((summary.completed / summary.total) * 100)
                       : 0;
+                  const subTasks = childTasksMap.get(task.id) || [];
 
                   return (
+                    <Fragment key={`${task.id}-wrap`}>
                     <tr key={task.id} className={cn(
                       'hover:bg-muted/30 transition-colors',
                       getPriorityBorderClass(task.priority)
@@ -1054,6 +1153,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         )}
                       >
                         <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
                           {pct === 100 && (
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
@@ -1153,6 +1253,47 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         </div>
                       </td>
                     </tr>
+                    {/* Sub-tasks (하위 업무) for campaign-scope parent */}
+                    {subTasks.map((subTask) => (
+                      <tr key={`sub-${subTask.id}`} className="hover:bg-muted/10 transition-colors">
+                        <td
+                          className={cn(
+                            'sticky left-0 z-10',
+                            'border-b border-r border-border px-2 py-0.5',
+                            'text-[11px] text-muted-foreground',
+                            'min-w-[180px] max-w-[220px]',
+                            'bg-background'
+                          )}
+                        >
+                          <div className="flex items-center gap-1 pl-4">
+                            <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
+                            <span className="truncate font-medium">{subTask.task_name}</span>
+                          </div>
+                        </td>
+                        {visibleCampaigns.map((campaign) => {
+                          const applicable = isApplicable(campaign.id, subTask.id);
+                          const subCheck = checkMap.get(`${campaign.id}:${subTask.id}`) ?? null;
+                          return (
+                            <td key={campaign.id} className="border-b px-0.5 py-0 text-center">
+                              <div className="flex items-center justify-center">
+                                <StatusCell
+                                  check={subCheck}
+                                  isApplicable={applicable}
+                                  campaignId={campaign.id}
+                                  taskId={subTask.id}
+                                  date={date}
+                                  assigneeId={effectiveUserId || undefined}
+                                />
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td className={cn('sticky right-0 z-10', 'border-b border-l px-1.5 py-0', 'text-center', 'bg-background')}>
+                          <span className="text-[9px] text-muted-foreground/40">-</span>
+                        </td>
+                      </tr>
+                    ))}
+                    </Fragment>
                   );
                 })}
               </Fragment>

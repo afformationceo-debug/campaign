@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -18,8 +18,13 @@ import type { User, TaskCategory, Task, Campaign, DailyCheck, CampaignTaskConfig
 export default function AssigneeViewPage() {
   const supabase = createClient();
 
-  const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState('');
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+
+  // Initialize date on client only to avoid SSR/CSR hydration mismatch
+  useEffect(() => {
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
   const [selectedCategories, setSelectedCategories] = useState<TaskCategory[]>(
     () => [...CATEGORY_ORDER]
   );
@@ -49,6 +54,7 @@ export default function AssigneeViewPage() {
       if (error) throw error;
       return (data ?? []) as DailyCheck[];
     },
+    enabled: !!date,
   });
 
   const { data: tasks = [] } = useQuery({
@@ -158,6 +164,17 @@ export default function AssigneeViewPage() {
     if (!assigneeId) return null;
     return users.find((u) => u.id === assigneeId)?.name ?? null;
   }, [assigneeId, users]);
+
+  if (!date) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+          <span className="text-sm">로딩 중...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
