@@ -291,7 +291,9 @@ export interface DailyReport {
   user_id: string;
   report_date: string;
   summary: string | null;
+  impact_summary: string | null;
   issues: string | null;
+  support_needed: string | null;
   tomorrow_plan: string | null;
   status: ReportStatus;
   confirmed_by: string | null;
