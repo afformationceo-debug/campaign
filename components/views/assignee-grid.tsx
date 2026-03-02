@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useCallback, useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown, ExternalLink, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -41,6 +41,7 @@ import type {
   TaskCategory,
   User,
   TaskStep,
+  StepCheck,
 } from '@/lib/types/database';
 
 // ─── Status config for dropdown ───────────────────────
@@ -325,6 +326,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     return map;
   }, [allSteps]);
 
+  // Fetch step_checks for current date (via daily_checks)
+  const { data: stepChecks = [] } = useQuery({
+    queryKey: queryKeys.stepChecks.byDate(date),
+    queryFn: async () => {
+      const checkIds = checks.map((c) => c.id);
+      if (checkIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('step_checks')
+        .select('*')
+        .in('daily_check_id', checkIds);
+      if (error) throw error;
+      return (data ?? []) as StepCheck[];
+    },
+    enabled: checks.length > 0,
+  });
+
+  // Build step_check lookup: daily_check_id:step_id → StepCheck
+  const stepCheckMap = useMemo(() => {
+    const map = new Map<string, StepCheck>();
+    stepChecks.forEach((sc) => {
+      map.set(`${sc.daily_check_id}:${sc.step_id}`, sc);
+    });
+    return map;
+  }, [stepChecks]);
+
+  const queryClient = useQueryClient();
+
   // Track which tasks have their steps expanded inline
   const [expandedStepTaskIds, setExpandedStepTaskIds] = useState<Set<string>>(new Set());
   const toggleStepExpand = useCallback((taskId: string) => {
@@ -361,6 +389,68 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     });
     return map;
   }, [checks]);
+
+  // Helper: ensure daily_check exists, then upsert step_check
+  const upsertStepCheck = useCallback(async (
+    taskId: string,
+    stepId: string,
+    assigneeId: string,
+    campaignId: string | null,
+    updates: { is_completed?: boolean; result_value?: string }
+  ) => {
+    // 1) Find or create the parent daily_check
+    const checkKey = campaignId
+      ? `${campaignId}:${taskId}`
+      : `null:${taskId}:${assigneeId}`;
+    let parentCheck = checkMap.get(checkKey);
+
+    if (!parentCheck) {
+      const { data: newCheck, error } = await supabase
+        .from('daily_checks')
+        .insert({
+          campaign_id: campaignId,
+          task_id: taskId,
+          check_date: date,
+          assigned_user_id: assigneeId,
+          status: '진행중',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      parentCheck = newCheck as DailyCheck;
+      queryClient.invalidateQueries({ queryKey: queryKeys.checks.byDate(date) });
+    }
+
+    // 2) Find existing step_check
+    const existingStepCheck = stepCheckMap.get(`${parentCheck.id}:${stepId}`);
+
+    if (existingStepCheck) {
+      const updatePayload: Record<string, unknown> = {};
+      if (updates.is_completed !== undefined) {
+        updatePayload.is_completed = updates.is_completed;
+        updatePayload.completed_at = updates.is_completed ? new Date().toISOString() : null;
+      }
+      if (updates.result_value !== undefined) {
+        updatePayload.result_value = updates.result_value;
+      }
+      await supabase
+        .from('step_checks')
+        .update(updatePayload)
+        .eq('id', existingStepCheck.id);
+    } else {
+      await supabase
+        .from('step_checks')
+        .insert({
+          daily_check_id: parentCheck.id,
+          step_id: stepId,
+          is_completed: updates.is_completed ?? false,
+          result_value: updates.result_value ?? null,
+          completed_at: updates.is_completed ? new Date().toISOString() : null,
+        });
+    }
+
+    queryClient.invalidateQueries({ queryKey: queryKeys.stepChecks.byDate(date) });
+  }, [supabase, date, checkMap, stepCheckMap, queryClient]);
 
   // Filter tasks by selected categories AND by assignee's default_assignees
   // Campaign-scope: only daily/weekly (monthly/once/as_needed go to periodic section)
@@ -904,25 +994,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </tr>
                           );
                         })}
-                        {/* Inline Step rows */}
-                        {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
-                          <tr key={`step-${step.id}`} className="border-b border-border/20 h-[20px] bg-primary/5">
-                            <td colSpan={7} className="px-1.5 py-0">
-                              <div className="flex items-center gap-1.5 pl-5">
-                                <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
-                                <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
-                                {step.step_description && (
-                                  <span className="text-[9px] text-muted-foreground/60 truncate">— {step.step_description}</span>
-                                )}
-                                {step.tool_url && (
-                                  <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
-                                    <ExternalLink className="size-2.5" />
-                                  </a>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {/* Inline Step rows (interactive) */}
+                        {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => {
+                          const parentCheck = checkMap.get(`null:${task.id}:${effectiveUserId}`);
+                          const sc = parentCheck ? stepCheckMap.get(`${parentCheck.id}:${step.id}`) : undefined;
+                          return (
+                            <StepCheckRow
+                              key={`step-${step.id}`}
+                              step={step}
+                              stepCheck={sc}
+                              colSpan={7}
+                              paddingLeft="pl-5"
+                              onToggle={() => upsertStepCheck(task.id, step.id, effectiveUserId, null, { is_completed: !sc?.is_completed })}
+                              onResultSave={(val) => upsertStepCheck(task.id, step.id, effectiveUserId, null, { result_value: val })}
+                            />
+                          );
+                        })}
                       </Fragment>
                     );
                   }
@@ -1117,25 +1204,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         </tr>
                       );
                     })}
-                    {/* Inline Step rows */}
-                    {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
-                      <tr key={`step-${step.id}`} className="border-b border-border/20 h-[20px] bg-primary/5">
-                        <td colSpan={7} className="px-1.5 py-0">
-                          <div className="flex items-center gap-1.5 pl-4">
-                            <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
-                            <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
-                            {step.step_description && (
-                              <span className="text-[9px] text-muted-foreground/60 truncate">— {step.step_description}</span>
-                            )}
-                            {step.tool_url && (
-                              <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
-                                <ExternalLink className="size-2.5" />
-                              </a>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {/* Inline Step rows (interactive) */}
+                    {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => {
+                      const parentCheck = checkMap.get(`null:${task.id}:${effectiveUserId}`);
+                      const sc = parentCheck ? stepCheckMap.get(`${parentCheck.id}:${step.id}`) : undefined;
+                      return (
+                        <StepCheckRow
+                          key={`step-${step.id}`}
+                          step={step}
+                          stepCheck={sc}
+                          colSpan={7}
+                          paddingLeft="pl-4"
+                          onToggle={() => upsertStepCheck(task.id, step.id, effectiveUserId, null, { is_completed: !sc?.is_completed })}
+                          onResultSave={(val) => upsertStepCheck(task.id, step.id, effectiveUserId, null, { result_value: val })}
+                        />
+                      );
+                    })}
                     </Fragment>
                   );
                 })}
@@ -1461,7 +1545,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         </td>
                       </tr>
                     ))}
-                    {/* Inline Step rows for campaign-scope tasks */}
+                    {/* Inline Step rows for campaign-scope tasks (interactive) */}
                     {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
                       <tr key={`step-${step.id}`} className="h-[20px] bg-primary/5">
                         <td
@@ -1477,9 +1561,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             )}
                           </div>
                         </td>
-                        {visibleCampaigns.map((campaign) => (
-                          <td key={campaign.id} className="border-b px-0.5 py-0 bg-primary/5" />
-                        ))}
+                        {visibleCampaigns.map((campaign) => {
+                          const parentCheck = checkMap.get(`${campaign.id}:${task.id}`);
+                          const sc = parentCheck ? stepCheckMap.get(`${parentCheck.id}:${step.id}`) : undefined;
+                          return (
+                            <CampaignStepCell
+                              key={campaign.id}
+                              stepCheck={sc}
+                              onToggle={() => upsertStepCheck(task.id, step.id, effectiveUserId, campaign.id, { is_completed: !sc?.is_completed })}
+                            />
+                          );
+                        })}
                         <td className={cn('sticky right-0 z-10', 'border-b border-l px-1.5 py-0', 'bg-primary/5')} />
                       </tr>
                     ))}
@@ -1569,6 +1661,141 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     {/* Task Detail Side Panel */}
     <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />
     </div>
+  );
+}
+
+// ─── CampaignStepCell: checkbox for campaign-scope step in each campaign column ───
+function CampaignStepCell({
+  stepCheck,
+  onToggle,
+}: {
+  stepCheck: StepCheck | undefined;
+  onToggle: () => void;
+}) {
+  return (
+    <td className="border-b px-0.5 py-0 bg-primary/5">
+      <div className="flex items-center justify-center">
+        <button
+          type="button"
+          onClick={onToggle}
+          className={cn(
+            'size-3.5 rounded border flex items-center justify-center transition-colors',
+            stepCheck?.is_completed
+              ? 'bg-primary border-primary text-primary-foreground'
+              : 'border-border/50 hover:border-primary/50'
+          )}
+        >
+          {stepCheck?.is_completed && <Check className="size-2.5" />}
+        </button>
+      </div>
+    </td>
+  );
+}
+
+// ─── StepCheckRow: interactive step row with checkbox + result input ───
+function StepCheckRow({
+  step,
+  stepCheck,
+  colSpan,
+  paddingLeft,
+  onToggle,
+  onResultSave,
+}: {
+  step: TaskStep;
+  stepCheck: StepCheck | undefined;
+  colSpan: number;
+  paddingLeft: string;
+  onToggle: () => void;
+  onResultSave: (val: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartEdit = () => {
+    setValue(stepCheck?.result_value ?? '');
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleSave = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (trimmed !== (stepCheck?.result_value ?? '')) {
+      onResultSave(trimmed);
+    }
+  };
+
+  return (
+    <tr className="h-[20px] bg-primary/5 border-b border-border/20">
+      <td colSpan={colSpan} className="px-1.5 py-0">
+        <div className={cn('flex items-center gap-1.5', paddingLeft)}>
+          {/* Checkbox */}
+          <button
+            type="button"
+            onClick={onToggle}
+            className={cn(
+              'shrink-0 size-3.5 rounded border flex items-center justify-center transition-colors',
+              stepCheck?.is_completed
+                ? 'bg-primary border-primary text-primary-foreground'
+                : 'border-border hover:border-primary/50'
+            )}
+          >
+            {stepCheck?.is_completed && <Check className="size-2.5" />}
+          </button>
+          {/* Step order badge */}
+          <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">
+            {step.step_order}
+          </span>
+          {/* Step name */}
+          <span className={cn(
+            'text-[10px] font-medium truncate',
+            stepCheck?.is_completed ? 'text-foreground/50 line-through' : 'text-foreground/80'
+          )}>
+            {step.step_name}
+          </span>
+          {/* Tool URL */}
+          {step.tool_url && (
+            <a
+              href={step.tool_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
+            >
+              <ExternalLink className="size-2.5" />
+            </a>
+          )}
+          {/* Result value input */}
+          <div className="ml-auto flex items-center gap-1 shrink-0 w-[120px]">
+            {editing ? (
+              <input
+                ref={inputRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+                className="w-full text-[9px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+                placeholder="결과값..."
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartEdit}
+                className={cn(
+                  'w-full text-left text-[9px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[14px]',
+                  stepCheck?.result_value ? 'text-foreground/70' : 'text-muted-foreground/30'
+                )}
+              >
+                {stepCheck?.result_value || '값 입력'}
+              </button>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
   );
 }
 
