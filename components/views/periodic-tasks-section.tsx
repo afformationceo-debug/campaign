@@ -154,6 +154,7 @@ function ResultValueInput({
       updateCheck({
         id: check.id,
         status: check.status,
+        assigned_user_id: assigneeId,
         result_value: trimmed || undefined,
       });
     }
@@ -234,7 +235,7 @@ function PeriodicStatusSelect({
         status: value as CheckStatus,
       });
     } else {
-      updateStatus({ id: check.id, status: value as CheckStatus });
+      updateStatus({ id: check.id, status: value as CheckStatus, assigned_user_id: assigneeId });
     }
   };
 
@@ -583,7 +584,7 @@ export function PeriodicTasksSection({ date, userId, campaignId }: PeriodicTasks
           status: '완료',
         });
       } else {
-        bulkUpdateStatus({ id: row.check.id, status: '완료' });
+        bulkUpdateStatus({ id: row.check.id, status: '완료', assigned_user_id: effectiveUserId });
       }
     }
   }, [date, effectiveUserId, bulkCreateCheck, bulkUpdateStatus]);

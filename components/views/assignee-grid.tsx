@@ -95,7 +95,7 @@ function GlobalStatusSelect({
         status: value as CheckStatus,
       });
     } else {
-      updateStatus({ id: check.id, status: value as CheckStatus });
+      updateStatus({ id: check.id, status: value as CheckStatus, assigned_user_id: assigneeId });
     }
   };
 
@@ -169,7 +169,7 @@ function ResultValueInput({
       });
     } else {
       if (trimmed === (check.result_value ?? '')) return;
-      updateStatus({ id: check.id, status: check.status, result_value: trimmed });
+      updateStatus({ id: check.id, status: check.status, assigned_user_id: assigneeId, result_value: trimmed });
     }
   };
 
@@ -372,6 +372,26 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     });
     return map;
   }, [taskConfigs]);
+
+  const resolveCampaignAssigneeId = useCallback((campaignId: string, task: Task): string => {
+    const config = configMap.get(`${campaignId}:${task.id}`);
+    if (config?.override_assignee) {
+      const overrideId = nameToIdMap.get(config.override_assignee.trim());
+      if (overrideId) return overrideId;
+    }
+
+    if (assigneeId) return assigneeId;
+
+    const normalizedDefaults = (task.default_assignees ?? [])
+      .map((name) => name.trim())
+      .filter(Boolean);
+    if (normalizedDefaults.length === 1) {
+      const defaultId = nameToIdMap.get(normalizedDefaults[0]);
+      if (defaultId) return defaultId;
+    }
+
+    return effectiveUserId;
+  }, [assigneeId, configMap, effectiveUserId, nameToIdMap]);
 
   // Build check lookup:
   // Campaign-scope: campaign_id:task_id -> check (shared, one per combo)
@@ -636,20 +656,21 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     if (!window.confirm(`"${task.task_name}" 업무를 ${uncompleted.length}개 캠페인에서 일괄 완료 처리하시겠습니까?`)) return;
 
     uncompleted.forEach((campaign) => {
+      const resolvedAssigneeId = resolveCampaignAssigneeId(campaign.id, task);
       const check = checkMap.get(`${campaign.id}:${task.id}`);
       if (!check) {
         bulkCreateCheck({
           campaign_id: campaign.id,
           task_id: task.id,
           check_date: date,
-          assigned_user_id: effectiveUserId,
+          assigned_user_id: resolvedAssigneeId,
           status: '완료',
         });
       } else {
-        bulkUpdateStatus({ id: check.id, status: '완료' });
+        bulkUpdateStatus({ id: check.id, status: '완료', assigned_user_id: resolvedAssigneeId });
       }
     });
-  }, [filteredCampaigns, checkMap, date, effectiveUserId, bulkCreateCheck, bulkUpdateStatus]);
+  }, [filteredCampaigns, checkMap, date, resolveCampaignAssigneeId, bulkCreateCheck, bulkUpdateStatus]);
 
   const isLoading = checksLoading || tasksLoading || campaignsLoading || configsLoading;
 
@@ -1463,6 +1484,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       {visibleCampaigns.map((campaign) => {
                         const applicable = isApplicable(campaign.id, task.id);
                         const check = checkMap.get(`${campaign.id}:${task.id}`) ?? null;
+                        const campaignAssigneeId = resolveCampaignAssigneeId(campaign.id, task);
 
                         return (
                           <td
@@ -1476,7 +1498,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 campaignId={campaign.id}
                                 taskId={task.id}
                                 date={date}
-                                assigneeId={effectiveUserId || undefined}
+                                assigneeId={campaignAssigneeId || undefined}
                               />
                             </div>
                           </td>
@@ -1525,6 +1547,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         {visibleCampaigns.map((campaign) => {
                           const applicable = isApplicable(campaign.id, subTask.id);
                           const subCheck = checkMap.get(`${campaign.id}:${subTask.id}`) ?? null;
+                          const campaignAssigneeId = resolveCampaignAssigneeId(campaign.id, subTask);
                           return (
                             <td key={campaign.id} className="border-b px-0.5 py-0 text-center">
                               <div className="flex items-center justify-center">
@@ -1534,7 +1557,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   campaignId={campaign.id}
                                   taskId={subTask.id}
                                   date={date}
-                                  assigneeId={effectiveUserId || undefined}
+                                  assigneeId={campaignAssigneeId || undefined}
                                 />
                               </div>
                             </td>

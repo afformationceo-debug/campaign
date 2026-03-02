@@ -9,6 +9,7 @@ import type { DailyCheck, CheckStatus } from '@/lib/types/database';
 interface UpdateParams {
   id: string;
   status: CheckStatus;
+  assigned_user_id?: string;
   note?: string;
   result_value?: string;
 }
@@ -41,12 +42,19 @@ export function useUpdateCheckStatus() {
       // First, check if started_at already exists
       const { data: existing } = await supabase
         .from('daily_checks')
-        .select('started_at')
+        .select('started_at, assigned_user_id')
         .eq('id', params.id)
         .single();
 
       if (!existing?.started_at) {
         updateData.started_at = now;
+      }
+
+      if (
+        params.assigned_user_id !== undefined &&
+        params.assigned_user_id !== existing?.assigned_user_id
+      ) {
+        updateData.assigned_user_id = params.assigned_user_id;
       }
 
       // completed_at tracks completion
@@ -63,9 +71,12 @@ export function useUpdateCheckStatus() {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return {
+        data: data as DailyCheck,
+        previousAssignedUserId: existing?.assigned_user_id ?? null,
+      };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data }) => {
       logActivity({
         userId: data.assigned_user_id,
         actionType: 'update',
@@ -75,7 +86,7 @@ export function useUpdateCheckStatus() {
         newValue: { status: data.status, campaign_id: data.campaign_id, task_id: data.task_id },
       });
     },
-    onMutate: async ({ id, status, note, result_value }) => {
+    onMutate: async ({ id, status, assigned_user_id, note, result_value }) => {
       // Cancel and optimistically update ALL checks queries (byDate & byDateAndUser)
       await queryClient.cancelQueries({ queryKey: ['checks'] });
       const allQueries = queryClient.getQueriesData<DailyCheck[]>({ queryKey: ['checks'] });
@@ -95,6 +106,7 @@ export function useUpdateCheckStatus() {
               // started_at: keep existing or set if first time
               started_at: item.started_at || now,
               completed_at: status === '완료' ? now : null,
+              ...(assigned_user_id !== undefined && { assigned_user_id }),
               ...(note !== undefined && { note }),
               ...(result_value !== undefined && { result_value }),
             };
@@ -110,12 +122,20 @@ export function useUpdateCheckStatus() {
         });
       }
     },
-    onSettled: (data) => {
-      if (data) {
+    onSettled: (result) => {
+      if (result) {
+        const data = result.data;
+        const previousAssignedUserId = result.previousAssignedUserId;
         queryClient.invalidateQueries({
           queryKey: queryKeys.checks.byDate(data.check_date),
           exact: true,
         });
+        if (previousAssignedUserId) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.checks.byDateAndUser(data.check_date, previousAssignedUserId),
+            exact: true,
+          });
+        }
         if (data.assigned_user_id) {
           queryClient.invalidateQueries({
             queryKey: queryKeys.checks.byDateAndUser(data.check_date, data.assigned_user_id),
@@ -125,17 +145,26 @@ export function useUpdateCheckStatus() {
         // Also invalidate monthly/periodic queries
         const ym = data.check_date.slice(0, 7); // 'yyyy-MM'
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonth(ym), exact: true });
+        if (previousAssignedUserId) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, previousAssignedUserId), exact: true });
+        }
         if (data.assigned_user_id) {
           queryClient.invalidateQueries({ queryKey: queryKeys.checks.byMonthAndUser(ym, data.assigned_user_id), exact: true });
         }
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.onceCompleted, exact: true });
         // Invalidate results queries
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDate(data.check_date), exact: true });
+        if (previousAssignedUserId) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDateAndUser(data.check_date, previousAssignedUserId), exact: true });
+        }
         if (data.assigned_user_id) {
           queryClient.invalidateQueries({ queryKey: queryKeys.checks.resultsByDateAndUser(data.check_date, data.assigned_user_id), exact: true });
         }
         // Invalidate periodic results queries
         queryClient.invalidateQueries({ queryKey: queryKeys.checks.periodicResultsByMonth(ym), exact: true });
+        if (previousAssignedUserId) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.checks.periodicResultsByMonthAndUser(ym, previousAssignedUserId), exact: true });
+        }
         if (data.assigned_user_id) {
           queryClient.invalidateQueries({ queryKey: queryKeys.checks.periodicResultsByMonthAndUser(ym, data.assigned_user_id), exact: true });
         }

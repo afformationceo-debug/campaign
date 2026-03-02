@@ -404,3 +404,46 @@ test('buildDailyReportInsights prioritizes outcome-backed work and attention ite
 
   assert.equal(insights.headline, '완료 2건 · 결과 근거 2건 · 후속 확인 2건');
 });
+
+test('buildUserDailyReportItems uses unclaimed campaign checks when assignee is responsible', () => {
+  const items = buildUserDailyReportItems({
+    user,
+    tasks,
+    checks: checks.map((check) =>
+      check.id === 'check-campaign-progress'
+        ? { ...check, assigned_user_id: null }
+        : check
+    ),
+    campaigns,
+    taskConfigs,
+    steps,
+    stepChecks,
+    training,
+  });
+
+  const progressItem = items.find((item) => item.task.id === 'task-campaign-progress');
+  assert.ok(progressItem);
+  assert.equal(progressItem.check?.status, '진행중');
+  assert.equal(progressItem.check?.assigned_user_id, null);
+});
+
+test('buildUserDailyReportItems does not attribute campaign checks owned by another user', () => {
+  const items = buildUserDailyReportItems({
+    user,
+    tasks,
+    checks: checks.map((check) =>
+      check.id === 'check-campaign-progress'
+        ? { ...check, assigned_user_id: 'user-bob' }
+        : check
+    ),
+    campaigns,
+    taskConfigs,
+    steps,
+    stepChecks,
+    training,
+  });
+
+  const progressItem = items.find((item) => item.task.id === 'task-campaign-progress');
+  assert.ok(progressItem);
+  assert.equal(progressItem.check, null);
+});

@@ -189,7 +189,7 @@ function InlineResultInput({
       });
     } else {
       if (trimmed === (resultValue ?? '')) return;
-      updateStatus({ id: check.id, status: check.status, result_value: trimmed });
+      updateStatus({ id: check.id, status: check.status, assigned_user_id: assigneeId ?? undefined, result_value: trimmed });
     }
   };
 

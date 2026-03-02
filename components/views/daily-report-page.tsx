@@ -8,6 +8,7 @@ import { ko } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
+  Bot,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -32,6 +33,12 @@ import { useIsAdmin } from '@/hooks/use-is-admin';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
+import {
+  DAILY_OPS_FLOW,
+  DAILY_REPORT_WRITING_GUIDE,
+  EXAMPLE_DAY_SCENARIO,
+  MANAGER_REVIEW_CHECKLIST,
+} from '@/lib/guides/daily-ops-guide';
 import {
   buildDailyReportInsights,
   buildUserDailyReportItems,
@@ -171,6 +178,98 @@ function ReportStatusBadge({ status }: { status: DailyReport['status'] }) {
     <Badge variant="outline" className="text-[10px]">
       미제출
     </Badge>
+  );
+}
+
+function WorkflowGuideCard() {
+  return (
+    <div className="rounded-2xl border bg-card p-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+          <Bot className="size-4 text-foreground" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-bold tracking-tight">직원 사용 가이드</h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            담당자별 업무에서 근거를 쌓고, 이 화면에서 결과의 의미만 정리합니다.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 lg:grid-cols-3">
+        {DAILY_OPS_FLOW.map((step, index) => (
+          <div key={step.title} className="rounded-xl border bg-secondary/20 px-3 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Step {index + 1}
+            </div>
+            <div className="mt-1 text-[12px] font-semibold text-foreground">{step.title}</div>
+            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{step.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-xl border bg-background px-3 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            결과값 작성
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">{EXAMPLE_DAY_SCENARIO.taskEntry}</p>
+        </div>
+        <div className="rounded-xl border bg-background px-3 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            보고서 문장 예시
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">{EXAMPLE_DAY_SCENARIO.reportSummary}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportWritingGuideCard() {
+  return (
+    <div className="rounded-2xl border bg-card p-4">
+      <h3 className="text-sm font-bold tracking-tight">보고서에 직접 쓰는 항목</h3>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        체크리스트를 다시 복사하지 말고, 아래 다섯 칸만 짧고 분명하게 채우면 됩니다.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {DAILY_REPORT_WRITING_GUIDE.map((item) => (
+          <div key={item.label} className="rounded-xl border bg-secondary/20 px-3 py-3">
+            <div className="text-[12px] font-semibold text-foreground">{item.label}</div>
+            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ManagerChecklistCard() {
+  return (
+    <div className="rounded-2xl border bg-card p-4 xl:sticky xl:top-20">
+      <div className="flex items-start gap-2">
+        <Eye className="mt-0.5 size-4 text-foreground" />
+        <div>
+          <h3 className="text-sm font-bold tracking-tight">팀장 확인 체크리스트</h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            확인완료 전에 아래 다섯 가지가 보이면 충분합니다.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {MANAGER_REVIEW_CHECKLIST.map((item, index) => (
+          <div key={item} className="rounded-xl border bg-secondary/20 px-3 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Check {index + 1}
+            </div>
+            <p className="mt-1 text-[11px] leading-5 text-foreground">{item}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -630,6 +729,7 @@ function MyReportDialog({
   onClose,
   date,
   userId,
+  userName,
   existingReport,
   insights,
 }: {
@@ -637,6 +737,7 @@ function MyReportDialog({
   onClose: () => void;
   date: string;
   userId: string;
+  userName: string;
   existingReport: DailyReport | null;
   insights: DailyReportInsights;
 }) {
@@ -694,7 +795,7 @@ function MyReportDialog({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">
-            결과 중심 일일 보고 - {format(new Date(date), 'M월 d일 (EEE)', { locale: ko })}
+            결과 중심 일일 보고 - {userName} · {format(new Date(date), 'M월 d일 (EEE)', { locale: ko })}
           </DialogTitle>
           <DialogDescription>
             체크리스트를 다시 적는 대신, 자동으로 모인 근거를 보고 실제 결과와 영향만 정리합니다.
@@ -822,6 +923,7 @@ export default function DailyReportPageView() {
 
   const [date, setDate] = useState(getTodayDate);
   const [filterUser, setFilterUser] = useState('all');
+  const [reportAuthorId, setReportAuthorId] = useState('');
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   const { data: users = [] } = useQuery({
@@ -967,6 +1069,12 @@ export default function DailyReportPageView() {
     return map;
   }, [reports]);
 
+  const effectiveReportAuthorId = useMemo(() => {
+    if (reportAuthorId) return reportAuthorId;
+    if (filterUser !== 'all') return filterUser;
+    return '';
+  }, [filterUser, reportAuthorId]);
+
   const reportDataByUserId = useMemo(() => {
     const map = new Map<string, { items: DailyReportTaskItem[]; insights: DailyReportInsights }>();
 
@@ -1072,15 +1180,20 @@ export default function DailyReportPageView() {
     [filteredUsers, reportByUserId, reportDataByUserId]
   );
 
-  const myReport = useMemo(() => {
-    if (!profile) return null;
-    return reportByUserId.get(profile.id) ?? null;
-  }, [profile, reportByUserId]);
+  const selectedReportAuthor = useMemo(
+    () => users.find((user) => user.id === effectiveReportAuthorId) ?? null,
+    [users, effectiveReportAuthorId]
+  );
 
-  const myInsights = useMemo(() => {
-    if (!profile) return EMPTY_INSIGHTS;
-    return reportDataByUserId.get(profile.id)?.insights ?? EMPTY_INSIGHTS;
-  }, [profile, reportDataByUserId]);
+  const selectedAuthorReport = useMemo(() => {
+    if (!selectedReportAuthor) return null;
+    return reportByUserId.get(selectedReportAuthor.id) ?? null;
+  }, [selectedReportAuthor, reportByUserId]);
+
+  const selectedAuthorInsights = useMemo(() => {
+    if (!selectedReportAuthor) return EMPTY_INSIGHTS;
+    return reportDataByUserId.get(selectedReportAuthor.id)?.insights ?? EMPTY_INSIGHTS;
+  }, [selectedReportAuthor, reportDataByUserId]);
 
   return (
     <motion.div
@@ -1098,12 +1211,40 @@ export default function DailyReportPageView() {
             </p>
           </div>
 
-          {profile && (
-            <Button size="sm" className="h-8 text-[11px]" onClick={() => setReportDialogOpen(true)}>
-              <Send className="mr-1.5 size-3.5" />
-              내 결과 보고 {myReport ? '수정' : '작성'}
-            </Button>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedReportAuthor?.id}
+                onValueChange={setReportAuthorId}
+              >
+                <SelectTrigger className="h-8 w-[170px] text-[11px]">
+                  <SelectValue placeholder="보고 작성자 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                size="sm"
+                className="h-8 text-[11px]"
+                onClick={() => setReportDialogOpen(true)}
+                disabled={!selectedReportAuthor}
+              >
+                <Send className="mr-1.5 size-3.5" />
+                {selectedReportAuthor
+                  ? `${selectedReportAuthor.name} 결과 보고 ${selectedAuthorReport ? '수정' : '작성'}`
+                  : '작성자 선택'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              공용 로그인 환경에서는 실제 작성 담당자를 먼저 선택해 주세요.
+            </p>
+          </div>
         </div>
       </motion.div>
 
@@ -1157,6 +1298,14 @@ export default function DailyReportPageView() {
             ))}
           </SelectContent>
         </Select>
+      </motion.div>
+
+      <motion.div variants={fadeUpItem} className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-4">
+          <WorkflowGuideCard />
+          <ReportWritingGuideCard />
+        </div>
+        <ManagerChecklistCard />
       </motion.div>
 
       <motion.div variants={fadeUpItem} className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -1263,15 +1412,16 @@ export default function DailyReportPageView() {
         )}
       </motion.div>
 
-      {profile && reportDialogOpen && (
+      {selectedReportAuthor && reportDialogOpen && (
         <MyReportDialog
-          key={`${date}:${myReport?.id ?? 'new'}`}
+          key={`${date}:${selectedReportAuthor.id}:${selectedAuthorReport?.id ?? 'new'}`}
           open={reportDialogOpen}
           onClose={() => setReportDialogOpen(false)}
           date={date}
-          userId={profile.id}
-          existingReport={myReport}
-          insights={myInsights}
+          userId={selectedReportAuthor.id}
+          userName={selectedReportAuthor.name}
+          existingReport={selectedAuthorReport}
+          insights={selectedAuthorInsights}
         />
       )}
     </motion.div>

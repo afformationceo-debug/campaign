@@ -1,30 +1,39 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
-import { CheckCircle2, Clock, Circle } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Bot } from 'lucide-react';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
 import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
 import { fetchAll } from '@/lib/supabase/fetch-all';
+import { DAILY_OPS_FLOW, TASK_LINKAGE_RULES } from '@/lib/guides/daily-ops-guide';
 import type { User, TaskCategory, Task, Campaign, DailyCheck, CampaignTaskConfig } from '@/lib/types/database';
+
+function getTodayDate() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === 'year')?.value ?? '1970';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+  return `${year}-${month}-${day}`;
+}
 
 export default function AssigneeViewPage() {
   const supabase = createClient();
 
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayDate);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
-
-  // Initialize date on client only to avoid SSR/CSR hydration mismatch
-  useEffect(() => {
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-  }, []);
   const [selectedCategories, setSelectedCategories] = useState<TaskCategory[]>(
     () => [...CATEGORY_ORDER]
   );
@@ -169,17 +178,6 @@ export default function AssigneeViewPage() {
     return users.find((u) => u.id === assigneeId)?.name ?? null;
   }, [assigneeId, users]);
 
-  if (!date) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-          <span className="text-sm">로딩 중...</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       variants={staggerContainer}
@@ -223,6 +221,42 @@ export default function AssigneeViewPage() {
         <p className="text-[11px] text-muted-foreground/50 mt-1">
           담당자별 일일 업무 현황을 확인합니다. 전역 업무, 캠페인별 업무, 월간/주기별 업무를 날짜 기준으로 조회하고, 각 행위의 단계(Step)를 확인할 수 있습니다.
         </p>
+      </motion.div>
+
+      <motion.div variants={fadeUpItem}>
+        <div className="rounded-xl border bg-card px-4 py-3.5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+              <Bot className="size-4 text-foreground" />
+            </div>
+            <div className="flex-1 space-y-3">
+              <div>
+                <p className="text-[12px] font-bold text-foreground">실무 담당자 사용 순서</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  이 화면은 일을 진행하면서 근거를 남기는 실행 보드입니다. 하루 마감 정리는 일일 보고서에서 합니다.
+                </p>
+              </div>
+
+              <div className="grid gap-2 lg:grid-cols-3">
+                {DAILY_OPS_FLOW.map((step, index) => (
+                  <div key={step.title} className="rounded-lg border bg-secondary/20 px-3 py-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Step {index + 1}
+                    </div>
+                    <div className="mt-1 text-[12px] font-semibold text-foreground">{step.title}</div>
+                    <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{step.description}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-1 rounded-lg border bg-background/60 px-3 py-3">
+                {TASK_LINKAGE_RULES.map((rule) => (
+                  <p key={rule} className="text-[10px] text-muted-foreground">{rule}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Filter Bar */}

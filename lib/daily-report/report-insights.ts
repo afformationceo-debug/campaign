@@ -76,11 +76,16 @@ export function buildUserDailyReportItems({
     configMap.set(`${config.campaign_id}:${config.task_id}`, config);
   });
 
-  const checkMap = new Map<string, DailyCheck>();
+  const globalCheckMap = new Map<string, DailyCheck>();
+  const campaignCheckMap = new Map<string, DailyCheck>();
   checks.forEach((check) => {
+    if (check.campaign_id) {
+      campaignCheckMap.set(`${check.campaign_id}:${check.task_id}`, check);
+      return;
+    }
+
     if (check.assigned_user_id !== user.id) return;
-    const key = `${check.campaign_id ?? 'null'}:${check.task_id}`;
-    checkMap.set(key, check);
+    globalCheckMap.set(`null:${check.task_id}:${user.id}`, check);
   });
 
   const stepsByTaskId = new Map<string, TaskStep[]>();
@@ -106,8 +111,11 @@ export function buildUserDailyReportItems({
       .map((record) => record.task_id)
   );
 
-  const buildItem = (task: Task, campaign: Campaign | null): DailyReportTaskItem => {
-    const check = checkMap.get(`${campaign?.id ?? 'null'}:${task.id}`) ?? null;
+  const buildItem = (
+    task: Task,
+    campaign: Campaign | null,
+    check: DailyCheck | null
+  ): DailyReportTaskItem => {
     const taskSteps = stepsByTaskId.get(task.id) ?? [];
     return {
       task,
@@ -131,7 +139,7 @@ export function buildUserDailyReportItems({
     .forEach((task) => {
       const assignees = task.default_assignees ?? [];
       if (!assignees.includes(user.name)) return;
-      items.push(buildItem(task, null));
+      items.push(buildItem(task, null, globalCheckMap.get(`null:${task.id}:${user.id}`) ?? null));
     });
 
   dailyTasks
@@ -139,7 +147,7 @@ export function buildUserDailyReportItems({
     .forEach((task) => {
       campaigns.forEach((campaign) => {
         const config = configMap.get(`${campaign.id}:${task.id}`);
-        const check = checkMap.get(`${campaign.id}:${task.id}`) ?? null;
+        const check = campaignCheckMap.get(`${campaign.id}:${task.id}`) ?? null;
         if (!config && !check) return;
 
         const isApplicable = config ? config.is_applicable : task.is_applicable_default;
@@ -148,8 +156,11 @@ export function buildUserDailyReportItems({
         const assigneeName = config?.override_assignee ?? null;
         const assignees = assigneeName ? [assigneeName] : (task.default_assignees ?? []);
         if (!assignees.includes(user.name)) return;
+        const visibleCheck = check && (!check.assigned_user_id || check.assigned_user_id === user.id)
+          ? check
+          : null;
 
-        items.push(buildItem(task, campaign));
+        items.push(buildItem(task, campaign, visibleCheck));
       });
     });
 

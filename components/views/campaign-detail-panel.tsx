@@ -95,7 +95,7 @@ function InteractiveStatusCell({
       return;
     }
     const nextStatus = getNextStatus(check.status);
-    updateStatus({ id: check.id, status: nextStatus });
+    updateStatus({ id: check.id, status: nextStatus, assigned_user_id: assigneeId });
   }, [check, isApplicable, updateStatus, createCheck, campaignId, taskId, date, assigneeId]);
 
   if (!isApplicable) {
@@ -187,7 +187,7 @@ function NoteEditor({
 
   const handleSave = () => {
     if (check) {
-      updateStatus({ id: check.id, status: check.status, note: noteValue });
+      updateStatus({ id: check.id, status: check.status, assigned_user_id: assigneeId, note: noteValue });
     } else if (noteValue.trim()) {
       // Create a new check with the note
       createCheck({
@@ -333,14 +333,20 @@ export function CampaignDetailPanel({
     const map = new Map<string, DailyCheck>();
     if (!campaignId) return map;
     checks
-      .filter((c) => c.campaign_id === campaignId && c.assigned_user_id === currentUserId)
+      .filter((c) => c.campaign_id === campaignId)
       .forEach((check) => map.set(check.task_id, check));
     return map;
-  }, [checks, campaignId, currentUserId]);
+  }, [checks, campaignId]);
 
   const userMap = useMemo(() => {
     const map = new Map<string, UserType>();
     users.forEach((user) => map.set(user.id, user));
+    return map;
+  }, [users]);
+
+  const userIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach((user) => map.set(user.name.trim(), user.id));
     return map;
   }, [users]);
 
@@ -443,8 +449,18 @@ export function CampaignDetailPanel({
                         ? config.is_applicable
                         : task.is_applicable_default;
                       const check = checkMap.get(task.id);
-                      const assignee = check?.assigned_user_id
-                        ? userMap.get(check.assigned_user_id)
+                      const candidateAssignees = config?.override_assignee
+                        ? [config.override_assignee]
+                        : (task.default_assignees ?? []);
+                      const normalizedCandidates = candidateAssignees
+                        .map((name) => name.trim())
+                        .filter(Boolean);
+                      const inferredAssigneeId = normalizedCandidates.length === 1
+                        ? userIdByName.get(normalizedCandidates[0]) ?? null
+                        : null;
+                      const resolvedAssigneeId = check?.assigned_user_id ?? inferredAssigneeId ?? currentUserId;
+                      const assignee = resolvedAssigneeId
+                        ? userMap.get(resolvedAssigneeId) ?? null
                         : null;
 
                       if (!isApplicable) {
@@ -482,7 +498,7 @@ export function CampaignDetailPanel({
                             campaignId={campaignId!}
                             taskId={task.id}
                             date={date}
-                            assigneeId={currentUserId}
+                            assigneeId={resolvedAssigneeId}
                           />
 
                           {/* Task Info */}
@@ -531,7 +547,7 @@ export function CampaignDetailPanel({
                               campaignId={campaignId!}
                               taskId={task.id}
                               date={date}
-                              assigneeId={currentUserId}
+                              assigneeId={resolvedAssigneeId}
                             />
                           </div>
                         </div>

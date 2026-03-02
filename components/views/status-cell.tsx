@@ -87,7 +87,7 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
       return;
     }
     const nextStatus = getNextStatus(check.status);
-    updateStatus({ id: check.id, status: nextStatus });
+    updateStatus({ id: check.id, status: nextStatus, assigned_user_id: assigneeId });
   }, [check, isApplicable, updateStatus, createCheck, campaignId, taskId, date, assigneeId]);
 
   const handleContextMenu = useCallback(
@@ -115,9 +115,9 @@ export function StatusCell({ check, isApplicable, campaignId, taskId, date, assi
 
   const handleNoteSave = useCallback(() => {
     if (!check) return;
-    updateStatus({ id: check.id, status: check.status, note: noteValue });
+    updateStatus({ id: check.id, status: check.status, assigned_user_id: assigneeId, note: noteValue });
     setNoteOpen(false);
-  }, [check, noteValue, updateStatus]);
+  }, [assigneeId, check, noteValue, updateStatus]);
 
   // Not applicable: gray disabled cell
   if (!isApplicable) {

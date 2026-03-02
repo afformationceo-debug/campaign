@@ -7,8 +7,9 @@ import { Pencil, Plus, Trash2, ChevronsUpDown, X, ChevronDown, ChevronRight, Cor
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
-import { CATEGORY_COLORS, CATEGORY_ORDER } from '@/lib/utils/category-colors';
+import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { cn } from '@/lib/utils';
+import { TASK_LINKAGE_RULES } from '@/lib/guides/daily-ops-guide';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -488,6 +489,13 @@ export default function TasksPage() {
                   <p>여기서 등록하는 <strong className="text-foreground">업무 항목</strong>이 담당자별 일일 체크에 반영됩니다.</p>
                   <p><strong className="text-foreground">카테고리, 주기, 범위(전역/캠페인별)</strong>를 정확히 설정해야 올바른 업무가 올바른 대상에게 보입니다.</p>
                   <p><strong className="text-foreground">하위 업무</strong>를 활용하면 큰 업무를 세부 단계로 분리하여 관리할 수 있습니다.</p>
+                </div>
+                <div className="grid gap-1 rounded-lg border border-border bg-background/40 px-3 py-2">
+                  {TASK_LINKAGE_RULES.map((rule) => (
+                    <p key={rule} className="text-[10px] text-muted-foreground">
+                      {rule}
+                    </p>
+                  ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground/60">업무 항목의 변경은 곧바로 모든 체크리스트에 반영되니 신중하게 관리해 주세요!</p>
               </div>

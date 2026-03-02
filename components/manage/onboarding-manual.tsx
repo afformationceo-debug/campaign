@@ -11,7 +11,6 @@ import {
   X,
   Plus,
   Trash2,
-  GripVertical,
   FileText,
   ExternalLink,
   Copy,
@@ -22,6 +21,12 @@ import { queryKeys } from '@/lib/utils/query-keys';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import {
+  DAILY_OPS_FLOW,
+  EXAMPLE_DAY_SCENARIO,
+  RESULT_VALUE_GUIDE,
+  TASK_LINKAGE_RULES,
+} from '@/lib/guides/daily-ops-guide';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -351,6 +356,58 @@ export function OnboardingManual() {
         <span className="text-xs text-muted-foreground">
           클릭하여 펼치거나 접을 수 있습니다
         </span>
+      </motion.div>
+
+      <motion.div variants={fadeUpItem} className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold">업무 운영 플로우</h3>
+              <p className="text-[11px] text-muted-foreground">
+                새 직원에게 설명할 때는 담당자별 업무와 일일 보고서를 아래 순서로 안내합니다.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {DAILY_OPS_FLOW.map((step, index) => (
+              <div key={step.title} className="rounded-lg border bg-secondary/20 px-3 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Step {index + 1}
+                </div>
+                <div className="mt-1 text-sm font-semibold">{step.title}</div>
+                <p className="mt-1 text-[11px] leading-5 text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border bg-card p-4">
+            <h3 className="text-sm font-semibold">업무 추가 후 연동 규칙</h3>
+            <div className="mt-3 space-y-2">
+              {TASK_LINKAGE_RULES.map((rule) => (
+                <div key={rule} className="rounded-lg border bg-secondary/20 px-3 py-2 text-[11px] text-muted-foreground">
+                  {rule}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4">
+            <h3 className="text-sm font-semibold">입력 예시</h3>
+            <div className="mt-3 space-y-2 text-[11px] text-muted-foreground">
+              {RESULT_VALUE_GUIDE.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+              <div className="rounded-lg border bg-secondary/20 px-3 py-3">
+                <p className="font-medium text-foreground">예시 보고</p>
+                <p className="mt-1">{EXAMPLE_DAY_SCENARIO.reportSummary}</p>
+                <p className="mt-1">{EXAMPLE_DAY_SCENARIO.reportImpact}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Sections */}
