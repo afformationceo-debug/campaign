@@ -41,11 +41,11 @@ import {
 import type { Task, TaskCategory, TaskFrequency, TaskScope, TaskPriority, TaskStep, User } from '@/lib/types/database';
 
 const FREQUENCY_CONFIG: Record<TaskFrequency, { label: string; className: string }> = {
-  daily: { label: '매일', className: 'bg-secondary text-secondary-foreground' },
-  weekly: { label: '주간', className: 'bg-secondary text-secondary-foreground' },
-  monthly: { label: '월간', className: 'bg-secondary text-secondary-foreground' },
-  once: { label: '1회', className: 'bg-secondary text-secondary-foreground' },
-  as_needed: { label: '수시', className: 'bg-secondary text-secondary-foreground' },
+  daily: { label: '매일', className: 'bg-orange-50 text-orange-600' },
+  weekly: { label: '주간', className: 'bg-amber-50 text-amber-600' },
+  monthly: { label: '월간', className: 'bg-stone-100 text-stone-500' },
+  once: { label: '1회', className: 'bg-stone-100 text-stone-500' },
+  as_needed: { label: '수시', className: 'bg-stone-100 text-stone-500' },
 };
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
@@ -56,10 +56,10 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 ];
 
 const PRIORITY_BADGE_CLASS: Record<TaskPriority, string> = {
-  '긴급': 'bg-destructive/15 text-destructive border-destructive/30',
-  '높음': 'bg-foreground/10 text-foreground border-foreground/20',
-  '보통': 'bg-secondary text-muted-foreground border-border',
-  '낮음': 'bg-secondary/50 text-muted-foreground/60 border-border/50',
+  '긴급': 'bg-red-50 text-red-600 border-red-200',
+  '높음': 'bg-orange-50 text-orange-600 border-orange-200',
+  '보통': 'bg-stone-100 text-stone-500 border-stone-200',
+  '낮음': 'bg-stone-50 text-stone-400 border-stone-100',
 };
 
 interface TaskFormData {
@@ -430,7 +430,7 @@ export default function TasksPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -439,10 +439,10 @@ export default function TasksPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -456,13 +456,18 @@ export default function TasksPage() {
       className="space-y-4"
     >
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">행위 관리, 체계적으로 정리해줄게.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            캠페인별 업무를 카테고리와 주기로 분류하고, 하위 업무까지 한 곳에서 관리하세요.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <ListChecks className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">업무를 체계적으로 관리해 보세요</h1>
+            <p className="text-sm text-stone-500 mt-1">
+              카테고리와 주기로 분류하고, 하위 업무까지 한 곳에서 관리할 수 있어요.
+            </p>
+          </div>
         </div>
-        <Button onClick={openCreateDialog} className="rounded-lg bg-foreground text-background hover:bg-foreground/90">
+        <Button onClick={openCreateDialog} className="rounded-2xl bg-orange-500 text-white hover:bg-orange-600 shadow-sm">
           <Plus className="h-4 w-4 mr-2" />
           새 업무
         </Button>
@@ -470,34 +475,34 @@ export default function TasksPage() {
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
+        <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
-                <Bot className="size-4 text-background" />
+              <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center">
+                <Bot className="size-4 text-white" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-orange-500 border-2 border-white" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-foreground">bkit AI Agent</p>
-                <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">행위 관리 가이드</span>
+                <p className="text-[12px] font-bold text-stone-800">bkit AI Agent</p>
+                <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">행위 관리 가이드</span>
               </div>
-              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                <p>안녕하세요, 어포메이션 임직원 여러분! 행위(업무) 관리 페이지를 안내해 드립니다.</p>
-                <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                  <p>여기서 등록하는 <strong className="text-foreground">업무 항목</strong>이 담당자별 일일 체크에 반영됩니다.</p>
-                  <p><strong className="text-foreground">카테고리, 주기, 범위(전역/캠페인별)</strong>를 정확히 설정해야 올바른 업무가 올바른 대상에게 보입니다.</p>
-                  <p><strong className="text-foreground">하위 업무</strong>를 활용하면 큰 업무를 세부 단계로 분리하여 관리할 수 있습니다.</p>
+              <div className="text-[11px] text-stone-600 leading-[1.7] space-y-1">
+                <p>안녕하세요! 행위(업무) 관리 페이지를 안내해 드릴게요.</p>
+                <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                  <p>여기서 등록하는 <strong className="text-orange-700">업무 항목</strong>이 담당자별 일일 체크에 반영돼요.</p>
+                  <p><strong className="text-orange-700">카테고리, 주기, 범위(전역/캠페인별)</strong>를 정확히 설정해야 올바른 업무가 보여요.</p>
+                  <p><strong className="text-orange-700">하위 업무</strong>를 활용하면 큰 업무를 세부 단계로 나눌 수 있어요.</p>
                 </div>
-                <div className="grid gap-1 rounded-lg border border-border bg-background/40 px-3 py-2">
+                <div className="grid gap-1 rounded-xl border border-orange-100 bg-white/50 px-3 py-2">
                   {TASK_LINKAGE_RULES.map((rule) => (
-                    <p key={rule} className="text-[10px] text-muted-foreground">
+                    <p key={rule} className="text-[10px] text-stone-500">
                       {rule}
                     </p>
                   ))}
                 </div>
-                <p className="text-[10px] text-muted-foreground/60">업무 항목의 변경은 곧바로 모든 체크리스트에 반영되니 신중하게 관리해 주세요!</p>
+                <p className="text-[10px] text-stone-400">업무 항목의 변경은 곧바로 모든 체크리스트에 반영되니 신중하게 관리해 주세요!</p>
               </div>
             </div>
           </div>
@@ -506,17 +511,17 @@ export default function TasksPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-            <span className="text-sm">데이터를 불러오는 중...</span>
+          <div className="flex items-center gap-3 text-stone-400">
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+            <span className="text-sm">데이터를 불러오는 중이에요...</span>
           </div>
         </div>
       ) : (
         <motion.div variants={fadeUpItem}>
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <div className="rounded-2xl border border-stone-100 bg-card overflow-hidden shadow-sm">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="border-b border-border bg-secondary/30">
+                <tr className="border-b border-stone-100 bg-stone-50">
                   <th className="text-left px-3 py-2 text-[11px] font-medium text-muted-foreground w-10">#</th>
                   <th className="text-left px-3 py-2 text-[11px] font-medium text-muted-foreground">업무명</th>
                   <th className="text-left px-3 py-2 text-[11px] font-medium text-muted-foreground w-[70px]">카테고리</th>
@@ -539,7 +544,7 @@ export default function TasksPage() {
                   return (
                     <Fragment key={task.id}>
                       {/* Parent row */}
-                      <tr className={cn('border-b border-border hover:bg-secondary/30 transition-colors', hasChildren && 'bg-secondary/10')}>
+                      <tr className={cn('border-b border-stone-100 hover:bg-orange-50/40 transition-colors', hasChildren && 'bg-stone-50/50')}>
                         <td className="px-3 py-2">
                           <span className="text-muted-foreground text-[11px] font-mono">{task.loop_order}</span>
                         </td>
@@ -565,8 +570,8 @@ export default function TasksPage() {
                               className={cn(
                                 'shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors border',
                                 stepsPreviewTaskId === task.id
-                                  ? 'bg-foreground text-background border-foreground'
-                                  : 'bg-transparent text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground'
+                                  ? 'bg-orange-500 text-white border-orange-500'
+                                  : 'bg-transparent text-stone-500 border-stone-200 hover:border-orange-300 hover:text-orange-600'
                               )}
                               onClick={() => toggleStepsPreview(task.id)}
                               title="업무 단계 보기"
@@ -592,7 +597,7 @@ export default function TasksPage() {
                           </Badge>
                         </td>
                         <td className="px-3 py-2">
-                          <Badge variant="secondary" className={`text-[10px] rounded-full ${task.scope === 'global' ? 'bg-foreground text-background' : 'bg-secondary text-secondary-foreground'}`}>
+                          <Badge variant="secondary" className={`text-[10px] rounded-full ${task.scope === 'global' ? 'bg-orange-50 text-orange-600' : 'bg-stone-100 text-stone-500'}`}>
                             {task.scope === 'global' ? '전역' : '캠페인'}
                           </Badge>
                         </td>
@@ -660,7 +665,7 @@ export default function TasksPage() {
 
                       {/* Steps preview row (inline below task) */}
                       {stepsPreviewTaskId === task.id && (
-                        <tr className="border-b border-border bg-secondary/20">
+                        <tr className="border-b border-stone-100 bg-orange-50/30">
                           <td colSpan={10} className="px-4 py-2">
                             {previewLoading ? (
                               <div className="flex items-center gap-2 py-1">
@@ -690,7 +695,7 @@ export default function TasksPage() {
                                 <div className="grid gap-1">
                                   {previewSteps.map((step) => (
                                     <div key={step.id} className="flex items-start gap-2 pl-1">
-                                      <span className="shrink-0 size-5 rounded-full bg-foreground text-background text-[9px] font-bold flex items-center justify-center mt-0.5">
+                                      <span className="shrink-0 size-5 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center mt-0.5">
                                         {step.step_order}
                                       </span>
                                       <div className="min-w-0 flex-1">
@@ -723,7 +728,7 @@ export default function TasksPage() {
 
                       {/* Sub-task rows */}
                       {isExpanded && children.map((child) => (
-                        <tr key={child.id} className="border-b border-border hover:bg-secondary/20 transition-colors bg-secondary/5">
+                        <tr key={child.id} className="border-b border-stone-100 hover:bg-orange-50/30 transition-colors bg-stone-50/30">
                           <td className="px-3 py-1.5">
                             <span className="text-muted-foreground/50 text-[10px] font-mono pl-2">{task.loop_order}-{child.sub_order}</span>
                           </td>
@@ -808,7 +813,7 @@ export default function TasksPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className={cn('bg-card border-border', editingTask ? 'sm:max-w-2xl' : 'sm:max-w-lg')}>
+        <DialogContent className={cn('bg-card border-stone-100 rounded-2xl', editingTask ? 'sm:max-w-2xl' : 'sm:max-w-lg')}>
           <DialogHeader>
             <DialogTitle className="font-bold">
               {editingTask
@@ -1150,10 +1155,10 @@ export default function TasksPage() {
             </div>
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-lg border-border">
+              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-xl border-stone-200">
                 취소
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg">
+              <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="bg-orange-500 text-white hover:bg-orange-600 rounded-xl">
                 {(updateMutation.isPending || createMutation.isPending) ? '저장 중...' : editingTask ? '수정' : '추가'}
               </Button>
             </DialogFooter>

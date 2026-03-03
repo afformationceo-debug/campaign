@@ -141,8 +141,11 @@ function TaskConfigMatrix({
 
   if (matrixTasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground gap-2">
-        <span>해당 유형의 업무가 없습니다.</span>
+      <div className="flex flex-col items-center justify-center py-16 text-sm text-stone-400 gap-2">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+          <Filter className="size-4 text-orange-400" />
+        </div>
+        <span>해당 유형의 업무가 아직 없어요.</span>
       </div>
     );
   }
@@ -151,7 +154,7 @@ function TaskConfigMatrix({
     <div className="space-y-2">
       {/* Category bulk toggles */}
       <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-[10px] text-muted-foreground mr-1">카테고리 일괄:</span>
+        <span className="text-[10px] text-stone-400 mr-1">카테고리 일괄:</span>
         {tasksByCategory.map(({ category, tasks: catTasks }) => {
           return (
             <div key={category} className="flex items-center gap-0.5">
@@ -160,7 +163,7 @@ function TaskConfigMatrix({
                   <Button
                     variant="ghost"
                     size="xs"
-                    className="bg-secondary text-secondary-foreground text-[10px]"
+                    className="bg-orange-50 text-orange-600 hover:bg-orange-100 text-[10px]"
                     onClick={() => onBulkToggleCategory(category, catTasks, campaigns, true)}
                   >
                     {category}
@@ -175,23 +178,23 @@ function TaskConfigMatrix({
       </div>
 
       {/* Matrix table */}
-      <div className="border rounded-lg overflow-auto max-h-[calc(100vh-340px)]">
+      <div className="border border-stone-100 rounded-2xl overflow-auto max-h-[calc(100vh-340px)] shadow-sm">
         <table className="text-xs">
-          <thead className="sticky top-0 z-20 bg-background">
+          <thead className="sticky top-0 z-20 bg-white">
             {/* Category header row */}
-            <tr className="border-b">
+            <tr className="border-b border-stone-100">
               <th
-                className="sticky left-0 z-30 bg-background border-r p-1 min-w-[180px]"
+                className="sticky left-0 z-30 bg-white border-r border-stone-100 p-1 min-w-[180px]"
                 rowSpan={2}
               >
-                <span className="text-muted-foreground font-medium">캠페인</span>
+                <span className="text-stone-500 font-medium">캠페인</span>
               </th>
               {tasksByCategory.map(({ category, tasks: catTasks }) => {
                 return (
                   <th
                     key={category}
                     colSpan={catTasks.length}
-                    className="p-1 text-center border-r border-b-0 font-medium bg-secondary text-secondary-foreground"
+                    className="p-1 text-center border-r border-stone-100 border-b-0 font-medium bg-orange-50 text-orange-700"
                   >
                     <div className="flex items-center justify-center gap-1">
                       {category}
@@ -202,13 +205,13 @@ function TaskConfigMatrix({
               })}
             </tr>
             {/* Task name header row */}
-            <tr className="border-b">
+            <tr className="border-b border-stone-100">
               {tasksByCategory.map(({ tasks: catTasks }) =>
                 catTasks.map((task, idx) => (
                   <th
                     key={task.id}
                     className={cn(
-                      'p-1 border-r min-w-[64px] max-w-[64px] bg-muted/30 align-bottom',
+                      'p-1 border-r border-stone-100 min-w-[64px] max-w-[64px] bg-stone-50 align-bottom',
                       idx === catTasks.length - 1 && 'border-r-2'
                     )}
                   >
@@ -247,12 +250,12 @@ function TaskConfigMatrix({
           <tbody>
             {campaigns.map((campaign, rowIdx) => (
               <tr key={campaign.id} className={cn(
-                'border-b hover:bg-muted/40 transition-colors',
-                rowIdx % 2 === 1 && 'bg-muted/15'
+                'border-b border-stone-50 hover:bg-orange-50/30 transition-colors',
+                rowIdx % 2 === 1 && 'bg-stone-50/30'
               )}>
                 <td className={cn(
-                  'sticky left-0 z-10 border-r p-1 min-w-[180px] max-w-[180px]',
-                  rowIdx % 2 === 1 ? 'bg-muted/15' : 'bg-background'
+                  'sticky left-0 z-10 border-r border-stone-100 p-1 min-w-[180px] max-w-[180px]',
+                  rowIdx % 2 === 1 ? 'bg-stone-50/30' : 'bg-white'
                 )}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -299,9 +302,9 @@ function TaskConfigMatrix({
                       <td
                         key={task.id}
                         className={cn(
-                          'p-0 text-center border-r',
-                          idx === catTasks.length - 1 && 'border-r-2',
-                          isApplicable && 'bg-foreground/[0.03] dark:bg-foreground/[0.06]'
+                          'p-0 text-center border-r border-stone-50',
+                          idx === catTasks.length - 1 && 'border-r-2 border-r-stone-100',
+                          isApplicable && 'bg-orange-50/20'
                         )}
                       >
                         <div className={cn(
@@ -361,22 +364,25 @@ function GlobalTasksList({
 
   if (globalTasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground gap-2">
-        <span>전역 업무가 없습니다.</span>
+      <div className="flex flex-col items-center justify-center py-16 text-sm text-stone-400 gap-2">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50">
+          <Bot className="size-4 text-amber-400" />
+        </div>
+        <span>아직 전역 업무가 없어요.</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-muted-foreground">
-        전역 업무는 캠페인과 무관하게 적용됩니다. 기본 적용 여부를 설정할 수 있습니다.
+      <p className="text-[11px] text-stone-400">
+        전역 업무는 캠페인과 무관하게 적용돼요. 기본 적용 여부를 설정할 수 있어요.
       </p>
 
       {grouped.map(({ category, tasks: catTasks }) => {
         return (
-          <div key={category} className="rounded-lg border overflow-hidden">
-            <div className="px-3 py-1.5 border-b flex items-center gap-2 bg-secondary/50">
+          <div key={category} className="rounded-2xl border border-stone-100 overflow-hidden shadow-sm">
+            <div className="px-3 py-1.5 border-b border-stone-100 flex items-center gap-2 bg-stone-50/50">
               <span className="text-[11px] font-semibold text-foreground">
                 {category}
               </span>
@@ -389,7 +395,7 @@ function GlobalTasksList({
               {catTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-orange-50/40 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -800,7 +806,7 @@ export default function TaskConfigPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -809,10 +815,10 @@ export default function TaskConfigPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
-            <span className="text-lg">🔒</span>
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
+            <ToggleLeft className="size-5 text-orange-400" />
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -827,35 +833,40 @@ export default function TaskConfigPage() {
         className="space-y-4"
       >
         {/* Page Header */}
-        <motion.div variants={fadeUpItem}>
-          <h1 className="text-2xl font-black tracking-tight">업무 적용, 캠페인별로 설정해줄게.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            어떤 캠페인에 어떤 업무를 적용할지, 담당자 오버라이드와 목표 건수까지 세밀하게 조정하세요.
-          </p>
+        <motion.div variants={fadeUpItem} className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <ToggleLeft className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">업무 적용, 캠페인별로 설정해줄게.</h1>
+            <p className="text-sm text-stone-500 mt-0.5">
+              어떤 캠페인에 어떤 업무를 적용할지 세밀하게 조정해 보세요.
+            </p>
+          </div>
         </motion.div>
 
         {/* AI Agent Guide Banner */}
         <motion.div variants={fadeUpItem}>
-          <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
+          <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
             <div className="flex gap-3 items-start relative">
               <div className="relative shrink-0 mt-0.5">
-                <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
-                  <Bot className="size-4 text-background" />
+                <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center ring-2 ring-white">
+                  <Bot className="size-4 text-white" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground/60 border-2 border-background" />
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-amber-400 border-2 border-white" />
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
-                  <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">적용설정 가이드</span>
+                  <p className="text-[12px] font-bold text-stone-800">어포메이션 본질 AI Agent</p>
+                  <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">적용설정 가이드</span>
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                  <p>안녕하세요, 어포메이션 임직원 여러분! Task 적용설정 페이지를 안내해 드립니다.</p>
-                  <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                    <p>행위 관리에서 등록한 업무가 <strong className="text-foreground">어느 캠페인에 적용될지</strong>를 이 페이지에서 ON/OFF 합니다.</p>
-                    <p><strong className="text-foreground">토글을 켜면</strong> 해당 캠페인의 일일 체크리스트에 업무가 나타나고, <strong className="text-foreground">끄면</strong> 숨겨집니다.</p>
+                <div className="text-[11px] text-stone-500 leading-[1.7] space-y-1">
+                  <p>안녕하세요! Task 적용설정 페이지에 오신 걸 환영해요.</p>
+                  <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                    <p>행위 관리에서 등록한 업무가 <strong className="text-stone-700">어느 캠페인에 적용될지</strong>를 이 페이지에서 ON/OFF 해요.</p>
+                    <p><strong className="text-stone-700">토글을 켜면</strong> 해당 캠페인의 일일 체크리스트에 업무가 나타나고, <strong className="text-stone-700">끄면</strong> 숨겨져요.</p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60">새 캠페인 추가 시 필요한 업무를 여기서 활성화하는 것을 잊지 마세요!</p>
+                  <p className="text-[10px] text-stone-400">새 캠페인 추가 시 필요한 업무를 여기서 활성화하는 걸 잊지 마세요!</p>
                 </div>
               </div>
             </div>
@@ -865,7 +876,7 @@ export default function TaskConfigPage() {
         {/* Filters (only for campaign-scope tabs) */}
         <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Filter className="h-4 w-4 text-stone-400" />
             <Select value={countryFilter} onValueChange={setCountryFilter}>
               <SelectTrigger className="w-[140px]" size="sm">
                 <SelectValue placeholder="국가 필터" />
@@ -894,28 +905,28 @@ export default function TaskConfigPage() {
         {/* Tabs */}
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-              <span className="text-sm">데이터를 불러오는 중...</span>
+            <div className="flex items-center gap-3 text-stone-400">
+              <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+              <span className="text-sm">데이터를 불러오는 중이에요...</span>
             </div>
           </div>
         ) : (
           <motion.div variants={fadeUpItem}>
             <Tabs defaultValue="daily-weekly">
-              <TabsList className="bg-secondary/50 p-1 rounded-full">
-                <TabsTrigger value="daily-weekly" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+              <TabsList className="bg-stone-100/60 p-1 rounded-full">
+                <TabsTrigger value="daily-weekly" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
                   일일/주간 업무
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {dailyWeeklyTasks.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="periodic" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+                <TabsTrigger value="periodic" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
                   월간/주기별 업무
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {periodicTasks.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="global" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+                <TabsTrigger value="global" className="text-xs gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
                   전역 업무
                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full">
                     {globalTasks.length}

@@ -97,9 +97,9 @@ interface GroupDefinition {
 }
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; bg: string }> = {
-  '진행전': { label: '진행전', color: 'text-muted-foreground', icon: CircleDashed, bg: 'bg-secondary' },
-  '진행중': { label: '진행중', color: 'text-foreground', icon: Clock, bg: 'bg-foreground/10' },
-  '완료': { label: '완료', color: 'text-foreground', icon: CheckCircle2, bg: 'bg-foreground text-background' },
+  '진행전': { label: '진행전', color: 'text-stone-400', icon: CircleDashed, bg: 'bg-stone-100' },
+  '진행중': { label: '진행중', color: 'text-orange-600', icon: Clock, bg: 'bg-orange-50' },
+  '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 text-emerald-600' },
 };
 
 const KANBAN_COLUMNS: ProjectState[] = ['진행전', '진행중', '완료'];
@@ -141,7 +141,7 @@ function InlineTextCell({
     return (
       <span
         className={cn(
-          'cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors truncate block min-h-[16px] leading-tight',
+          'cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors truncate block min-h-[16px] leading-tight',
           !value && 'text-muted-foreground/30',
           className,
         )}
@@ -193,7 +193,7 @@ function InlineDateCell({
   if (!isEditing) {
     return (
       <span
-        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs min-h-[16px] leading-tight block"
+        className="cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors text-xs min-h-[16px] leading-tight block"
         onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
       >
         {value || '-'}
@@ -238,7 +238,7 @@ function InlineMemoCell({
   if (!isEditing) {
     return (
       <span
-        className="cursor-text rounded px-1 -mx-1 hover:bg-accent/50 transition-colors text-xs truncate block min-h-[16px] leading-tight"
+        className="cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors text-xs truncate block min-h-[16px] leading-tight"
         onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
         title={value ?? ''}
       >
@@ -291,16 +291,16 @@ function ProjectCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className={cn(
-        'group relative rounded-xl border bg-card p-4 transition-all duration-200',
-        'hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20',
-        project.state === '완료' && 'border-foreground/20 bg-foreground/[0.03]',
+        'group relative rounded-2xl border border-stone-100 bg-white p-4 transition-all duration-200 shadow-sm',
+        'hover:shadow-lg hover:shadow-orange-100/50 hover:border-orange-200',
+        project.state === '완료' && 'border-emerald-100 bg-emerald-50/30',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             {project.state === '완료' ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-foreground text-background rounded-full gap-0.5">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-50 text-emerald-600 rounded-full gap-0.5">
                 <Trophy className="size-3" />
                 완료
               </Badge>
@@ -336,9 +336,9 @@ function ProjectCard({
             <span>{completedTasks}/{totalTasks} 업무</span>
             <span>{progressPct}%</span>
           </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all duration-500', progressPct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')}
+              className={cn('h-full rounded-full transition-all duration-500', progressPct > 0 ? 'bg-orange-500' : 'bg-stone-200')}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -901,9 +901,14 @@ export default function RoadmapPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">프로젝트 로드맵, 한눈에 파악해.</h1>
-          <p className="text-sm text-muted-foreground mt-1">진행 중인 프로젝트를 카드, 칸반, 테이블 뷰로 확인하세요. 진행률과 마감일을 놓치지 않도록 도와줄게요.</p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <Layers className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-stone-800">프로젝트 로드맵</h1>
+            <p className="text-sm text-stone-500 mt-0.5">진행 중인 프로젝트를 카드, 칸반, 테이블 뷰로 확인하세요. 진행률과 마감일을 놓치지 않도록 도와줄게요.</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -915,7 +920,7 @@ export default function RoadmapPage() {
             <Bot className="size-3.5" />
             AI 분석
           </Button>
-          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs bg-foreground text-background hover:bg-foreground/90">
+          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 h-8 text-xs bg-orange-500 text-white hover:bg-orange-600">
             <Plus className="size-3.5" />
             새 프로젝트
           </Button>
@@ -923,24 +928,24 @@ export default function RoadmapPage() {
       </div>
 
       {/* AI Agent Guide Banner */}
-      <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
+      <div className="relative rounded-2xl border border-stone-100 bg-white shadow-sm px-4 py-3.5 overflow-hidden">
         <div className="flex gap-3 items-start relative">
           <div className="relative shrink-0 mt-0.5">
-            <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
-              <Bot className="size-4 text-background" />
+            <div className="size-9 rounded-full bg-orange-50 flex items-center justify-center ring-2 ring-white">
+              <Bot className="size-4 text-orange-600" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground/60 border-2 border-background" />
+            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-400 border-2 border-white" />
           </div>
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-[12px] font-bold text-foreground">
                 어포메이션 본질 AI Agent
               </p>
-              <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">프로젝트 가이드</span>
+              <span className="text-[9px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full">프로젝트 가이드</span>
             </div>
             <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
               <p>안녕하세요, 어포메이션 임직원 여러분! 프로젝트 로드맵 활용법을 안내드립니다.</p>
-              <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
+              <div className="bg-orange-50/40 dark:bg-orange-950/20 rounded-xl px-3 py-2 space-y-0.5 border border-stone-100">
                 <p><strong className="text-foreground">상위 프로젝트</strong>에는 큰 목표(예: &quot;신규 캠페인 런칭&quot;, &quot;시스템 개선&quot;)를 적어주세요.</p>
                 <p><strong className="text-foreground">하위 업무</strong>에는 그 목표를 달성하기 위한 구체적인 액션 아이템을 등록합니다.</p>
               </div>
@@ -983,7 +988,7 @@ export default function RoadmapPage() {
           <Button
             variant={showCompleted ? 'outline' : 'secondary'}
             size="sm"
-            className={cn('h-8 text-xs gap-1.5', !showCompleted && 'bg-foreground/10 text-foreground')}
+            className={cn('h-8 text-xs gap-1.5', !showCompleted && 'bg-orange-50 text-orange-600')}
             onClick={() => setShowCompleted(!showCompleted)}
           >
             {showCompleted ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
@@ -1027,7 +1032,7 @@ export default function RoadmapPage() {
             { mode: 'table' as ViewMode, icon: Table2, label: '테이블' },
             { mode: 'grouped' as ViewMode, icon: Layers, label: '그룹화' },
           ]).map(({ mode, icon: Icon, label }) => (
-            <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1 rounded-full', viewMode === mode && 'bg-foreground text-background shadow-sm hover:bg-foreground/90')} onClick={() => setViewMode(mode)}>
+            <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1 rounded-full', viewMode === mode && 'bg-orange-500 text-white shadow-sm hover:bg-orange-600')} onClick={() => setViewMode(mode)}>
               <Icon className="size-3" /><span className="hidden sm:inline">{label}</span>
             </Button>
           ))}
@@ -1038,15 +1043,15 @@ export default function RoadmapPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
             <span className="text-sm">프로젝트를 불러오는 중...</span>
           </div>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-          <FolderOpen className="size-10 text-muted-foreground/30" />
-          <p className="text-sm">프로젝트가 없습니다.</p>
-          <Button variant="outline" size="sm" onClick={openCreateDialog}><Plus className="size-4 mr-1" />첫 프로젝트 만들기</Button>
+        <div className="flex flex-col items-center justify-center py-20 text-stone-400 gap-3">
+          <FolderOpen className="size-10 text-stone-300" />
+          <p className="text-sm">아직 프로젝트가 없어요. 첫 프로젝트를 만들어 보세요!</p>
+          <Button variant="outline" size="sm" className="border-orange-200 text-orange-600 hover:bg-orange-50" onClick={openCreateDialog}><Plus className="size-4 mr-1" />첫 프로젝트 만들기</Button>
         </div>
       ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1064,8 +1069,8 @@ export default function RoadmapPage() {
             const StateIcon = config.icon;
             return (
               <div key={state} className={cn(
-                'rounded-xl border p-3',
-                state === '완료' ? 'bg-foreground/[0.03] border-foreground/20' : 'bg-secondary/50',
+                'rounded-2xl border p-3',
+                state === '완료' ? 'bg-emerald-50/30 border-emerald-100' : state === '진행중' ? 'bg-orange-50/30 border-orange-100' : 'bg-stone-50/50 border-stone-100',
               )}>
                 <div className="flex items-center gap-2 mb-3 px-1">
                   {state === '완료' ? <Trophy className={cn('size-4', config.color)} /> : <StateIcon className={cn('size-4', config.color)} />}
@@ -1078,7 +1083,7 @@ export default function RoadmapPage() {
                       <ProjectCard key={project.id} project={project} tasks={tasksByProject.get(project.id) || []} users={users} onEdit={() => openEditDialog(project)} onDelete={() => openDeleteDialog(project.id)} />
                     ))}
                   </AnimatePresence>
-                  {stateProjects.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-3">프로젝트 없음</p>}
+                  {stateProjects.length === 0 && <p className="text-xs text-stone-400 text-center py-3">아직 프로젝트가 없어요</p>}
                 </div>
               </div>
             );
@@ -1110,7 +1115,7 @@ export default function RoadmapPage() {
                     <col style={{ width: 28 }} />
                   </colgroup>
                   <thead>
-                    <tr className="border-b bg-muted/40">
+                    <tr className="border-b bg-stone-50">
                       <th className="px-1 py-0.5"></th>
                       <th className="px-1 py-0.5"></th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
@@ -1137,12 +1142,12 @@ export default function RoadmapPage() {
                       return (
                         <React.Fragment key={project.id}>
                           <tr className={cn(
-                            'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
-                            isExpanded && 'bg-accent/10',
-                            project.state === '완료' && 'bg-foreground/[0.03] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/30',
+                            'border-b hover:bg-orange-50/60 transition-colors group/row whitespace-nowrap',
+                            isExpanded && 'bg-orange-50/30',
+                            project.state === '완료' && 'bg-emerald-50/30 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-300',
                           )}>
                             <td className="px-1 py-0.5">
-                              <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-accent" onClick={() => toggleExpand(project.id)}>
+                              <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-orange-50" onClick={() => toggleExpand(project.id)}>
                                 {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
                               </button>
                             </td>
@@ -1202,13 +1207,13 @@ export default function RoadmapPage() {
                             </td>
                             <td className="px-2 py-0.5">
                               {pct === 100 && tasks.length > 0 ? (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-foreground text-background rounded-full gap-0.5">
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-50 text-emerald-600 rounded-full gap-0.5">
                                   <CheckCircle2 className="size-2.5" />{completed}/{tasks.length}
                                 </Badge>
                               ) : (
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                                    <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')} style={{ width: `${pct}%` }} />
+                                  <div className="w-10 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                                    <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-orange-500' : 'bg-stone-200')} style={{ width: `${pct}%` }} />
                                   </div>
                                   <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                                 </div>
@@ -1229,7 +1234,7 @@ export default function RoadmapPage() {
                             <td className="px-1 py-0.5">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button type="button" className="size-6 flex items-center justify-center rounded hover:bg-accent opacity-0 group-hover/row:opacity-100 transition-opacity"><MoreHorizontal className="size-3.5" /></button>
+                                  <button type="button" className="size-6 flex items-center justify-center rounded hover:bg-orange-50 opacity-0 group-hover/row:opacity-100 transition-opacity"><MoreHorizontal className="size-3.5" /></button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openEditDialog(project)}><Pencil className="size-3.5 mr-2" />수정</DropdownMenuItem>
@@ -1248,9 +1253,9 @@ export default function RoadmapPage() {
                             const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
                             return (
                               <tr key={task.id} className={cn(
-                                'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap bg-muted/5',
-                                isTaskCompleted && 'bg-foreground/[0.02] dark:bg-foreground/[0.04] border-l-[3px] border-l-foreground/20',
-                                isFilteredAssignee && !isTaskCompleted && 'bg-foreground/[0.04] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/40',
+                                'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap bg-stone-50/30',
+                                isTaskCompleted && 'bg-emerald-50/20 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-200',
+                                isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 dark:bg-orange-950/10 border-l-[3px] border-l-orange-300',
                               )}>
                                 <td className="px-1 py-0.5"></td>
                                 <td className="px-1 py-0.5">
@@ -1325,7 +1330,7 @@ export default function RoadmapPage() {
                           })}
                           {/* Add sub-task */}
                           {isExpanded && (
-                            <tr className="border-b border-border/30 bg-muted/5">
+                            <tr className="border-b border-border/30 bg-stone-50/30">
                               <td className="px-1 py-0.5"></td>
                               <td className="px-1 py-0.5"></td>
                               <td className="px-2 py-0.5 pl-8" colSpan={9}>
@@ -1379,16 +1384,16 @@ export default function RoadmapPage() {
                   ? renderGroups(group.children, depth + 1)
                   : projectCount > 0
                     ? renderProjectRows(group.projects)
-                    : <div className="border-t px-4 py-1.5 text-center text-[11px] text-muted-foreground/50">{group.label} 프로젝트가 없습니다</div>;
+                    : <div className="border-t border-stone-100 px-4 py-1.5 text-center text-[11px] text-stone-400">{group.label} 프로젝트가 없어요</div>;
 
                 if (depth === 0) {
                   // Top-level: full card
                   return (
                     <div key={group.key} className={cn(
-                      'rounded-xl border bg-card overflow-hidden shadow-sm',
-                      isCompletedState && 'border-foreground/20',
-                      isActiveState && 'border-foreground/15',
-                      isPendingState && 'border-border',
+                      'rounded-2xl border bg-white overflow-hidden shadow-sm',
+                      isCompletedState && 'border-emerald-100',
+                      isActiveState && 'border-orange-100',
+                      isPendingState && 'border-stone-100',
                     )}>
                       <button
                         type="button"
@@ -1396,12 +1401,12 @@ export default function RoadmapPage() {
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-2 transition-colors',
                           isCompletedState
-                            ? 'bg-foreground/[0.04] hover:bg-foreground/[0.07]'
+                            ? 'bg-emerald-50/50 hover:bg-emerald-50/80'
                             : isActiveState
-                              ? 'bg-foreground/[0.03] hover:bg-foreground/[0.06]'
+                              ? 'bg-orange-50/50 hover:bg-orange-50/80'
                               : isPendingState
-                                ? 'bg-secondary/50 hover:bg-secondary/80'
-                                : 'bg-muted/30 hover:bg-muted/50',
+                                ? 'bg-stone-50/50 hover:bg-stone-50/80'
+                                : 'bg-stone-50/30 hover:bg-stone-50/50',
                         )}
                       >
                         {isGroupCollapsed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -1409,9 +1414,9 @@ export default function RoadmapPage() {
                         <span className={cn('text-sm font-semibold', group.color)}>{group.label}</span>
                         <Badge variant="secondary" className={cn(
                           'text-[10px] px-1.5 py-0 rounded-full',
-                          isCompletedState && 'bg-foreground text-background',
-                          isActiveState && 'bg-foreground/10 text-foreground',
-                          isPendingState && 'bg-secondary text-muted-foreground',
+                          isCompletedState && 'bg-emerald-50 text-emerald-600',
+                          isActiveState && 'bg-orange-50 text-orange-600',
+                          isPendingState && 'bg-stone-100 text-stone-500',
                         )}>
                           {projectCount}개
                         </Badge>
@@ -1427,26 +1432,26 @@ export default function RoadmapPage() {
                 } else {
                   // Nested sub-group: colored left border + tinted background
                   const subBorderColor = isCompletedState
-                    ? 'border-l-foreground/30'
+                    ? 'border-l-emerald-300'
                     : isActiveState
-                      ? 'border-l-foreground/20'
+                      ? 'border-l-orange-300'
                       : isPendingState
-                        ? 'border-l-muted-foreground/30'
-                        : 'border-l-muted-foreground/20';
+                        ? 'border-l-stone-300'
+                        : 'border-l-stone-200';
                   const subBg = isCompletedState
-                    ? 'bg-foreground/[0.03]'
+                    ? 'bg-emerald-50/30'
                     : isActiveState
-                      ? 'bg-foreground/[0.02]'
+                      ? 'bg-orange-50/30'
                       : isPendingState
-                        ? 'bg-secondary/40'
-                        : 'bg-secondary/30';
+                        ? 'bg-stone-50/40'
+                        : 'bg-stone-50/30';
                   return (
                     <div key={group.key} className={cn('border-t border-l-[3px]', subBorderColor)}>
                       <button
                         type="button"
                         onClick={() => toggleGroupCollapse(group.key)}
                         className={cn(
-                          'w-full flex items-center gap-2 px-4 py-1.5 transition-colors hover:bg-muted/40',
+                          'w-full flex items-center gap-2 px-4 py-1.5 transition-colors hover:bg-orange-50/40',
                           subBg,
                           depth === 1 ? 'pl-5' : 'pl-9',
                         )}
@@ -1456,9 +1461,9 @@ export default function RoadmapPage() {
                         <span className={cn('text-[12px] font-semibold', group.color)}>{group.label}</span>
                         <Badge variant="secondary" className={cn(
                           'text-[9px] px-1.5 py-0 h-4 rounded-full',
-                          isCompletedState && 'bg-foreground text-background',
-                          isActiveState && 'bg-foreground/10 text-foreground',
-                          isPendingState && 'bg-secondary text-muted-foreground',
+                          isCompletedState && 'bg-emerald-50 text-emerald-600',
+                          isActiveState && 'bg-orange-50 text-orange-600',
+                          isPendingState && 'bg-stone-100 text-stone-500',
                         )}>
                           {projectCount}개
                         </Badge>
@@ -1480,9 +1485,9 @@ export default function RoadmapPage() {
         </div>
       ) : (
         /* ═══════════════ TABLE VIEW ═══════════════ */
-        <div className="rounded-xl border bg-card overflow-auto">
+        <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-auto">
           {/* Toolbar */}
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b bg-muted/20">
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-stone-100 bg-stone-50/50">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <span>{filteredProjects.length}개 프로젝트</span>
               <span className="text-muted-foreground/30">|</span>
@@ -1510,7 +1515,7 @@ export default function RoadmapPage() {
               <col style={{ width: 28 }} />
             </colgroup>
             <thead>
-              <tr className="border-b bg-muted/40">
+              <tr className="border-b bg-stone-50">
                 <th className="px-1 py-0.5"></th>
                 <th className="px-2 py-0.5">
                   <Checkbox
@@ -1552,10 +1557,10 @@ export default function RoadmapPage() {
                       onDrop={handleProjectDrop}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        'border-b hover:bg-accent/30 transition-colors group/row whitespace-nowrap',
-                        isExpanded && 'bg-accent/10',
+                        'border-b hover:bg-orange-50/60 transition-colors group/row whitespace-nowrap',
+                        isExpanded && 'bg-orange-50/30',
                         isSelected && 'bg-primary/5',
-                        project.state === '완료' && 'bg-foreground/[0.03] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/30',
+                        project.state === '완료' && 'bg-emerald-50/30 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-300',
                         dragItem?.type === 'project' && dragItem.id === project.id && 'opacity-40',
                         dragOverItem?.type === 'project' && dragOverItem.id === project.id && 'border-t-2 border-t-primary',
                       )}
@@ -1575,7 +1580,7 @@ export default function RoadmapPage() {
                       {/* Expand */}
                       <td className="px-1 py-0.5">
                         <button
-                          className="size-5 flex items-center justify-center rounded hover:bg-accent"
+                          className="size-5 flex items-center justify-center rounded hover:bg-orange-50"
                           onClick={() => toggleExpand(project.id)}
                         >
                           {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
@@ -1585,7 +1590,7 @@ export default function RoadmapPage() {
                       <td className="px-2 py-0.5 max-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
                           {project.state === '완료' && (
-                            <span className="shrink-0 size-5 rounded-full bg-foreground/10 flex items-center justify-center">
+                            <span className="shrink-0 size-5 rounded-full bg-emerald-50 flex items-center justify-center">
                               <Trophy className="size-2.5 text-foreground" />
                             </span>
                           )}
@@ -1647,14 +1652,14 @@ export default function RoadmapPage() {
                       {/* Progress */}
                       <td className="px-2 py-0.5">
                         {pct === 100 && tasks.length > 0 ? (
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-foreground text-background rounded-full gap-0.5">
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-50 text-emerald-600 rounded-full gap-0.5">
                             <CheckCircle2 className="size-2.5" />
                             {completed}/{tasks.length}
                           </Badge>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-foreground' : 'bg-muted-foreground/30')} style={{ width: `${pct}%` }} />
+                            <div className="w-10 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                              <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-orange-500' : 'bg-stone-200')} style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
                           </div>
@@ -1702,7 +1707,7 @@ export default function RoadmapPage() {
                       <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="size-6 flex items-center justify-center rounded hover:bg-accent opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            <button className="size-6 flex items-center justify-center rounded hover:bg-orange-50 opacity-0 group-hover/row:opacity-100 transition-opacity">
                               <MoreHorizontal className="size-3.5" />
                             </button>
                           </DropdownMenuTrigger>
@@ -1732,11 +1737,11 @@ export default function RoadmapPage() {
                           onDrop={() => handleTaskDrop(project.id)}
                           onDragEnd={handleDragEnd}
                           className={cn(
-                            'border-b border-border/30 hover:bg-accent/20 transition-colors group/task whitespace-nowrap',
-                            'bg-muted/5',
+                            'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap',
+                            'bg-stone-50/30',
                             isTaskSelected && 'bg-primary/5',
-                            isTaskCompleted && 'bg-foreground/[0.02] dark:bg-foreground/[0.04] border-l-[3px] border-l-foreground/20',
-                            isFilteredAssignee && !isTaskCompleted && 'bg-foreground/[0.04] dark:bg-foreground/[0.06] border-l-[3px] border-l-foreground/40',
+                            isTaskCompleted && 'bg-emerald-50/20 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-200',
+                            isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 dark:bg-orange-950/10 border-l-[3px] border-l-orange-300',
                             dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
                             dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                           )}
@@ -1862,18 +1867,18 @@ export default function RoadmapPage() {
                     })}
                     {/* Empty state for no tasks */}
                     {isExpanded && tasks.length === 0 && (
-                      <tr className="border-b border-border/30 bg-muted/5">
+                      <tr className="border-b border-border/30 bg-stone-50/30">
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5 pl-8" colSpan={9}>
-                          <span className="text-[11px] text-muted-foreground/40 italic">하위 업무가 없습니다. 아래에서 추가해보세요.</span>
+                          <span className="text-[11px] text-stone-400 italic">하위 업무가 없어요. 아래에서 추가해 보세요!</span>
                         </td>
                       </tr>
                     )}
                     {/* Add sub-task row */}
                     {isExpanded && (
-                      <tr className="border-b border-border/30 bg-muted/5">
+                      <tr className="border-b border-border/30 bg-stone-50/30">
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
@@ -1902,7 +1907,7 @@ export default function RoadmapPage() {
                 );
               })}
               {/* ── Inline Add Project Row ── */}
-              <tr className="border-b border-border/30 hover:bg-accent/10">
+              <tr className="border-b border-border/30 hover:bg-stone-50/60">
                 <td className="px-1 py-1"></td>
                 <td className="px-2 py-1"></td>
                 <td className="px-1 py-1">
@@ -1932,16 +1937,16 @@ export default function RoadmapPage() {
 
       {/* ═══════════════ COMPLETED PROJECTS SECTION ═══════════════ */}
       {completedProjects.length > 0 && (
-        <div className="rounded-xl border border-foreground/20 bg-foreground/[0.03] overflow-hidden">
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 overflow-hidden">
           <button
-            className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-foreground/[0.05] transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-1.5 hover:bg-emerald-50/60 transition-colors"
             onClick={() => setShowCompleted(true)}
           >
-            <Trophy className="size-4 text-foreground/60" />
-            <span className="text-sm font-semibold text-foreground">
+            <Trophy className="size-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-stone-800">
               완료된 프로젝트
             </span>
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full bg-foreground text-background">
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full bg-emerald-50 text-emerald-600">
               {completedProjects.length}개
             </Badge>
             <span className="ml-auto text-[11px] text-muted-foreground">
@@ -1977,9 +1982,9 @@ export default function RoadmapPage() {
                 </Button>
                 {bulkAssigneeOpen && (
                   <div className="absolute bottom-full mb-2 left-0 w-[160px] rounded-lg border bg-popover shadow-lg p-1">
-                    <button className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-accent" onClick={() => bulkUpdateAssignee(null)}>미지정</button>
+                    <button className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-orange-50" onClick={() => bulkUpdateAssignee(null)}>미지정</button>
                     {users.filter((u) => u.is_active).map((u) => (
-                      <button key={u.id} className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-accent" onClick={() => bulkUpdateAssignee(u.id)}>{u.name}</button>
+                      <button key={u.id} className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-orange-50" onClick={() => bulkUpdateAssignee(u.id)}>{u.name}</button>
                     ))}
                   </div>
                 )}
@@ -2076,7 +2081,7 @@ export default function RoadmapPage() {
           <EmptyProjectForm formData={formData} setFormData={setFormData} users={users} />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>취소</Button>
-            <Button className="bg-foreground text-background hover:bg-foreground/90" onClick={handleSubmit} disabled={!formData.project_name?.trim() || creating || updating}>{editingProject ? '저장' : '생성'}</Button>
+            <Button className="bg-orange-500 text-white hover:bg-orange-600" onClick={handleSubmit} disabled={!formData.project_name?.trim() || creating || updating}>{editingProject ? '저장' : '생성'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

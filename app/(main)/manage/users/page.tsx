@@ -35,11 +35,11 @@ import type { User, UserRole } from '@/lib/types/database';
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   admin: {
     label: '관리자',
-    className: 'bg-foreground text-background',
+    className: 'bg-orange-50 text-orange-600',
   },
   member: {
     label: '멤버',
-    className: 'bg-secondary text-secondary-foreground',
+    className: 'bg-stone-100 text-stone-500',
   },
 };
 
@@ -240,7 +240,7 @@ export default function UsersPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -249,10 +249,10 @@ export default function UsersPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -266,13 +266,18 @@ export default function UsersPage() {
       className="space-y-4"
     >
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">우리 팀, 여기서 관리해.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            팀원 초대, 역할 설정, 활성 상태 관리까지. 팀 구성은 제가 도와줄게요.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <UserPlus className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">우리 팀을 관리할 수 있어요</h1>
+            <p className="text-sm text-stone-500 mt-1">
+              팀원 초대, 역할 설정, 활성 상태 관리까지 편하게 해 보세요.
+            </p>
+          </div>
         </div>
-        <Button onClick={() => setIsInviteDialogOpen(true)} className="rounded-lg bg-foreground text-background hover:bg-foreground/90">
+        <Button onClick={() => setIsInviteDialogOpen(true)} className="rounded-2xl bg-orange-500 text-white hover:bg-orange-600 shadow-sm">
           <UserPlus className="h-4 w-4 mr-2" />
           새 담당자 초대
         </Button>
@@ -280,26 +285,26 @@ export default function UsersPage() {
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
+        <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
-                <Bot className="size-4 text-background" />
+              <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center">
+                <Bot className="size-4 text-white" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-orange-500 border-2 border-white" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-foreground">bkit AI Agent</p>
-                <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">담당자 관리 가이드</span>
+                <p className="text-[12px] font-bold text-stone-800">bkit AI Agent</p>
+                <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">담당자 관리 가이드</span>
               </div>
-              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                <p>안녕하세요, 어포메이션 임직원 여러분! 담당자 관리 페이지를 안내해 드립니다.</p>
-                <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                  <p>이 페이지에서 <strong className="text-foreground">팀 구성원을 초대하고 역할(관리자/멤버)을 설정</strong>합니다.</p>
-                  <p><strong className="text-foreground">비활성화</strong>하면 해당 담당자가 시스템에서 숨겨지며, 업무 배정에서 제외됩니다.</p>
+              <div className="text-[11px] text-stone-600 leading-[1.7] space-y-1">
+                <p>안녕하세요! 담당자 관리 페이지를 안내해 드릴게요.</p>
+                <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                  <p>이 페이지에서 <strong className="text-orange-700">팀 구성원을 초대하고 역할(관리자/멤버)을 설정</strong>할 수 있어요.</p>
+                  <p><strong className="text-orange-700">비활성화</strong>하면 해당 담당자가 시스템에서 숨겨지고, 업무 배정에서 제외돼요.</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground/60">정확한 담당자 정보가 업무 배정과 일일 체크의 기반이 됩니다!</p>
+                <p className="text-[10px] text-stone-400">정확한 담당자 정보가 업무 배정과 일일 체크의 기반이 돼요!</p>
               </div>
             </div>
           </div>
@@ -308,9 +313,9 @@ export default function UsersPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-            <span className="text-sm">데이터를 불러오는 중...</span>
+          <div className="flex items-center gap-3 text-stone-400">
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+            <span className="text-sm">데이터를 불러오는 중이에요...</span>
           </div>
         </div>
       ) : (
@@ -326,10 +331,10 @@ export default function UsersPage() {
 
       {/* Invite Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-card border-stone-100 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-bold">새 담당자 초대</DialogTitle>
-            <DialogDescription>새 팀 구성원의 이메일과 정보를 입력하세요.</DialogDescription>
+            <DialogTitle className="font-bold">새 담당자를 초대해 보세요</DialogTitle>
+            <DialogDescription className="text-stone-500">새 팀 구성원의 이메일과 정보를 입력해 주세요.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -392,10 +397,10 @@ export default function UsersPage() {
               초기 비밀번호: temp1234! (로그인 후 변경 필요)
             </p>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)} className="rounded-lg border-border">
+              <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)} className="rounded-xl border-stone-200">
                 취소
               </Button>
-              <Button type="submit" disabled={inviteMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg">
+              <Button type="submit" disabled={inviteMutation.isPending} className="bg-orange-500 text-white hover:bg-orange-600 rounded-xl">
                 {inviteMutation.isPending ? '초대 중...' : '초대'}
               </Button>
             </DialogFooter>
@@ -405,10 +410,10 @@ export default function UsersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-card border-stone-100 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-bold">담당자 수정</DialogTitle>
-            <DialogDescription>담당자 정보를 수정합니다.</DialogDescription>
+            <DialogTitle className="font-bold">담당자 정보 수정</DialogTitle>
+            <DialogDescription className="text-stone-500">담당자 정보를 수정해 주세요.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -474,10 +479,10 @@ export default function UsersPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-lg border-border">
+              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-xl border-stone-200">
                 취소
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg">
+              <Button type="submit" disabled={updateMutation.isPending} className="bg-orange-500 text-white hover:bg-orange-600 rounded-xl">
                 {updateMutation.isPending ? '저장 중...' : '수정'}
               </Button>
             </DialogFooter>

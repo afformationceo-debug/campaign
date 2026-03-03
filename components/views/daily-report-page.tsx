@@ -144,7 +144,7 @@ const STATUS_CONFIG = {
   진행중: {
     label: '진행중',
     color: 'text-cyan-600',
-    badge: 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
+    badge: 'bg-orange-50 text-orange-600 border-orange-200',
     glow: 'shadow-cyan-200/50',
     icon: Clock,
   },
@@ -167,18 +167,18 @@ const STATUS_CONFIG = {
 /* ─── Section Accent System ─── */
 const SECTION_ACCENTS = {
   cyan: {
-    border: 'accent-l-cyan',
-    bg: 'bg-cyan-50/40',
-    text: 'text-cyan-700',
-    iconBg: 'bg-cyan-100',
-    iconText: 'text-cyan-600',
-    emptyBg: 'bg-cyan-50/20',
-    emptyBorder: 'border-cyan-200/40',
-    ring: 'ring-cyan-200/60',
+    border: 'border-l-2 border-l-orange-400',
+    bg: 'bg-orange-50/50',
+    text: 'text-orange-700',
+    iconBg: 'bg-orange-100',
+    iconText: 'text-orange-600',
+    emptyBg: 'bg-orange-50/20',
+    emptyBorder: 'border-orange-200/40',
+    ring: 'ring-orange-200/60',
   },
   violet: {
-    border: 'accent-l-violet',
-    bg: 'bg-violet-50/40',
+    border: 'border-l-2 border-l-violet-400',
+    bg: 'bg-violet-50/50',
     text: 'text-violet-700',
     iconBg: 'bg-violet-100',
     iconText: 'text-violet-600',
@@ -187,8 +187,8 @@ const SECTION_ACCENTS = {
     ring: 'ring-violet-200/60',
   },
   amber: {
-    border: 'accent-l-amber',
-    bg: 'bg-amber-50/40',
+    border: 'border-l-2 border-l-amber-400',
+    bg: 'bg-amber-50/50',
     text: 'text-amber-700',
     iconBg: 'bg-amber-100',
     iconText: 'text-amber-600',
@@ -197,8 +197,8 @@ const SECTION_ACCENTS = {
     ring: 'ring-amber-200/60',
   },
   rose: {
-    border: 'accent-l-rose',
-    bg: 'bg-rose-50/40',
+    border: 'border-l-2 border-l-rose-400',
+    bg: 'bg-rose-50/50',
     text: 'text-rose-700',
     iconBg: 'bg-rose-100',
     iconText: 'text-rose-600',
@@ -207,8 +207,8 @@ const SECTION_ACCENTS = {
     ring: 'ring-rose-200/60',
   },
   emerald: {
-    border: 'accent-l-emerald',
-    bg: 'bg-emerald-50/40',
+    border: 'border-l-2 border-l-emerald-400',
+    bg: 'bg-emerald-50/50',
     text: 'text-emerald-700',
     iconBg: 'bg-emerald-100',
     iconText: 'text-emerald-600',
@@ -318,8 +318,8 @@ function getCompletionColor(value: number) {
 function LiveIndicator() {
   return (
     <span className="relative flex size-2">
-      <span className="absolute inline-flex size-full animate-live-pulse rounded-full bg-cyan-400" />
-      <span className="relative inline-flex size-2 rounded-full bg-cyan-500" />
+      <span className="absolute inline-flex size-full animate-live-pulse rounded-full bg-orange-400" />
+      <span className="relative inline-flex size-2 rounded-full bg-orange-500" />
     </span>
   );
 }
@@ -363,7 +363,7 @@ function ReportStatusBadge({ status }: { status: DailyReport['status'] }) {
 
   if (status === '제출완료') {
     return (
-      <Badge className="bg-cyan-500/10 text-cyan-600 border-cyan-200 text-[10px] shadow-sm shadow-cyan-200/30">
+      <Badge className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] shadow-sm shadow-cyan-200/30">
         <Send className="mr-1 size-3" />
         제출완료
       </Badge>
@@ -382,11 +382,11 @@ function CommandFlowCard() {
   return (
     <motion.div
       variants={neuralScale}
-      className="neural-card rounded-2xl border bg-card/80 backdrop-blur-sm p-5"
+      className="narrative-card rounded-2xl border bg-white p-5"
     >
       <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-100 to-violet-100">
-          <Bot className="size-4 text-cyan-700" />
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-rose-100">
+          <Bot className="size-4 text-orange-700" />
         </div>
         <div>
           <h3 className="text-sm font-bold tracking-tight">AI Ops 워크플로우</h3>
@@ -399,7 +399,7 @@ function CommandFlowCard() {
       <div className="mt-5 grid gap-3 lg:grid-cols-3">
         {DAILY_OPS_FLOW.map((step, index) => (
           <div key={step.title} className="group relative">
-            <div className="rounded-xl border bg-gradient-to-br from-background to-secondary/30 px-4 py-4 transition-all duration-300 hover:shadow-md hover:shadow-cyan-100/30 hover:border-cyan-200/60">
+            <div className="rounded-xl border bg-gradient-to-br from-background to-secondary/30 px-4 py-4 transition-all duration-300 hover:shadow-md hover:shadow-orange-100/30 hover:border-cyan-200/60">
               <div className="flex items-center gap-2">
                 <span className="flex size-5 items-center justify-center rounded-md bg-cyan-500/10 font-mono text-[10px] font-bold text-cyan-600">
                   {index + 1}
@@ -443,7 +443,7 @@ function CommandFlowCard() {
 /* ─── Report Fields Guide ─── */
 function ReportFieldsGuideCard() {
   return (
-    <motion.div variants={neuralScale} className="rounded-2xl border bg-card/80 backdrop-blur-sm p-5">
+    <motion.div variants={neuralScale} className="rounded-2xl border bg-white p-5">
       <div className="flex items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-rose-100">
           <Layers className="size-4 text-violet-700" />
@@ -495,7 +495,7 @@ function ManagerChecklistCard() {
   return (
     <motion.div
       variants={neuralScale}
-      className="rounded-2xl border bg-card/80 backdrop-blur-sm p-5 xl:sticky xl:top-20"
+      className="rounded-2xl border bg-white p-5 xl:sticky xl:top-20"
     >
       <div className="flex items-center gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-orange-100">
@@ -549,7 +549,7 @@ function InsightList({
   const accent = SECTION_ACCENTS[accentColor];
 
   return (
-    <div className="neural-card rounded-2xl border bg-card/80 backdrop-blur-sm p-5">
+    <div className="narrative-card rounded-2xl border bg-white p-5">
       <div className="mb-4 flex items-center gap-3">
         <SectionIcon icon={Icon} accent={accentColor} size="md" />
         <div>
@@ -597,7 +597,7 @@ function InsightList({
                   'rounded-xl border px-4 py-3.5 transition-all duration-200 hover:shadow-sm',
                   tone === 'warning'
                     ? 'accent-l-amber bg-amber-50/30 hover:shadow-amber-100/40'
-                    : `${accent.border} ${accent.bg} hover:shadow-cyan-100/30`
+                    : `${accent.border} ${accent.bg} hover:shadow-orange-100/30`
                 )}
               >
                 <div className="flex flex-wrap items-center gap-2">
@@ -655,7 +655,7 @@ function ReportNarrative({
   onConfirmReport: (reportId: string) => void;
 }) {
   return (
-    <div className="rounded-2xl border bg-card/80 backdrop-blur-sm p-5">
+    <div className="rounded-2xl border bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-100 to-amber-100">
@@ -887,15 +887,15 @@ function AssigneeReportCard({
   return (
     <motion.div
       variants={neuralScale}
-      className="group overflow-hidden rounded-2xl border bg-card/80 backdrop-blur-sm shadow-sm transition-shadow duration-300 hover:shadow-md hover:shadow-cyan-100/20"
+      className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow duration-300 hover:shadow-md hover:shadow-stone-100/30"
     >
       <button
         type="button"
         onClick={() => setExpanded((current) => !current)}
         className="flex w-full items-start gap-4 px-5 py-5 text-left transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-50/30 hover:via-violet-50/10 hover:to-transparent"
       >
-        <div className="relative mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-100 to-violet-100 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:shadow-cyan-200/30">
-          <UserIcon className="size-4.5 text-cyan-700" />
+        <div className="relative mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-rose-100 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:shadow-cyan-200/30">
+          <UserIcon className="size-4.5 text-orange-700" />
           {filledSections >= 5 && (
             <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-emerald-500 shadow-sm shadow-emerald-200/50">
               <CheckCircle2 className="size-2 text-white" />
@@ -959,7 +959,7 @@ function AssigneeReportCard({
         <div className="pt-1">
           <div className={cn(
             'flex size-7 items-center justify-center rounded-lg transition-all duration-200',
-            expanded ? 'bg-cyan-100 text-cyan-600' : 'bg-secondary text-muted-foreground'
+            expanded ? 'bg-orange-100 text-orange-600' : 'bg-secondary text-muted-foreground'
           )}>
             {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
           </div>
@@ -1013,8 +1013,8 @@ function AssigneeReportCard({
 
             <div className="border-t p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-100 to-blue-100">
-                  <FileCheck className="size-4 text-cyan-700" />
+                <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-amber-100">
+                  <FileCheck className="size-4 text-orange-700" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold tracking-tight">근거 업무 상세</h3>
@@ -1089,8 +1089,8 @@ function HeroMetricCard({
         ease: [0.16, 1, 0.3, 1],
       }}
       className={cn(
-        'neural-card rounded-2xl border bg-card/80 backdrop-blur-sm p-4 transition-all duration-300',
-        'hover:shadow-lg hover:shadow-cyan-100/20 hover:-translate-y-0.5',
+        'narrative-card rounded-2xl border bg-white p-4 transition-all duration-300',
+        'hover:shadow-lg hover:shadow-stone-100/30 hover:-translate-y-0.5',
         style.border
       )}
     >
@@ -1218,8 +1218,8 @@ function MyReportDialog({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-black">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-100 to-violet-100">
-              <Sparkles className="size-3.5 text-cyan-700" />
+            <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-100 to-rose-100">
+              <Sparkles className="size-3.5 text-orange-700" />
             </div>
             결과 중심 보고 — {userName} · {format(new Date(date), 'M월 d일 (EEE)', { locale: ko })}
           </DialogTitle>
@@ -1643,29 +1643,28 @@ export default function DailyReportPageView() {
       className="space-y-5"
     >
       {/* ── Hero Header ── */}
-      <motion.div variants={neuralFadeUp} className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card via-card to-cyan-50/30 p-6 shadow-sm">
-        <div className="pointer-events-none absolute inset-0 ai-grid-bg opacity-40" />
-        <div className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full bg-gradient-to-br from-cyan-200/20 to-violet-200/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-gradient-to-tr from-emerald-200/15 to-cyan-200/15 blur-3xl" />
+      <motion.div variants={neuralFadeUp} className="relative overflow-hidden rounded-3xl border border-stone-100 bg-white p-6 shadow-sm">
+        <div className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full bg-gradient-to-br from-orange-100/40 to-amber-100/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-gradient-to-tr from-emerald-100/20 to-orange-100/20 blur-3xl" />
 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-lg shadow-cyan-200/40">
-                <Bot className="size-5 text-white" />
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 shadow-lg shadow-orange-200/40">
+                <ClipboardCheck className="size-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h1 className="text-2xl font-black tracking-tight text-gradient">일일 보고서</h1>
+                  <h1 className="text-2xl font-black tracking-tight text-stone-800">일일 보고서</h1>
                   <LiveIndicator />
                 </div>
                 <div className="mt-0.5 flex items-center gap-2">
-                  <Badge className="border-cyan-200 bg-cyan-500/10 text-[9px] font-bold text-cyan-600 shadow-sm shadow-cyan-200/30">
+                  <Badge className="border-orange-200 bg-orange-50 text-[9px] font-bold text-orange-600">
                     <Sparkles className="mr-1 size-2.5" />
-                    AI Ops Dashboard
+                    자동 수집
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">
-                    결과 근거 자동 수집 · 5-Field 서술 보고 · 실시간 인사이트
+                  <span className="text-[10px] text-stone-400">
+                    결과 근거 자동 수집 · 5가지 항목 보고 · 실시간 현황
                   </span>
                 </div>
               </div>
@@ -1678,7 +1677,7 @@ export default function DailyReportPageView() {
                 value={selectedReportAuthor?.id}
                 onValueChange={setReportAuthorId}
               >
-                <SelectTrigger className="h-9 w-[170px] text-[11px] border-cyan-200/50 focus:ring-cyan-200/50">
+                <SelectTrigger className="h-9 w-[170px] text-[11px] border-stone-200 focus:ring-orange-200/50">
                   <SelectValue placeholder="보고 작성자 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1692,7 +1691,7 @@ export default function DailyReportPageView() {
 
               <Button
                 size="sm"
-                className="h-9 bg-gradient-to-r from-cyan-600 to-cyan-500 text-[11px] text-white shadow-md shadow-cyan-200/40 hover:from-cyan-700 hover:to-cyan-600 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-200/50"
+                className="h-9 bg-gradient-to-r from-orange-500 to-orange-400 text-[11px] text-white shadow-md shadow-orange-200/40 hover:from-orange-600 hover:to-orange-500 transition-all duration-200 hover:shadow-lg hover:shadow-orange-200/50"
                 onClick={() => setReportDialogOpen(true)}
                 disabled={!selectedReportAuthor}
               >
@@ -1714,7 +1713,7 @@ export default function DailyReportPageView() {
             <Button
               variant="ghost"
               size="icon-xs"
-              className="hover:bg-cyan-50 hover:text-cyan-600"
+              className="hover:bg-orange-50 hover:text-orange-600"
               onClick={() => {
                 const previousDate = new Date(date);
                 previousDate.setDate(previousDate.getDate() - 1);
@@ -1745,7 +1744,7 @@ export default function DailyReportPageView() {
             <Button
               variant="ghost"
               size="icon-xs"
-              className="hover:bg-cyan-50 hover:text-cyan-600"
+              className="hover:bg-orange-50 hover:text-orange-600"
               onClick={() => {
                 const nextDate = new Date(date);
                 nextDate.setDate(nextDate.getDate() + 1);
@@ -1865,7 +1864,7 @@ export default function DailyReportPageView() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
-                  'neural-card group rounded-2xl border bg-card/80 backdrop-blur-sm p-5 transition-all duration-300',
+                  'narrative-card group rounded-2xl border bg-white p-5 transition-all duration-300',
                   'hover:shadow-lg hover:-translate-y-0.5',
                   accent.border,
                   entries.length > 0
@@ -1934,17 +1933,17 @@ export default function DailyReportPageView() {
             initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="neural-card rounded-2xl border bg-gradient-to-br from-card/80 to-cyan-50/20 backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 accent-l-cyan md:col-span-2 xl:col-span-1"
+            className="narrative-card rounded-2xl border bg-gradient-to-br from-card/80 to-cyan-50/20 backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 accent-l-cyan md:col-span-2 xl:col-span-1"
           >
             <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-100 to-violet-100">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-100 to-rose-100">
                 <Activity className="size-4 text-cyan-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-cyan-700">자동 수집 결과</span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-orange-700">자동 수집 결과</span>
               </div>
               {overallStats.highlights.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] font-bold tabular-nums text-cyan-700">
+                <Badge variant="secondary" className="text-[10px] font-bold tabular-nums text-orange-700">
                   {overallStats.highlights.length}건
                 </Badge>
               )}

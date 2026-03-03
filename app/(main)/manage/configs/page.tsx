@@ -929,7 +929,7 @@ export default function ConfigsPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -938,10 +938,10 @@ export default function ConfigsPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
-            <span className="text-lg">🔒</span>
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
+            <KeyRound className="size-5 text-orange-400" />
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -955,11 +955,16 @@ export default function ConfigsPage() {
       className="space-y-3"
     >
       <motion.div variants={fadeUpItem} className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">캠페인 세팅, 한 곳에서 관리해.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            SNS 링크, 플랫폼 계정, 지식베이스 설정까지. 캠페인에 필요한 모든 설정을 여기서 관리하세요.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50">
+            <Settings className="size-5 text-amber-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">캠페인 세팅, 한 곳에서 관리해.</h1>
+            <p className="text-sm text-stone-500 mt-0.5">
+              SNS 링크부터 플랫폼 계정까지, 캠페인에 필요한 설정을 깔끔하게 정리해요.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button
@@ -992,26 +997,26 @@ export default function ConfigsPage() {
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
+        <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
-                <Bot className="size-4 text-background" />
+              <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center ring-2 ring-white">
+                <Bot className="size-4 text-white" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground/60 border-2 border-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-amber-400 border-2 border-white" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
-                <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">캠페인 세팅 가이드</span>
+                <p className="text-[12px] font-bold text-stone-800">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">캠페인 세팅 가이드</span>
               </div>
-              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                <p>안녕하세요, 어포메이션 임직원 여러분! 캠페인 세팅 페이지를 안내해 드립니다.</p>
-                <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                  <p>각 캠페인의 <strong className="text-foreground">SNS URL, 플랫폼 ID/PW, 지식베이스, CRM 연동</strong> 등의 세팅 항목을 관리합니다.</p>
-                  <p><strong className="text-foreground">대시보드 뷰</strong>에서 전체 캠페인의 세팅 현황을 한눈에 확인할 수 있으며, <strong className="text-foreground">CSV 내보내기/가져오기</strong>도 지원합니다.</p>
+              <div className="text-[11px] text-stone-500 leading-[1.7] space-y-1">
+                <p>안녕하세요! 캠페인 세팅 페이지에 오신 걸 환영해요.</p>
+                <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                  <p>각 캠페인의 <strong className="text-stone-700">SNS URL, 플랫폼 ID/PW, 지식베이스, CRM 연동</strong> 등의 세팅 항목을 관리해요.</p>
+                  <p><strong className="text-stone-700">대시보드 뷰</strong>에서 전체 세팅 현황을 한눈에 확인할 수 있고, <strong className="text-stone-700">CSV 내보내기/가져오기</strong>도 지원돼요.</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground/60">세팅 항목이 누락되면 캠페인 운영에 차질이 생길 수 있으니 빠짐없이 입력해 주세요!</p>
+                <p className="text-[10px] text-stone-400">세팅 항목이 빠지면 캠페인 운영에 차질이 생길 수 있으니 꼼꼼히 입력해 주세요!</p>
               </div>
             </div>
           </div>
@@ -1020,7 +1025,7 @@ export default function ConfigsPage() {
 
       {/* All-campaigns CSV result */}
       {allCsvResult && (
-        <motion.div variants={fadeUpItem} className="flex items-center gap-2 text-sm text-foreground bg-secondary px-3 py-2 rounded-lg">
+        <motion.div variants={fadeUpItem} className="flex items-center gap-2 text-sm text-stone-700 bg-orange-50 border border-orange-100 px-3 py-2 rounded-2xl">
           <Check className="h-4 w-4 shrink-0" />
           전체 CSV 업로드 완료: {allCsvResult.created}개 생성, {allCsvResult.updated}개 업데이트
           {allCsvResult.skipped > 0 && `, ${allCsvResult.skipped}개 스킵 (캠페인 미매칭)`}
@@ -1039,24 +1044,24 @@ export default function ConfigsPage() {
           setSelectedCampaignId(campaigns[0].id);
         }
       }} className="space-y-2">
-        <TabsList className="bg-secondary/50 p-1 rounded-full">
-          <TabsTrigger value="dashboard" className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+        <TabsList className="bg-stone-100/60 p-1 rounded-full">
+          <TabsTrigger value="dashboard" className="gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
             <BarChart3 className="h-3.5 w-3.5" />
             대시보드
           </TabsTrigger>
-          <TabsTrigger value="individual" className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+          <TabsTrigger value="individual" className="gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
             <List className="h-3.5 w-3.5" />
             개별 세팅
           </TabsTrigger>
-          <TabsTrigger value="matrix" className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+          <TabsTrigger value="matrix" className="gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
             <LayoutGrid className="h-3.5 w-3.5" />
             매트릭스 뷰
           </TabsTrigger>
-          <TabsTrigger value="key-view" className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+          <TabsTrigger value="key-view" className="gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
             <ClipboardList className="h-3.5 w-3.5" />
             항목별 현황
           </TabsTrigger>
-          <TabsTrigger value="onboarding" className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=inactive]:text-muted-foreground">
+          <TabsTrigger value="onboarding" className="gap-1.5 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=inactive]:text-stone-500">
             <BookOpen className="h-3.5 w-3.5" />
             온보딩 매뉴얼
           </TabsTrigger>
@@ -1102,10 +1107,10 @@ export default function ConfigsPage() {
                         className={cn(
                           'text-[9px] px-1.5 py-0 shrink-0 rounded-full',
                           counts.done === counts.total
-                            ? 'bg-foreground text-background border-foreground'
+                            ? 'bg-orange-500 text-white border-orange-500'
                             : counts.done > 0
-                            ? 'bg-foreground/10 text-foreground border-border'
-                            : 'bg-secondary text-muted-foreground border-border'
+                            ? 'bg-orange-50 text-orange-600 border-orange-200'
+                            : 'bg-stone-50 text-stone-400 border-stone-200'
                         )}
                       >
                         {counts.done}/{counts.total} 설정됨
@@ -1165,7 +1170,7 @@ export default function ConfigsPage() {
         const done = configs.filter((c) => c.status === '완료').length;
         const pct = Math.round((done / configs.length) * 100);
         return (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg border bg-muted/20">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-2xl border border-stone-100 bg-stone-50/50">
             <span className="text-[11px] text-muted-foreground shrink-0">세팅 진행률</span>
             <Progress value={pct} className="h-2 flex-1" />
             <span className={cn(
@@ -1182,7 +1187,7 @@ export default function ConfigsPage() {
 
       {/* CSV upload result */}
       {csvResult && (
-        <div className="flex items-center gap-2 text-sm text-foreground bg-secondary px-3 py-2 rounded-lg">
+        <div className="flex items-center gap-2 text-sm text-stone-700 bg-orange-50 border border-orange-100 px-3 py-2 rounded-2xl">
           <Check className="h-4 w-4" />
           CSV 업로드 완료: {csvResult.created}개 생성, {csvResult.updated}개 업데이트
           <button
@@ -1247,7 +1252,7 @@ export default function ConfigsPage() {
               취소
             </Button>
             <Button
-              className="bg-foreground text-background hover:bg-foreground/90"
+              className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
               onClick={handleCreateConfig}
               disabled={
                 !newConfigType ||
@@ -1282,7 +1287,7 @@ export default function ConfigsPage() {
           </DialogHeader>
           {pendingRename && (
             <div className="space-y-3 py-2">
-              <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
+              <div className="rounded-xl bg-stone-50 p-3 space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground shrink-0">변경 전:</span>
                   <span className="font-medium line-through text-muted-foreground">{pendingRename.oldKey}</span>
@@ -1312,7 +1317,7 @@ export default function ConfigsPage() {
               취소
             </Button>
             <Button
-              className="bg-foreground text-background hover:bg-foreground/90"
+              className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
               onClick={confirmRename}
               disabled={renameConfigKeyMutation.isPending}
             >
@@ -1324,27 +1329,31 @@ export default function ConfigsPage() {
 
       {/* Config entries */}
       {!selectedCampaignId ? (
-        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border rounded-lg gap-2">
-          <Settings className="h-8 w-8 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center h-32 text-stone-400 border border-stone-100 rounded-2xl gap-2 shadow-sm">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-50">
+            <Settings className="h-6 w-6 text-amber-400" />
+          </div>
           <div className="text-center">
-            <p className="font-medium text-sm">캠페인을 선택하세요</p>
-            <p className="text-xs">캠페인을 선택하면 설정 항목이 표시됩니다.</p>
+            <p className="font-medium text-sm text-stone-600">캠페인을 선택해 주세요</p>
+            <p className="text-xs text-stone-400">캠페인을 선택하면 설정 항목이 보여요.</p>
           </div>
         </div>
       ) : isLoading ? (
         <div className="flex items-center justify-center h-32">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-            <span className="text-sm">데이터를 불러오는 중...</span>
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+            <span className="text-sm text-stone-400">데이터를 불러오는 중이에요...</span>
           </div>
         </div>
       ) : configs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-40 border rounded-lg gap-2">
-          <FileText className="h-8 w-8 text-muted-foreground/50" />
+        <div className="flex flex-col items-center justify-center h-40 border border-stone-100 rounded-2xl gap-2 shadow-sm">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-orange-50">
+            <FileText className="h-6 w-6 text-orange-400" />
+          </div>
           <div className="text-center">
-            <p className="font-medium text-sm text-muted-foreground">설정 항목이 없습니다.</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              기본 템플릿을 생성하여 빠르게 시작하거나, 개별 설정을 추가하세요.
+            <p className="font-medium text-sm text-stone-600">아직 설정 항목이 없어요.</p>
+            <p className="text-xs text-stone-400 mt-0.5">
+              기본 템플릿으로 빠르게 시작하거나, 개별 설정을 추가해 보세요.
             </p>
           </div>
           <Button
@@ -1370,8 +1379,8 @@ export default function ConfigsPage() {
               : <Settings className="size-3 text-muted-foreground" />;
 
             return (
-            <div key={configType} className="rounded-xl border bg-card shadow-sm overflow-hidden">
-              <div className="px-3 py-1.5 border-b bg-muted/30 flex items-center gap-2">
+            <div key={configType} className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
+              <div className="px-3 py-1.5 border-b border-stone-100 bg-stone-50/50 flex items-center gap-2">
                 {groupIcon}
                 <span className="text-xs font-semibold">{configType}</span>
                 <div className="flex items-center gap-2 ml-auto">
@@ -1380,8 +1389,8 @@ export default function ConfigsPage() {
                     variant="secondary"
                     className={cn(
                       'text-[9px] px-1.5 py-0 rounded-full',
-                      groupPct === 100 && 'bg-foreground text-background',
-                      groupPct > 0 && groupPct < 100 && 'bg-foreground/10 text-foreground',
+                      groupPct === 100 && 'bg-orange-500 text-white',
+                      groupPct > 0 && groupPct < 100 && 'bg-orange-50 text-orange-600',
                     )}
                   >
                     {groupDone}/{items.length}
@@ -1390,16 +1399,16 @@ export default function ConfigsPage() {
               </div>
               <table className="w-full table-fixed text-left">
                 <thead>
-                  <tr className="border-b bg-muted/10">
-                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[25%]">항목</th>
-                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground">값</th>
-                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[80px] text-center">상태</th>
-                    <th className="px-3 py-1 text-[10px] font-semibold text-muted-foreground w-[36px]" />
+                  <tr className="border-b border-stone-100 bg-stone-50">
+                    <th className="px-3 py-1 text-[10px] font-semibold text-stone-500 w-[25%]">항목</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-stone-500">값</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-stone-500 w-[80px] text-center">상태</th>
+                    <th className="px-3 py-1 text-[10px] font-semibold text-stone-500 w-[36px]" />
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((config) => (
-                    <tr key={config.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                    <tr key={config.id} className="border-b border-stone-50 hover:bg-orange-50/40 transition-colors">
                       <td className="px-3 py-1">
                         {renamingConfigId === config.id ? (
                           <div className="flex items-center gap-1">
@@ -1420,7 +1429,7 @@ export default function ConfigsPage() {
                           </div>
                         ) : (
                           <span
-                            className="text-[11px] font-medium truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]"
+                            className="text-[11px] font-medium truncate block cursor-text hover:bg-orange-50 rounded px-1 -mx-1 min-h-[20px]"
                             onClick={() => startRenameKey(config)}
                             title="클릭하여 항목명 수정 (전체 캠페인 일괄 반영)"
                           >
@@ -1432,7 +1441,7 @@ export default function ConfigsPage() {
                         {/* value_type-aware rendering */}
                         {config.value_type === 'credentials' ? (
                           <span
-                            className="text-[11px] cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px] block"
+                            className="text-[11px] cursor-pointer hover:bg-orange-50 rounded px-1 -mx-1 min-h-[20px] block"
                             onClick={() => { setCredentialEditingConfig(config); setCredentialEditorOpen(true); }}
                           >
                             {config.config_value ? (
@@ -1514,7 +1523,7 @@ export default function ConfigsPage() {
                             </div>
                           ) : (config.config_value === '세팅완료' || config.config_value === '완료') ? (
                             <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>
-                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full bg-foreground text-background">{config.config_value}</Badge>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-full bg-orange-500 text-white">{config.config_value}</Badge>
                             </span>
                           ) : config.config_value === '불필요' ? (
                             <span className="inline-flex items-center gap-1 cursor-text" onClick={() => startEditing(config)}>
@@ -1523,7 +1532,7 @@ export default function ConfigsPage() {
                           ) : (
                             <span
                               className={cn(
-                                'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
+                                'text-[11px] truncate block cursor-text hover:bg-orange-50 rounded px-1 -mx-1 min-h-[20px]',
                                 !config.config_value && 'text-muted-foreground/50 italic'
                               )}
                               onClick={() => startEditing(config)}
@@ -1548,7 +1557,7 @@ export default function ConfigsPage() {
                           ) : (
                             <span
                               className={cn(
-                                'text-[11px] truncate block cursor-text hover:bg-accent/50 rounded px-1 -mx-1 min-h-[20px]',
+                                'text-[11px] truncate block cursor-text hover:bg-orange-50 rounded px-1 -mx-1 min-h-[20px]',
                                 !config.config_value && 'text-muted-foreground/50 italic'
                               )}
                               onClick={() => startEditing(config)}
@@ -1564,8 +1573,8 @@ export default function ConfigsPage() {
                           className={cn(
                             'cursor-pointer transition-colors text-[9px] px-1.5 py-0 rounded-full',
                             config.status === '완료'
-                              ? 'bg-foreground text-background hover:bg-foreground/90'
-                              : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                              ? 'bg-orange-500 text-white hover:bg-orange-600'
+                              : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
                           )}
                           onClick={() =>
                             toggleStatusMutation.mutate({

@@ -74,24 +74,24 @@ const QA_STATUSES: QaStatus[] = ['미해결', '진행중', '해결완료'];
 const QA_PRIORITIES: QaPriority[] = ['긴급', '높음', '보통', '낮음'];
 
 const QA_TYPE_CONFIG: Record<QaType, { icon: React.ElementType; color: string; bg: string }> = {
-  '요청사항': { icon: MessageSquareWarning, color: 'text-foreground', bg: 'bg-secondary' },
-  '불만사항': { icon: AlertCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
-  '개선사항': { icon: CheckCircle2, color: 'text-foreground', bg: 'bg-secondary' },
-  '버그': { icon: AlertCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
-  '기타': { icon: MessageSquareWarning, color: 'text-muted-foreground', bg: 'bg-secondary' },
+  '요청사항': { icon: MessageSquareWarning, color: 'text-orange-600', bg: 'bg-orange-50' },
+  '불만사항': { icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+  '개선사항': { icon: CheckCircle2, color: 'text-amber-600', bg: 'bg-amber-50' },
+  '버그': { icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+  '기타': { icon: MessageSquareWarning, color: 'text-stone-500', bg: 'bg-stone-50' },
 };
 
 const QA_STATUS_CONFIG: Record<QaStatus, { color: string; bg: string; border: string }> = {
-  '미해결': { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20' },
-  '진행중': { color: 'text-foreground', bg: 'bg-secondary', border: 'border-border' },
-  '해결완료': { color: 'text-muted-foreground', bg: 'bg-secondary/50', border: 'border-border' },
+  '미해결': { color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200' },
+  '진행중': { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+  '해결완료': { color: 'text-stone-400', bg: 'bg-stone-50', border: 'border-stone-200' },
 };
 
 const QA_PRIORITY_CONFIG: Record<QaPriority, { color: string; bg: string }> = {
-  '긴급': { color: 'text-destructive', bg: 'bg-destructive/10' },
-  '높음': { color: 'text-foreground', bg: 'bg-secondary' },
-  '보통': { color: 'text-muted-foreground', bg: 'bg-secondary' },
-  '낮음': { color: 'text-muted-foreground', bg: 'bg-secondary/50' },
+  '긴급': { color: 'text-rose-600', bg: 'bg-rose-50' },
+  '높음': { color: 'text-orange-600', bg: 'bg-orange-50' },
+  '보통': { color: 'text-stone-500', bg: 'bg-stone-50' },
+  '낮음': { color: 'text-stone-400', bg: 'bg-stone-50/50' },
 };
 
 /* ── Form Data ──────────────────────── */
@@ -210,7 +210,7 @@ function InlineTextCell({
           type="button"
           onClick={handleStart}
           className={cn(
-            'w-full text-left text-[11px] truncate cursor-text rounded px-0.5 hover:bg-secondary transition-colors min-h-[20px]',
+            'w-full text-left text-[11px] truncate cursor-text rounded px-0.5 hover:bg-orange-50 transition-colors min-h-[20px]',
             value ? (textColor || 'text-foreground') : 'text-muted-foreground/40'
           )}
         >
@@ -267,7 +267,7 @@ function InlineDateCell({
   }
 
   return (
-    <button type="button" onClick={handleStart} className="cursor-pointer hover:bg-secondary rounded px-0.5 transition-colors">
+    <button type="button" onClick={handleStart} className="cursor-pointer hover:bg-orange-50 rounded px-0.5 transition-colors">
       <DueDateBadge dueDate={value} status={status} />
     </button>
   );
@@ -609,35 +609,40 @@ export default function CampaignQaPage() {
         className="space-y-4"
       >
         {/* Header */}
-        <motion.div variants={fadeUpItem}>
-          <h1 className="text-2xl font-black tracking-tight">QA 이슈, 놓치지 않게 관리해줄게.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            요청사항, 불만, 개선점, 버그까지. 우선순위별로 정리하고 진행 상황을 추적하세요.
-          </p>
+        <motion.div variants={fadeUpItem} className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-rose-50">
+            <MessageSquareWarning className="size-5 text-rose-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">QA 이슈, 놓치지 않게 관리해줄게.</h1>
+            <p className="text-sm text-stone-500 mt-0.5">
+              요청사항부터 버그까지, 우선순위별로 깔끔하게 정리하고 함께 해결해요.
+            </p>
+          </div>
         </motion.div>
 
         {/* AI Agent Guide Banner */}
         <motion.div variants={fadeUpItem}>
-          <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
+          <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
             <div className="flex gap-3 items-start relative">
               <div className="relative shrink-0 mt-0.5">
-                <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
-                  <Bot className="size-4 text-background" />
+                <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center">
+                  <Bot className="size-4 text-white" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
+                <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-amber-400 border-2 border-white" />
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[12px] font-bold text-foreground">bkit AI Agent</p>
-                  <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">QA 관리 가이드</span>
+                  <p className="text-[12px] font-bold text-stone-800">bkit AI Agent</p>
+                  <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">QA 관리 가이드</span>
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                  <p>안녕하세요, 어포메이션 임직원 여러분! QA 관리 페이지를 안내해 드립니다.</p>
-                  <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                    <p>캠페인 진행 중 발생하는 <strong className="text-foreground">요청사항, 불만사항, 개선사항, 버그</strong> 등을 이곳에 등록해 주세요.</p>
-                    <p><strong className="text-foreground">우선순위</strong>를 정확히 설정하면 긴급한 이슈부터 빠르게 처리할 수 있습니다.</p>
+                <div className="text-[11px] text-stone-500 leading-[1.7] space-y-1">
+                  <p>안녕하세요! QA 관리 페이지에 오신 걸 환영해요.</p>
+                  <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                    <p>캠페인 진행 중 발생하는 <strong className="text-stone-700">요청사항, 불만사항, 개선사항, 버그</strong> 등을 이곳에 등록해 주세요.</p>
+                    <p><strong className="text-stone-700">우선순위</strong>를 정확히 설정하면 긴급한 이슈부터 빠르게 처리할 수 있어요.</p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60">QA를 꼼꼼하게 관리하면 고객 만족도가 크게 향상됩니다!</p>
+                  <p className="text-[10px] text-stone-400">QA를 꼼꼼하게 관리하면 고객 만족도가 크게 향상돼요!</p>
                 </div>
               </div>
             </div>
@@ -647,14 +652,14 @@ export default function CampaignQaPage() {
         {/* Stats Cards */}
         <motion.div variants={fadeUpItem} className="grid grid-cols-5 gap-3">
           {[
-            { label: '전체', value: stats.total, color: 'text-foreground', bg: 'bg-card' },
-            { label: '미해결', value: stats.unresolved, color: 'text-destructive', bg: 'bg-destructive/5' },
-            { label: '진행중', value: stats.inProgress, color: 'text-foreground', bg: 'bg-secondary' },
-            { label: '해결완료', value: stats.resolved, color: 'text-muted-foreground', bg: 'bg-secondary/50' },
-            { label: '기한초과', value: stats.overdue, color: 'text-destructive', bg: 'bg-destructive/5' },
+            { label: '전체', value: stats.total, color: 'text-stone-700', bg: 'bg-white' },
+            { label: '미해결', value: stats.unresolved, color: 'text-rose-600', bg: 'bg-rose-50' },
+            { label: '진행중', value: stats.inProgress, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { label: '해결완료', value: stats.resolved, color: 'text-stone-400', bg: 'bg-stone-50' },
+            { label: '기한초과', value: stats.overdue, color: 'text-rose-600', bg: 'bg-rose-50' },
           ].map((s) => (
-            <div key={s.label} className={cn('rounded-xl border border-border p-3', s.bg)}>
-              <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+            <div key={s.label} className={cn('rounded-2xl border border-stone-100 p-3 shadow-sm', s.bg)}>
+              <p className="text-[10px] text-stone-500 font-medium">{s.label}</p>
               <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
             </div>
           ))}
@@ -662,8 +667,8 @@ export default function CampaignQaPage() {
 
         {/* Filters & Actions */}
         <motion.div variants={fadeUpItem}>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
-            <Filter className="size-4 text-muted-foreground shrink-0" />
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-100 bg-white p-3 shadow-sm">
+            <Filter className="size-4 text-stone-400 shrink-0" />
             <Select value={campaignFilter} onValueChange={setCampaignFilter}>
               <SelectTrigger className="w-[180px] h-8 text-xs">
                 <SelectValue placeholder="캠페인 선택" />
@@ -722,13 +727,13 @@ export default function CampaignQaPage() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center border border-border rounded-lg h-8 overflow-hidden shrink-0">
+            <div className="flex items-center border border-stone-200 rounded-full h-8 overflow-hidden shrink-0">
               <button
                 type="button"
                 onClick={() => setGroupBy('campaign')}
                 className={cn(
                   'px-2.5 h-full text-[10px] font-medium transition-colors',
-                  groupBy === 'campaign' ? 'bg-foreground text-background' : 'hover:bg-secondary text-muted-foreground'
+                  groupBy === 'campaign' ? 'bg-orange-500 text-white' : 'hover:bg-orange-50 text-stone-500'
                 )}
               >
                 캠페인별
@@ -738,7 +743,7 @@ export default function CampaignQaPage() {
                 onClick={() => setGroupBy('assignee')}
                 className={cn(
                   'px-2.5 h-full text-[10px] font-medium transition-colors',
-                  groupBy === 'assignee' ? 'bg-foreground text-background' : 'hover:bg-secondary text-muted-foreground'
+                  groupBy === 'assignee' ? 'bg-orange-500 text-white' : 'hover:bg-orange-50 text-stone-500'
                 )}
               >
                 실행자별
@@ -756,7 +761,7 @@ export default function CampaignQaPage() {
             <Badge variant="secondary" className="text-[11px] rounded-full shrink-0">
               {filteredQa.length}건
             </Badge>
-            <Button size="sm" className="gap-1.5 ml-auto shrink-0 bg-foreground text-background hover:bg-foreground/90 rounded-lg" onClick={handleOpenCreate}>
+            <Button size="sm" className="gap-1.5 ml-auto shrink-0 bg-orange-500 text-white hover:bg-orange-600 rounded-full" onClick={handleOpenCreate}>
               <Plus className="size-3.5" />
               QA 등록
             </Button>
@@ -766,17 +771,19 @@ export default function CampaignQaPage() {
         {/* QA Table - Grouped by Campaign */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-              <span className="text-sm">데이터를 불러오는 중...</span>
+            <div className="flex items-center gap-3 text-stone-400">
+              <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+              <span className="text-sm">데이터를 불러오는 중이에요...</span>
             </div>
           </div>
         ) : filteredQa.length === 0 ? (
           <motion.div variants={fadeUpItem}>
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-              <MessageSquareWarning className="size-8 opacity-30" />
-              <span className="text-sm">등록된 QA가 없습니다.</span>
-              <Button variant="outline" size="sm" className="mt-2 gap-1.5 rounded-lg" onClick={handleOpenCreate}>
+            <div className="flex flex-col items-center justify-center py-16 text-stone-400 gap-2">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-orange-50">
+                <MessageSquareWarning className="size-6 text-orange-400" />
+              </div>
+              <span className="text-sm text-stone-500">아직 등록된 QA가 없어요. 첫 번째 이슈를 등록해 볼까요?</span>
+              <Button variant="outline" size="sm" className="mt-2 gap-1.5 rounded-full border-orange-200 text-orange-600 hover:bg-orange-50" onClick={handleOpenCreate}>
                 <Plus className="size-3.5" />
                 첫 QA 등록하기
               </Button>
@@ -798,9 +805,9 @@ export default function CampaignQaPage() {
                 : undefined;
 
               return (
-              <div key={groupKey} className="rounded-xl border border-border bg-card overflow-hidden">
+              <div key={groupKey} className="rounded-2xl border border-stone-100 bg-white overflow-hidden shadow-sm">
                 {/* Group Header */}
-                <div className="px-3 py-2 border-b border-border bg-secondary/30 flex items-center gap-2">
+                <div className="px-3 py-2 border-b border-stone-100 bg-stone-50/50 flex items-center gap-2">
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {groupBy === 'assignee' && <Users className="size-3.5 text-muted-foreground shrink-0" />}
                     <span className="text-[12px] font-semibold truncate">
@@ -830,18 +837,18 @@ export default function CampaignQaPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed text-left min-w-[800px]">
                     <thead>
-                      <tr className="border-b border-border bg-secondary/10">
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[11%]">캠페인</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">유형</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">우선순위</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[20%]">내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[14%]">해결 상세내용</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">작성자</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">실행자</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">기한</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[7%]">상태</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[6%]">등록일</th>
-                        <th className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground w-[10%] text-right">작업</th>
+                      <tr className="border-b border-stone-100 bg-stone-50">
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[11%]">캠페인</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[6%]">유형</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[6%]">우선순위</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[20%]">내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[14%]">해결 상세내용</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[7%]">작성자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[7%]">실행자</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[6%]">기한</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[7%]">상태</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[6%]">등록일</th>
+                        <th className="px-2 py-1.5 text-[10px] font-semibold text-stone-500 w-[10%] text-right">작업</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -854,7 +861,7 @@ export default function CampaignQaPage() {
                           <tr
                             key={qa.id}
                             className={cn(
-                              'border-b border-border/30 hover:bg-secondary/30 transition-colors',
+                              'border-b border-stone-50 hover:bg-orange-50/40 transition-colors',
                               qa.status === '해결완료' && 'opacity-60'
                             )}
                           >
@@ -864,7 +871,7 @@ export default function CampaignQaPage() {
                                 value={qa.campaign_id}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'campaign_id', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 max-w-full">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[10px] hover:bg-orange-50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 max-w-full">
                                   <span className="text-[10px] truncate">
                                     {(() => {
                                       const c = campaignMap.get(qa.campaign_id);
@@ -887,7 +894,7 @@ export default function CampaignQaPage() {
                                 value={qa.qa_type}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'qa_type', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] font-medium hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] font-medium hover:bg-orange-50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
                                   <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 gap-0.5 whitespace-nowrap pointer-events-none rounded-full', typeCfg.color, typeCfg.bg)}>
                                     {qa.qa_type}
                                   </Badge>
@@ -905,7 +912,7 @@ export default function CampaignQaPage() {
                                 value={qa.priority}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'priority', v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-1 py-0 text-[9px] hover:bg-orange-50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0">
                                   <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 whitespace-nowrap pointer-events-none rounded-full', priorityCfg.color, priorityCfg.bg)}>
                                     {qa.priority}
                                   </Badge>
@@ -944,7 +951,7 @@ export default function CampaignQaPage() {
                                 value={qa.created_by || '__none__'}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'created_by', v === '__none__' ? null : v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-orange-50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.created_by ? 'text-foreground' : 'text-muted-foreground')}>{qa.created_by || '-'}</span>
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="max-h-60">
@@ -963,7 +970,7 @@ export default function CampaignQaPage() {
                                 value={qa.assigned_to || '__none__'}
                                 onValueChange={(v) => handleInlineUpdate(qa.id, 'assigned_to', v === '__none__' ? null : v)}
                               >
-                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-secondary [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
+                                <SelectTrigger className="h-6 border-0 shadow-none px-0.5 py-0 text-[10px] hover:bg-orange-50 [&>svg]:size-3 [&>svg]:opacity-0 hover:[&>svg]:opacity-50 gap-0 whitespace-nowrap">
                                   <span className={cn('text-[11px] truncate', qa.assigned_to ? 'text-foreground' : 'text-muted-foreground')}>{qa.assigned_to || '-'}</span>
                                 </SelectTrigger>
                                 <SelectContent position="popper" className="max-h-60">
@@ -1045,7 +1052,7 @@ export default function CampaignQaPage() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[560px] bg-card border-border">
+          <DialogContent className="sm:max-w-[560px] bg-white border-stone-100 rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold">
                 {editingQa ? 'QA 수정' : 'QA 등록'}
@@ -1226,13 +1233,13 @@ export default function CampaignQaPage() {
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-lg border-border">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-full border-stone-200 hover:bg-stone-50">
                   취소
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={!formData.campaign_id || !formData.content.trim() || createMutation.isPending || updateMutation.isPending}
-                  className="bg-foreground text-background hover:bg-foreground/90 rounded-lg"
+                  className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
                 >
                   {createMutation.isPending || updateMutation.isPending ? '저장 중...' : editingQa ? '수정' : '등록'}
                 </Button>

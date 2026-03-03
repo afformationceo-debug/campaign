@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
 import { CATEGORY_ORDER } from '@/lib/utils/category-colors';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
-import { CheckCircle2, Clock, Circle, Bot } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Bot, ClipboardList } from 'lucide-react';
 import { FilterBar } from '@/components/views/filter-bar';
 import { AssigneeGrid } from '@/components/views/assignee-grid';
 import { PeriodicTasksSection } from '@/components/views/periodic-tasks-section';
@@ -189,12 +189,15 @@ export default function AssigneeViewPage() {
       <motion.div variants={fadeUpItem}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-black tracking-tight">담당자별 업무</h1>
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-50">
+              <ClipboardList className="size-5 text-amber-600" />
+            </div>
+            <h1 className="text-lg font-black tracking-tight text-stone-800">담당자별 업무</h1>
             <div className="hidden md:flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground/60 border border-border rounded px-1.5 py-0.5 font-medium">전역</span>
-              <span className="text-[10px] text-muted-foreground/60 border border-border rounded px-1.5 py-0.5 font-medium">캠페인별</span>
-              <span className="text-[10px] text-muted-foreground/60 border border-border rounded px-1.5 py-0.5 font-medium">월간/주기</span>
-              <span className="text-[10px] text-muted-foreground/60 border border-border rounded px-1.5 py-0.5 font-medium">단계보기</span>
+              <span className="text-[10px] text-stone-400 border border-stone-200 rounded-lg px-1.5 py-0.5 font-medium">전역</span>
+              <span className="text-[10px] text-stone-400 border border-stone-200 rounded-lg px-1.5 py-0.5 font-medium">캠페인별</span>
+              <span className="text-[10px] text-stone-400 border border-stone-200 rounded-lg px-1.5 py-0.5 font-medium">월간/주기</span>
+              <span className="text-[10px] text-stone-400 border border-stone-200 rounded-lg px-1.5 py-0.5 font-medium">단계보기</span>
             </div>
           </div>
           {kpiStats.total > 0 && (
@@ -218,16 +221,16 @@ export default function AssigneeViewPage() {
             </div>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground/50 mt-1">
+        <p className="text-[11px] text-stone-400 mt-1">
           담당자별 일일 업무 현황을 확인합니다. 전역 업무, 캠페인별 업무, 월간/주기별 업무를 날짜 기준으로 조회하고, 각 행위의 단계(Step)를 확인할 수 있습니다.
         </p>
       </motion.div>
 
       <motion.div variants={fadeUpItem}>
-        <div className="rounded-xl border bg-card px-4 py-3.5">
+        <div className="rounded-2xl border border-stone-100 bg-white shadow-sm px-4 py-3.5">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary">
-              <Bot className="size-4 text-foreground" />
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-50">
+              <Bot className="size-4 text-orange-600" />
             </div>
             <div className="flex-1 space-y-3">
               <div>
@@ -239,7 +242,7 @@ export default function AssigneeViewPage() {
 
               <div className="grid gap-2 lg:grid-cols-3">
                 {DAILY_OPS_FLOW.map((step, index) => (
-                  <div key={step.title} className="rounded-lg border bg-secondary/20 px-3 py-3">
+                  <div key={step.title} className="rounded-xl border border-stone-100 bg-orange-50/30 px-3 py-3">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Step {index + 1}
                     </div>
@@ -249,7 +252,7 @@ export default function AssigneeViewPage() {
                 ))}
               </div>
 
-              <div className="grid gap-1 rounded-lg border bg-background/60 px-3 py-3">
+              <div className="grid gap-1 rounded-xl border border-stone-100 bg-stone-50/60 px-3 py-3">
                 {TASK_LINKAGE_RULES.map((rule) => (
                   <p key={rule} className="text-[10px] text-muted-foreground">{rule}</p>
                 ))}

@@ -56,39 +56,39 @@ import type {
 
 // ─── Config ─────────────────────────────────────────────
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; className: string }> = {
-  active: { label: 'Active', className: 'bg-foreground text-background text-[11px]' },
-  paused: { label: 'Paused', className: 'bg-secondary text-muted-foreground text-[11px]' },
-  completed: { label: 'Completed', className: 'bg-secondary text-secondary-foreground text-[11px]' },
+  active: { label: 'Active', className: 'bg-orange-50 text-orange-600 text-[11px]' },
+  paused: { label: 'Paused', className: 'bg-stone-100 text-stone-500 text-[11px]' },
+  completed: { label: 'Completed', className: 'bg-emerald-50 text-emerald-600 text-[11px]' },
 };
 
 const PHASE_CONFIG: Record<CampaignPhase, { label: string; className: string }> = {
-  onboarding: { label: 'Onboarding', className: 'bg-secondary text-secondary-foreground' },
-  running: { label: 'Running', className: 'bg-foreground text-background' },
-  scaling: { label: 'Scaling', className: 'bg-secondary text-muted-foreground' },
+  onboarding: { label: 'Onboarding', className: 'bg-amber-50 text-amber-600' },
+  running: { label: 'Running', className: 'bg-orange-50 text-orange-600' },
+  scaling: { label: 'Scaling', className: 'bg-stone-100 text-stone-500' },
 };
 
 const INTERPRETER_OPTIONS: { value: InterpreterStatus; label: string; className: string }[] = [
-  { value: '통역 필요 없음', label: '필요 없음', className: 'bg-secondary text-muted-foreground' },
-  { value: '돈받고 지원 (상시)', label: '유료(상시)', className: 'bg-foreground text-background' },
-  { value: '돈받고 지원 (요청시)', label: '유료(요청)', className: 'bg-secondary text-secondary-foreground' },
-  { value: '무료로 지원(요청시)', label: '무료(요청)', className: 'bg-secondary text-secondary-foreground' },
-  { value: '무료로 지원(상시)', label: '무료(상시)', className: 'bg-secondary text-secondary-foreground' },
+  { value: '통역 필요 없음', label: '필요 없음', className: 'bg-stone-100 text-stone-500' },
+  { value: '돈받고 지원 (상시)', label: '유료(상시)', className: 'bg-orange-50 text-orange-600' },
+  { value: '돈받고 지원 (요청시)', label: '유료(요청)', className: 'bg-amber-50 text-amber-600' },
+  { value: '무료로 지원(요청시)', label: '무료(요청)', className: 'bg-emerald-50 text-emerald-600' },
+  { value: '무료로 지원(상시)', label: '무료(상시)', className: 'bg-emerald-50 text-emerald-600' },
 ];
 
 const INTERPRETER_MAP = new Map(INTERPRETER_OPTIONS.map((o) => [o.value, o]));
 
 const CAMPAIGN_TYPE_CONFIG: Record<CampaignType, { label: string; className: string }> = {
-  '해외마케팅': { label: '해외마케팅', className: 'bg-secondary text-secondary-foreground' },
-  '국내챗닥': { label: '국내챗닥', className: 'bg-foreground text-background' },
-  '제품브랜드': { label: '제품브랜드', className: 'bg-secondary text-muted-foreground' },
+  '해외마케팅': { label: '해외마케팅', className: 'bg-orange-50 text-orange-600' },
+  '국내챗닥': { label: '국내챗닥', className: 'bg-amber-50 text-amber-700' },
+  '제품브랜드': { label: '제품브랜드', className: 'bg-stone-100 text-stone-600' },
 };
 
 const BRAND_PHASE_CONFIG: Record<BrandPhase, { label: string; className: string }> = {
-  '기획': { className: 'bg-secondary text-muted-foreground' },
-  '플랫폼세팅': { className: 'bg-secondary text-secondary-foreground' },
-  '인플루언서기획': { className: 'bg-secondary text-secondary-foreground' },
-  '운영': { className: 'bg-foreground text-background' },
-  '스케일링': { className: 'bg-secondary text-muted-foreground' },
+  '기획': { className: 'bg-stone-100 text-stone-500' },
+  '플랫폼세팅': { className: 'bg-amber-50 text-amber-600' },
+  '인플루언서기획': { className: 'bg-amber-50 text-amber-600' },
+  '운영': { className: 'bg-orange-50 text-orange-600' },
+  '스케일링': { className: 'bg-emerald-50 text-emerald-600' },
 } as Record<BrandPhase, { label: string; className: string }>;
 // Add labels
 Object.entries(BRAND_PHASE_CONFIG).forEach(([key, val]) => { val.label = key; });
@@ -101,10 +101,10 @@ const TARGET_COUNTRY_OPTIONS = [
 ];
 
 const CHATDOC_STATUS_CONFIG: Record<ChatdocStatus, { label: string; className: string }> = {
-  '대기': { label: '대기', className: 'bg-secondary text-muted-foreground' },
-  '온보딩중': { label: '온보딩중', className: 'bg-secondary text-secondary-foreground' },
-  '운영중': { label: '운영중', className: 'bg-foreground text-background' },
-  '종료': { label: '종료', className: 'bg-secondary text-muted-foreground' },
+  '대기': { label: '대기', className: 'bg-stone-100 text-stone-500' },
+  '온보딩중': { label: '온보딩중', className: 'bg-amber-50 text-amber-600' },
+  '운영중': { label: '운영중', className: 'bg-orange-50 text-orange-600' },
+  '종료': { label: '종료', className: 'bg-stone-100 text-stone-400' },
 };
 
 // ─── Helpers ────────────────────────────────────────────
@@ -162,7 +162,7 @@ function InlineTextCell({
       <div
         onClick={onStartEdit}
         className={cn(
-          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center whitespace-nowrap',
+          'cursor-pointer px-2 py-1 rounded hover:bg-orange-50/60 transition-colors min-h-[28px] flex items-center whitespace-nowrap',
           !value && 'text-muted-foreground/40',
           isNum && 'tabular-nums text-[11px]',
           className
@@ -234,7 +234,7 @@ function InlineDateCell({
       <div
         onClick={onStartEdit}
         className={cn(
-          'cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center text-xs',
+          'cursor-pointer px-2 py-1 rounded hover:bg-orange-50/60 transition-colors min-h-[28px] flex items-center text-xs',
           !value && 'text-muted-foreground/40'
         )}
       >
@@ -525,7 +525,7 @@ export default function CampaignsPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-foreground/40 border-t-foreground" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -534,10 +534,10 @@ export default function CampaignsPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -552,39 +552,44 @@ export default function CampaignsPage() {
     >
       {/* Header */}
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">캠페인, 여기서 다 관리해.</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            캠페인 추가, 수정, 상태 변경까지 한 곳에서. 복잡한 건 제가 정리해드릴게요.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <Bot className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">캠페인을 만들고 관리할 수 있어요</h1>
+            <p className="text-sm text-stone-500 mt-1">
+              캠페인 추가, 수정, 상태 변경까지 한 곳에서 편하게 관리해 보세요.
+            </p>
+          </div>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="rounded-lg bg-foreground text-background hover:bg-foreground/90">
+        <Button onClick={() => setIsDialogOpen(true)} className="rounded-2xl bg-orange-500 text-white hover:bg-orange-600 shadow-sm">
           <Plus className="size-4 mr-1" /> 캠페인 추가
         </Button>
       </motion.div>
 
       {/* AI Agent Guide Banner */}
       <motion.div variants={fadeUpItem}>
-        <div className="relative rounded-xl border border-border bg-secondary px-4 py-3.5 overflow-hidden">
+        <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
           <div className="flex gap-3 items-start relative">
             <div className="relative shrink-0 mt-0.5">
-              <div className="size-9 rounded-full bg-foreground flex items-center justify-center">
-                <Bot className="size-4 text-background" />
+              <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center">
+                <Bot className="size-4 text-white" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-foreground border-2 border-background" />
+              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-orange-500 border-2 border-white" />
             </div>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
-                <span className="text-[9px] font-medium text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">캠페인 관리 가이드</span>
+                <p className="text-[12px] font-bold text-stone-800">어포메이션 본질 AI Agent</p>
+                <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">캠페인 관리 가이드</span>
               </div>
-              <div className="text-[11px] text-muted-foreground leading-[1.7] space-y-1">
-                <p>안녕하세요, 어포메이션 임직원 여러분! 캠페인 관리 페이지 안내를 드립니다.</p>
-                <div className="bg-background/50 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                  <p>이 페이지에서는 <strong className="text-foreground">캠페인의 등록, 수정, 삭제</strong>를 관리합니다.</p>
-                  <p>셀을 <strong className="text-foreground">직접 클릭</strong>하면 해당 항목을 즉시 수정할 수 있으며, 상태/단계/통역 등의 정보를 정확히 유지해 주세요.</p>
+              <div className="text-[11px] text-stone-600 leading-[1.7] space-y-1">
+                <p>안녕하세요! 캠페인 관리 페이지를 안내해 드릴게요.</p>
+                <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                  <p>이 페이지에서는 <strong className="text-orange-700">캠페인의 등록, 수정, 삭제</strong>를 관리해요.</p>
+                  <p>셀을 <strong className="text-orange-700">직접 클릭</strong>하면 해당 항목을 바로 수정할 수 있어요.</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground/60">캠페인 정보가 정확해야 모든 업무 체크와 리포트가 올바르게 작동합니다!</p>
+                <p className="text-[10px] text-stone-400">캠페인 정보가 정확해야 모든 업무 체크와 리포트가 올바르게 작동해요!</p>
               </div>
             </div>
           </div>
@@ -613,17 +618,17 @@ export default function CampaignsPage() {
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="size-5 animate-spin rounded-full border-2 border-foreground/40 border-t-foreground" />
-            <span className="text-sm">데이터를 불러오는 중...</span>
+          <div className="flex items-center gap-3 text-stone-400">
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+            <span className="text-sm">데이터를 불러오는 중이에요...</span>
           </div>
         </div>
       ) : (
-        <motion.div variants={fadeUpItem} className="border border-border rounded-xl overflow-hidden bg-card">
+        <motion.div variants={fadeUpItem} className="border border-stone-100 rounded-2xl overflow-hidden bg-card shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="bg-muted/50 border-b border-border">
+                <tr className="bg-stone-50 border-b border-stone-100">
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">유형</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">캠페인명</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">클라이언트</th>
@@ -646,7 +651,7 @@ export default function CampaignsPage() {
                   return (
                   <tr
                     key={campaign.id}
-                    className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
+                    className="border-b border-stone-100 last:border-b-0 hover:bg-orange-50/40 transition-colors"
                   >
                     {/* 유형 */}
                     <td className="py-0.5 px-2 min-w-[90px]">
@@ -654,7 +659,7 @@ export default function CampaignsPage() {
                         value={cType}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'campaign_type', v)}
                       >
-                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-1 gap-1 w-[90px]">
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-orange-50/60 px-1 gap-1 w-[90px]">
                           <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', typeConf.className)}>
                             {typeConf.label}
                           </Badge>
@@ -698,7 +703,7 @@ export default function CampaignsPage() {
                         value={campaign.status}
                         onValueChange={(v) => handleInlineUpdate(campaign.id, 'status', v)}
                       >
-                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-orange-50/60 px-2 gap-1 w-[100px]">
                           <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', STATUS_CONFIG[campaign.status].className)}>
                             {STATUS_CONFIG[campaign.status].label}
                           </Badge>
@@ -840,7 +845,7 @@ export default function CampaignsPage() {
                         />
                       ) : cType === '제품브랜드' ? (
                         <Select value={campaign.product_category ?? ''} onValueChange={(v) => handleInlineUpdate(campaign.id, 'product_category', v || null)}>
-                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
+                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-orange-50/60 px-2 gap-1 w-[100px]">
                             <span className="text-[10px]">{campaign.product_category || <span className="text-muted-foreground/40">카테고리</span>}</span>
                           </SelectTrigger>
                           <SelectContent position="popper">
@@ -889,17 +894,17 @@ export default function CampaignsPage() {
                             value={campaign.vat_type ?? 'VAT별도'}
                             onValueChange={(v) => handleInlineUpdate(campaign.id, 'vat_type', v)}
                           >
-                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent hover:bg-muted/60 px-1 gap-0.5 w-[80px] shrink-0">
-                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0 rounded-full', campaign.vat_type === 'VAT포함' ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground')}>
+                            <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent hover:bg-orange-50/60 px-1 gap-0.5 w-[80px] shrink-0">
+                              <Badge variant="secondary" className={cn('text-[9px] px-1 py-0 rounded-full', campaign.vat_type === 'VAT포함' ? 'bg-orange-50 text-orange-600' : 'bg-stone-100 text-stone-500')}>
                                 {campaign.vat_type ?? 'VAT별도'}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent position="popper">
                               <SelectItem value="VAT별도">
-                                <Badge variant="secondary" className="text-[10px] bg-secondary text-muted-foreground rounded-full">VAT별도</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-stone-100 text-stone-500 rounded-full">VAT별도</Badge>
                               </SelectItem>
                               <SelectItem value="VAT포함">
-                                <Badge variant="secondary" className="text-[10px] bg-foreground text-background rounded-full">VAT포함</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-orange-50 text-orange-600 rounded-full">VAT포함</Badge>
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -916,7 +921,7 @@ export default function CampaignsPage() {
                           value={campaign.interpreter_status ?? '통역 필요 없음'}
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'interpreter_status', v)}
                         >
-                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[120px]">
+                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-orange-50/60 px-2 gap-1 w-[120px]">
                             <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.className)}>
                               {INTERPRETER_MAP.get((campaign.interpreter_status ?? '통역 필요 없음') as InterpreterStatus)?.label ?? '필요 없음'}
                             </Badge>
@@ -934,7 +939,7 @@ export default function CampaignsPage() {
                           value={campaign.chatdoc_status ?? '대기'}
                           onValueChange={(v) => handleInlineUpdate(campaign.id, 'chatdoc_status', v)}
                         >
-                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-muted/60 px-2 gap-1 w-[100px]">
+                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent hover:bg-orange-50/60 px-2 gap-1 w-[100px]">
                             <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0 rounded-full', CHATDOC_STATUS_CONFIG[(campaign.chatdoc_status ?? '대기') as ChatdocStatus].className)}>
                               {CHATDOC_STATUS_CONFIG[(campaign.chatdoc_status ?? '대기') as ChatdocStatus].label}
                             </Badge>
@@ -966,7 +971,7 @@ export default function CampaignsPage() {
                       ) : (
                         <div
                           onClick={() => startEdit(campaign.id, 'homepage_url')}
-                          className="cursor-pointer px-2 py-1 rounded hover:bg-muted/60 transition-colors min-h-[28px] flex items-center gap-1"
+                          className="cursor-pointer px-2 py-1 rounded hover:bg-orange-50/60 transition-colors min-h-[28px] flex items-center gap-1"
                         >
                           {campaign.homepage_url ? (
                             <>
@@ -1010,8 +1015,8 @@ export default function CampaignsPage() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="py-6 text-center text-muted-foreground text-sm">
-                      {search ? '검색 결과가 없습니다.' : '캠페인이 없습니다. 새 캠페인을 추가해주세요.'}
+                    <td colSpan={13} className="py-10 text-center text-stone-400 text-sm">
+                      {search ? '검색 결과가 없어요. 다른 키워드로 찾아볼까요?' : '아직 캠페인이 없어요. 첫 캠페인을 추가해 보세요!'}
                     </td>
                   </tr>
                 )}
@@ -1023,24 +1028,24 @@ export default function CampaignsPage() {
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg bg-card border-border">
+        <DialogContent className="sm:max-w-lg bg-card border-stone-100 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">새 캠페인</DialogTitle>
-            <DialogDescription className="text-[13px] text-muted-foreground">새로운 캠페인을 등록합니다.</DialogDescription>
+            <DialogTitle className="text-lg font-bold">새 캠페인 만들기</DialogTitle>
+            <DialogDescription className="text-[13px] text-stone-500">새로운 캠페인 정보를 입력해 주세요.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* 캠페인 유형 선택 */}
-            <div className="flex gap-2 p-1 bg-secondary rounded-lg">
+            <div className="flex gap-2 p-1 bg-stone-100 rounded-xl">
               {(Object.keys(CAMPAIGN_TYPE_CONFIG) as CampaignType[]).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, campaign_type: type }))}
                   className={cn(
-                    'flex-1 py-2 px-3 rounded-md text-[13px] font-medium transition-all',
+                    'flex-1 py-2 px-3 rounded-lg text-[13px] font-medium transition-all',
                     formData.campaign_type === type
-                      ? 'bg-foreground text-background shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-stone-500 hover:text-stone-700'
                   )}
                 >
                   {CAMPAIGN_TYPE_CONFIG[type].label}
@@ -1161,8 +1166,8 @@ export default function CampaignsPage() {
                         className={cn(
                           'px-2.5 py-1 rounded-full text-xs font-medium transition-all border',
                           formData.target_countries.includes(country)
-                            ? 'bg-foreground text-background border-foreground'
-                            : 'bg-secondary text-muted-foreground border-transparent hover:bg-muted'
+                            ? 'bg-orange-500 text-white border-orange-500'
+                            : 'bg-stone-100 text-stone-500 border-transparent hover:bg-stone-200'
                         )}
                       >
                         {country}
@@ -1263,8 +1268,8 @@ export default function CampaignsPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog} className="bg-secondary border-border">취소</Button>
-              <Button type="submit" disabled={createMutation.isPending} className="bg-foreground text-background hover:bg-foreground/90">
+              <Button type="button" variant="outline" onClick={closeDialog} className="rounded-xl border-stone-200">취소</Button>
+              <Button type="submit" disabled={createMutation.isPending} className="bg-orange-500 text-white hover:bg-orange-600 rounded-xl">
                 {createMutation.isPending ? '저장 중...' : '등록'}
               </Button>
             </DialogFooter>
@@ -1274,10 +1279,10 @@ export default function CampaignsPage() {
 
       {/* Delete Confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="sm:max-w-md bg-card border-stone-100 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">캠페인 삭제</DialogTitle>
-            <DialogDescription className="text-[13px] text-muted-foreground">
+            <DialogTitle className="text-lg font-bold">캠페인을 삭제할까요?</DialogTitle>
+            <DialogDescription className="text-[13px] text-stone-500">
               &ldquo;{deletingCampaign?.campaign_name}&rdquo; 캠페인을 삭제하시겠습니까?
               <br />
               이 작업은 되돌릴 수 없습니다.
@@ -1290,7 +1295,7 @@ export default function CampaignsPage() {
                 setIsDeleteDialogOpen(false);
                 setDeletingCampaign(null);
               }}
-              className="bg-secondary border-border"
+              className="rounded-xl border-stone-200"
             >
               취소
             </Button>

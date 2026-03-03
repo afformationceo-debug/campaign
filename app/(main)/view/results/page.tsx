@@ -279,7 +279,7 @@ function ResultValueCell({
         className="w-[420px] p-0 rounded-xl shadow-xl border border-border"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="px-3 py-2 border-b bg-secondary/40 flex items-center justify-between rounded-t-xl">
+        <div className="px-3 py-2 border-b border-stone-100 bg-stone-50 flex items-center justify-between rounded-t-xl">
           <span className="text-[10px] font-semibold text-muted-foreground">결과값 상세</span>
           <button
             type="button"
@@ -325,8 +325,8 @@ function AssigneeGroupHeader({
     <tr>
       <td colSpan={10} className={cn('px-2 py-0.5 border-b', color)}>
         <div className="flex items-center gap-1.5">
-          <div className="size-3.5 rounded-full bg-secondary flex items-center justify-center">
-            <UserIcon className="size-2 text-muted-foreground" />
+          <div className="size-3.5 rounded-full bg-orange-100 flex items-center justify-center">
+            <UserIcon className="size-2 text-orange-600" />
           </div>
           <span className="text-[10px] font-semibold">{name}</span>
           <span className="text-[9px] text-muted-foreground">
@@ -366,9 +366,9 @@ function ResultTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-1">
+      <div className="flex flex-col items-center justify-center py-8 text-stone-400 gap-1">
         <FileText className="size-5 opacity-30" />
-        <span className="text-[11px]">{search ? '검색 결과가 없습니다.' : '결과값이 없습니다.'}</span>
+        <span className="text-[11px]">{search ? '검색 결과가 없습니다.' : '아직 결과값이 없어요. 업무를 완료하면 여기에 표시됩니다.'}</span>
       </div>
     );
   }
@@ -379,15 +379,15 @@ function ResultTable({
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
-          <tr className="border-b bg-secondary/30">
+          <tr className="border-b bg-stone-50 dark:bg-stone-900/30">
             {showDate && (
-              <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>날짜</th>
+              <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '72px' }}>날짜</th>
             )}
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: showCampaign ? '18%' : '22%' }}>업무</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: showCampaign ? '18%' : '22%' }}>업무</th>
             {showCampaign && (
-              <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '13%' }}>캠페인</th>
+              <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '13%' }}>캠페인</th>
             )}
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground">결과값</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500">결과값</th>
           </tr>
         </thead>
         <tbody>
@@ -403,7 +403,7 @@ function ResultTable({
                 />
                 {group.rows.map((row) => {
                   return (
-                    <tr key={row.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors h-6">
+                    <tr key={row.id} className="border-b border-stone-100 hover:bg-orange-50/50 transition-colors h-6">
                       {showDate && (
                         <td className="px-2 py-0 text-[9px] text-muted-foreground whitespace-nowrap">
                           {format(parseISO(row.date), 'M/d')}
@@ -445,9 +445,9 @@ function ResultTable({
 function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultRow[]; search: string; groupColor: string }) {
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-1">
+      <div className="flex flex-col items-center justify-center py-8 text-stone-400 gap-1">
         <FolderOpen className="size-5 opacity-30" />
-        <span className="text-[11px]">{search ? '검색 결과가 없습니다.' : '결과값이 없습니다.'}</span>
+        <span className="text-[11px]">{search ? '검색 결과가 없습니다.' : '아직 프로젝트 결과값이 없어요.'}</span>
       </div>
     );
   }
@@ -458,12 +458,12 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-left">
         <thead>
-          <tr className="border-b bg-secondary/30">
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '17%' }}>프로젝트</th>
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '15%' }}>하위업무</th>
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '50px' }}>상태</th>
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground" style={{ width: '72px' }}>마감일</th>
-            <th className="px-2 py-1.5 text-[9px] font-semibold text-muted-foreground">결과값</th>
+          <tr className="border-b bg-stone-50 dark:bg-stone-900/30">
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '17%' }}>프로젝트</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '15%' }}>하위업무</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '50px' }}>상태</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500" style={{ width: '72px' }}>마감일</th>
+            <th className="px-2 py-1.5 text-[9px] font-semibold text-stone-500">결과값</th>
           </tr>
         </thead>
         <tbody>
@@ -482,7 +482,7 @@ function ProjectResultTable({ rows, search, groupColor }: { rows: ProjectResultR
                     row.state === '완료' ? 'text-foreground font-semibold' :
                     row.state === '진행중' ? 'text-muted-foreground' : 'text-muted-foreground/50';
                   return (
-                    <tr key={row.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors h-6">
+                    <tr key={row.id} className="border-b border-stone-100 hover:bg-orange-50/50 transition-colors h-6">
                       <td className="px-2 py-0 text-[10px] font-medium truncate">
                         <HighlightText text={row.projectName} search={search} />
                       </td>
@@ -527,13 +527,13 @@ function MissingResultsSection({
   if (rows.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-secondary/30 transition-colors"
+        className="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-orange-50/50 transition-colors"
       >
-        <AlertTriangle className="size-3.5 text-muted-foreground" />
+        <AlertTriangle className="size-3.5 text-amber-500" />
         <span className="text-[11px] font-semibold text-foreground">
           결과 미입력
         </span>
@@ -550,7 +550,7 @@ function MissingResultsSection({
           <table className="w-full table-fixed text-left">
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors h-6">
+                <tr key={row.id} className="border-b border-stone-100 hover:bg-orange-50/50 transition-colors h-6">
                   <td className="px-3 py-0 text-[10px] text-muted-foreground" style={{ width: '80px' }}>
                     {row.assignee}
                   </td>
@@ -914,15 +914,22 @@ export default function ResultsViewPage() {
     >
       {/* Header */}
       <motion.div variants={fadeUpItem}>
-        <h1 className="text-2xl font-black tracking-tight">일일 결과값, 깔끔하게 정리했어.</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          날짜별, 주간별, 월간별로 결과를 확인하세요. 복사와 내보내기도 바로 가능해요.
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+            <FileText className="size-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-stone-800">일일 결과값</h1>
+            <p className="text-sm text-stone-500 mt-0.5">
+              날짜별, 주간별, 월간별로 결과를 확인하세요. 복사와 내보내기도 바로 가능해요.
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       {/* Summary Stats Card */}
       <motion.div variants={fadeUpItem}>
-        <div className="rounded-lg border border-border bg-card p-3 space-y-2.5">
+        <div className="rounded-2xl border border-stone-100 bg-white shadow-sm p-3 space-y-2.5">
           {/* Date Navigation */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
@@ -985,8 +992,8 @@ export default function ResultsViewPage() {
                     className={cn(
                       'px-2 py-0.5 rounded-md text-[10px] font-medium transition-all',
                       rangeMode === mode
-                        ? 'bg-foreground text-background shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                        ? 'bg-orange-500 text-white shadow-sm'
+                        : 'text-stone-500 hover:text-stone-800'
                     )}
                   >
                     {label}
@@ -1094,8 +1101,8 @@ export default function ResultsViewPage() {
             <TabsContent value="daily" className="space-y-3">
               {/* Global daily section */}
               {dailyWithResult.filter((r) => r.scope === 'global').length > 0 && (
-                <div className="rounded-lg border border-border bg-card overflow-hidden">
-                  <div className="px-2.5 py-1 border-b bg-secondary/30 flex items-center gap-1.5">
+                <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
+                  <div className="px-2.5 py-1 border-b border-stone-100 bg-stone-50/80 flex items-center gap-1.5">
                     <ClipboardList className="size-3 text-muted-foreground" />
                     <h3 className="text-[10px] font-semibold text-foreground">전역</h3>
                     <span className="text-[9px] text-muted-foreground">{isRangeMode ? formatDateLabel(date, rangeMode) : date}</span>
@@ -1108,14 +1115,14 @@ export default function ResultsViewPage() {
                     showCampaign={false}
                     showDate={isRangeMode}
                     search={searchQuery}
-                    groupColor="bg-secondary/40 text-foreground"
+                    groupColor="bg-orange-50/60 text-stone-800"
                   />
                 </div>
               )}
               {/* Campaign daily section */}
               {dailyWithResult.filter((r) => r.scope === 'campaign').length > 0 && (
-                <div className="rounded-lg border border-border bg-card overflow-hidden">
-                  <div className="px-2.5 py-1 border-b bg-secondary/30 flex items-center gap-1.5">
+                <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
+                  <div className="px-2.5 py-1 border-b border-stone-100 bg-stone-50/80 flex items-center gap-1.5">
                     <CalendarDays className="size-3 text-muted-foreground" />
                     <h3 className="text-[10px] font-semibold text-foreground">캠페인</h3>
                     <span className="text-[9px] text-muted-foreground">{isRangeMode ? formatDateLabel(date, rangeMode) : date}</span>
@@ -1128,7 +1135,7 @@ export default function ResultsViewPage() {
                     showCampaign={true}
                     showDate={isRangeMode}
                     search={searchQuery}
-                    groupColor="bg-secondary/40 text-foreground"
+                    groupColor="bg-orange-50/60 text-stone-800"
                   />
                 </div>
               )}
@@ -1136,10 +1143,10 @@ export default function ResultsViewPage() {
               <MissingResultsSection rows={dailyMissingResult} search={searchQuery} />
               {/* Empty state */}
               {dailyRows.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-1">
+                <div className="flex flex-col items-center justify-center py-12 text-stone-400 gap-1">
                   <FileText className="size-6 opacity-30" />
                   <span className="text-xs">
-                    {searchQuery ? `"${searchQuery}" 검색 결과 없음` : '해당 기간에 결과값이 없습니다.'}
+                    {searchQuery ? `"${searchQuery}" 검색 결과가 없어요.` : '해당 기간에 결과값이 없어요. 업무를 완료하면 여기에 표시됩니다.'}
                   </span>
                 </div>
               )}
@@ -1147,8 +1154,8 @@ export default function ResultsViewPage() {
 
             {/* Periodic Tab */}
             <TabsContent value="periodic" className="space-y-3">
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <div className="px-2.5 py-1 border-b bg-secondary/30 flex items-center gap-1.5">
+              <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-2.5 py-1 border-b border-stone-100 bg-stone-50/80 flex items-center gap-1.5">
                   <CalendarDays className="size-3 text-muted-foreground" />
                   <h3 className="text-[10px] font-semibold text-foreground">월간/기타</h3>
                   <span className="text-[9px] text-muted-foreground">{format(parseISO(date), 'yyyy년 M월')}</span>
@@ -1162,12 +1169,12 @@ export default function ResultsViewPage() {
                     showCampaign={true}
                     showDate={true}
                     search={searchQuery}
-                    groupColor="bg-secondary/40 text-foreground"
+                    groupColor="bg-orange-50/60 text-stone-800"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-1">
+                  <div className="flex flex-col items-center justify-center py-8 text-stone-400 gap-1">
                     <FileText className="size-5 opacity-30" />
-                    <span className="text-[11px]">{searchQuery ? '검색 결과가 없습니다.' : '이번 달 월간/기타 결과값이 없습니다.'}</span>
+                    <span className="text-[11px]">{searchQuery ? '검색 결과가 없어요.' : '이번 달 월간/기타 결과값이 아직 없어요.'}</span>
                   </div>
                 )}
               </div>
@@ -1176,13 +1183,13 @@ export default function ResultsViewPage() {
 
             {/* Project Tab */}
             <TabsContent value="project">
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <div className="px-2.5 py-1 border-b bg-secondary/30 flex items-center gap-1.5">
+              <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-2.5 py-1 border-b border-stone-100 bg-stone-50/80 flex items-center gap-1.5">
                   <FolderOpen className="size-3 text-muted-foreground" />
                   <h3 className="text-[10px] font-semibold text-foreground">프로젝트</h3>
                   <Badge variant="secondary" className="text-[8px] px-1 py-0 ml-auto rounded-full">{projectResultRows.length}</Badge>
                 </div>
-                <ProjectResultTable rows={projectResultRows} search={searchQuery} groupColor="bg-secondary/40 text-foreground" />
+                <ProjectResultTable rows={projectResultRows} search={searchQuery} groupColor="bg-orange-50/60 text-stone-800" />
               </div>
             </TabsContent>
           </Tabs>

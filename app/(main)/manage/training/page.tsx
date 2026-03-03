@@ -221,7 +221,7 @@ export default function TrainingPage() {
   if (isAdmin === null) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+        <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
       </div>
     );
   }
@@ -230,10 +230,10 @@ export default function TrainingPage() {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center space-y-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+          <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto">
             <span className="text-lg">🔒</span>
           </div>
-          <p className="text-muted-foreground">관리자 권한이 필요합니다.</p>
+          <p className="text-stone-500">관리자 권한이 필요해요.</p>
         </div>
       </div>
     );
@@ -249,30 +249,37 @@ export default function TrainingPage() {
       >
         {/* Header */}
         <motion.div variants={fadeUpItem}>
-          <h1 className="text-2xl font-black tracking-tight">교육 이수 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            담당자별 업무 교육 완료 여부와 Step 확인 상태를 관리합니다.
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-orange-50">
+              <GraduationCap className="size-5 text-orange-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight">교육 이수를 관리할 수 있어요</h1>
+              <p className="text-sm text-stone-500 mt-1">
+                담당자별 업무 교육 완료 여부와 Step 확인 상태를 관리해 보세요.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* AI Guide */}
         <motion.div variants={fadeUpItem}>
-          <div className="relative rounded-xl border border-border bg-secondary/50 px-4 py-3.5 overflow-hidden">
+          <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3.5 overflow-hidden">
             <div className="flex gap-3 items-start relative">
               <div className="relative shrink-0 mt-0.5">
-                <div className="size-9 rounded-full bg-foreground flex items-center justify-center ring-2 ring-background">
-                  <Bot className="size-4 text-background" />
+                <div className="size-9 rounded-full bg-orange-500 flex items-center justify-center ring-2 ring-white">
+                  <Bot className="size-4 text-white" />
                 </div>
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[12px] font-bold text-foreground">어포메이션 본질 AI Agent</p>
-                  <span className="text-[9px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">교육관리 가이드</span>
+                  <p className="text-[12px] font-bold text-stone-800">어포메이션 본질 AI Agent</p>
+                  <span className="text-[9px] font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">교육관리 가이드</span>
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-[1.7]">
-                  <div className="bg-background/60 dark:bg-background/30 rounded-lg px-3 py-2 space-y-0.5 border border-border">
-                    <p><strong className="text-foreground">교육 완료</strong>를 토글하면 해당 담당자가 업무를 이해하고 수행할 준비가 되었음을 기록합니다.</p>
-                    <p><strong className="text-foreground">Step 확인</strong>은 업무의 단계가 명확한지, 담당자가 각 Step을 숙지했는지 체크합니다.</p>
+                <div className="text-[11px] text-stone-600 leading-[1.7]">
+                  <div className="bg-white/70 rounded-xl px-3 py-2 space-y-0.5 border border-orange-100">
+                    <p><strong className="text-orange-700">교육 완료</strong>를 토글하면 해당 담당자가 업무를 수행할 준비가 되었음을 기록해요.</p>
+                    <p><strong className="text-orange-700">Step 확인</strong>은 업무의 단계가 명확하고, 담당자가 각 Step을 숙지했는지 체크해요.</p>
                   </div>
                 </div>
               </div>
@@ -282,7 +289,7 @@ export default function TrainingPage() {
 
         {/* Stats + Filters */}
         <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-2 bg-stone-100 rounded-full px-3 py-1.5">
             <GraduationCap className="size-3.5 text-muted-foreground" />
             <span className="text-[10px] text-muted-foreground">교육 완료율</span>
             <span className={cn(
@@ -327,13 +334,13 @@ export default function TrainingPage() {
         {/* Matrix */}
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+            <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
           </div>
         ) : (
           <div className="space-y-4">
             {grouped.map(({ category, tasks: catTasks }) => (
-              <div key={category} className="border rounded-xl overflow-hidden">
-                <div className="px-4 py-2 bg-secondary/40 border-b flex items-center gap-2">
+              <div key={category} className="border border-stone-100 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 py-2 bg-stone-50 border-b border-stone-100 flex items-center gap-2">
                   <Badge variant="secondary" className="text-[10px] px-2 py-0.5 rounded-full font-semibold">
                     {category}
                   </Badge>
@@ -343,7 +350,7 @@ export default function TrainingPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="border-b bg-secondary/20">
+                      <tr className="border-b border-stone-100 bg-stone-50/50">
                         <th className="px-3 py-2 text-[9px] font-semibold text-muted-foreground min-w-[200px]">업무</th>
                         <th className="px-3 py-2 text-[9px] font-semibold text-muted-foreground w-[60px] text-center whitespace-nowrap">Steps</th>
                         {filteredUsers.map((u) => (
@@ -361,7 +368,7 @@ export default function TrainingPage() {
                         const assignees = task.default_assignees ?? [];
 
                         return (
-                          <tr key={task.id} className="border-b hover:bg-secondary/10 transition-colors">
+                          <tr key={task.id} className="border-b border-stone-100 hover:bg-orange-50/30 transition-colors">
                             <td className="px-3 py-2">
                               <div>
                                 <span className="text-[11px] font-medium">{task.task_name}</span>
@@ -489,9 +496,9 @@ export default function TrainingPage() {
             ))}
 
             {grouped.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                <GraduationCap className="size-8 opacity-20" />
-                <span className="text-sm">검색 결과가 없습니다.</span>
+              <div className="flex flex-col items-center justify-center py-16 text-stone-400 gap-2">
+                <GraduationCap className="size-8 text-orange-200" />
+                <span className="text-sm">검색 결과가 없어요. 다른 키워드로 찾아볼까요?</span>
               </div>
             )}
           </div>
