@@ -102,22 +102,22 @@ function GlobalStatusSelect({
   return (
     <Select value={currentStatus ?? ''} onValueChange={handleChange}>
       <SelectTrigger className={cn(
-        'h-5 w-[72px] text-[10px] border-0 bg-transparent px-0.5',
-        config?.color ?? 'text-muted-foreground/40'
+        'h-7 w-[84px] text-[11px] font-medium border-0 bg-transparent px-1 rounded-lg hover:bg-stone-50',
+        config?.color ?? 'text-stone-400'
       )}>
-        <div className="flex items-center gap-1">
-          <StatusIcon className="size-3" />
+        <div className="flex items-center gap-1.5">
+          <StatusIcon className="size-3.5" />
           <span>{config?.label ?? '미체크'}</span>
         </div>
       </SelectTrigger>
-      <SelectContent position="popper" className="min-w-[100px]">
+      <SelectContent position="popper" className="min-w-[120px] rounded-xl">
         {CHECK_STATUSES.map((s) => {
           const sc = CHECK_STATUS_CONFIG[s];
           const SI = sc.icon;
           return (
-            <SelectItem key={s} value={s}>
-              <div className="flex items-center gap-1.5">
-                <SI className={cn('size-3', sc.color)} />
+            <SelectItem key={s} value={s} className="text-[12px] rounded-lg">
+              <div className="flex items-center gap-2">
+                <SI className={cn('size-3.5', sc.color)} />
                 {sc.label}
               </div>
             </SelectItem>
@@ -181,7 +181,7 @@ function ResultValueInput({
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full text-[10px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+        className="w-full text-[12px] bg-orange-50/50 border-b-2 border-orange-400 outline-none px-1.5 py-1 rounded-t"
         placeholder="결과값 입력..."
       />
     );
@@ -192,8 +192,8 @@ function ResultValueInput({
       type="button"
       onClick={handleStartEdit}
       className={cn(
-        'w-full text-left text-[10px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[16px]',
-        check?.result_value ? 'text-foreground' : 'text-muted-foreground/30'
+        'w-full text-left text-[12px] px-1.5 py-1 truncate rounded-lg hover:bg-orange-50/60 transition-colors cursor-text min-h-[24px]',
+        check?.result_value ? 'text-stone-800 font-medium' : 'text-stone-300'
       )}
     >
       {check?.result_value || '-'}
@@ -677,9 +677,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <div className="size-5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-          <span className="text-sm">데이터를 불러오는 중...</span>
+        <div className="flex items-center gap-3 text-stone-500">
+          <div className="size-5 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+          <span className="text-sm font-medium">데이터를 불러오는 중...</span>
         </div>
       </div>
     );
@@ -707,25 +707,25 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     {/* Global Tasks Section (table layout, grouped by assignee) */}
     {globalTasks.length > 0 && (
       <TooltipProvider>
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-2.5 py-1 border-b border-border bg-secondary/50 flex items-center gap-2">
-          <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50/80 flex items-center gap-2">
+          <h3 className="text-[12px] font-bold text-stone-700 tracking-tight">
             전역 업무
           </h3>
-          <Badge variant="secondary" className="text-[11px] rounded-full px-2 py-0 ml-auto">
+          <Badge variant="secondary" className="text-[11px] rounded-full px-2.5 py-0.5 ml-auto bg-orange-50 text-orange-600 border-orange-200 font-bold">
             {globalTasks.length}건
           </Badge>
         </div>
         <table className="w-full text-left table-fixed">
           <thead>
-            <tr className="border-b border-border bg-secondary/50">
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '30%' }}>업무</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '7%' }}>카테고리</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '9%' }}>담당자</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '8%' }}>도구</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '7%' }}>상태</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground text-center" style={{ width: '9%' }}>시간</th>
-              <th className="px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground" style={{ width: '30%' }}>결과값</th>
+            <tr className="border-b border-stone-200 bg-stone-50">
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '30%' }}>업무</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '7%' }}>카테고리</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '9%' }}>담당자</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '8%' }}>도구</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '7%' }}>상태</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '9%' }}>시간</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '30%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -736,22 +736,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-1.5 py-0.5 bg-secondary/30 border-b border-border"
+                      className="px-3 py-2 bg-amber-50/50 border-b border-stone-100"
                     >
                       <div className="flex items-center gap-1.5">
                         <div className="flex items-center -space-x-1">
                           {(group.assignee === '전체' ? ['전'] : group.assignee.split(', ')).map((name, i) => (
-                            <div key={i} className="size-4 rounded-full bg-secondary flex items-center justify-center border border-background" style={{ zIndex: 10 - i }}>
-                              <span className="text-[8px] font-bold text-foreground">
+                            <div key={i} className="size-5 rounded-full bg-orange-100 flex items-center justify-center border border-background" style={{ zIndex: 10 - i }}>
+                              <span className="text-[9px] font-bold text-orange-700">
                                 {name.charAt(0)}
                               </span>
                             </div>
                           ))}
                         </div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span className="text-[12px] font-bold text-stone-700">
                           {group.assignee}
                         </span>
-                        <span className="text-[9px] text-muted-foreground/60 ml-1">{group.tasks.length}건</span>
+                        <span className="text-[10px] text-stone-400 ml-1">{group.tasks.length}건</span>
                       </div>
                     </td>
                   </tr>
@@ -780,11 +780,11 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       <Fragment key={`${group.assignee}-${task.id}`}>
                         {/* Collapsed summary row */}
                         <tr className={cn(
-                          'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
+                          'border-b border-stone-100 hover:bg-orange-50/40 transition-colors h-[38px]',
                           allDone && 'bg-muted/20',
                           getPriorityBorderClass(task.priority)
                         )}>
-                          <td className={cn('px-1.5 py-0 max-w-0', allDone && 'border-l-[2px] border-l-foreground/30')}>
+                          <td className={cn('px-3 py-1 max-w-0', allDone && 'border-l-[2px] border-l-foreground/30')}>
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
@@ -795,14 +795,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   ? <ChevronDown className="size-3 text-muted-foreground" />
                                   : <ChevronRight className="size-3 text-muted-foreground" />}
                               </button>
-                              <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
+                              <span className="text-[10px] font-mono text-stone-400 shrink-0">{task.loop_order}</span>
                               {allDone && (
                                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                               )}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span
-                                    className={cn('text-[10px] font-medium truncate block cursor-pointer hover:underline', allDone && 'text-foreground')}
+                                    className={cn('text-[13px] font-semibold truncate block cursor-pointer hover:underline hover:text-orange-600', allDone && 'text-foreground')}
                                     onClick={() => setSelectedTask(task)}
                                   >
                                     {task.task_name}
@@ -815,7 +815,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </Tooltip>
                               {task.frequency !== 'daily' && (
                                 <span className={cn(
-                                  'text-[7px] px-1 py-0 rounded-sm font-medium shrink-0',
+                                  'text-[9px] px-1.5 py-0.5 rounded-md font-semibold shrink-0',
                                   task.frequency === 'weekly' ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                     : task.frequency === 'monthly' ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400'
                                     : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
@@ -850,8 +850,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                     onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
                                     title="단계 보기"
                                   >
-                                    <ListChecks className="size-2.5" />
-                                    <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                                    <ListChecks className="size-3" />
+                                    <span className="text-[9px] font-bold">{taskSteps.length}</span>
                                   </button>
                                 ) : (
                                   <button
@@ -865,41 +865,41 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               })()}
                             </div>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                          <td className="px-3 py-1">
+                            <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0.5 rounded-md', catColor?.text ?? '', catColor?.bg ?? '')}>
                               {task.category}
                             </Badge>
                           </td>
-                          <td className="px-1.5 py-0">
+                          <td className="px-3 py-1">
                             <button
                               type="button"
-                              className="text-[9px] text-muted-foreground block font-medium hover:text-foreground transition-colors text-left"
+                              className="text-[11px] text-stone-500 block font-medium hover:text-stone-800 transition-colors text-left"
                               onClick={() => toggleGlobalTaskExpand(task.id)}
                             >
                               <span className="break-words">{taskAssigneeNames.join(', ')}</span>
-                              <span className="ml-1 text-[8px] whitespace-nowrap">
+                              <span className="ml-1 text-[10px] whitespace-nowrap text-stone-400">
                                 ({completedCount}/{taskAssigneeNames.length})
                               </span>
                             </button>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                          <td className="px-3 py-1">
+                            <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap">{task.tool || '-'}</span>
                           </td>
-                          <td className="px-1.5 py-0">
+                          <td className="px-3 py-1">
                             <div className="flex items-center justify-center">
                               <span className={cn(
-                                'text-[9px] font-medium',
+                                'text-[11px] font-semibold',
                                 allDone ? 'text-emerald-600' : completedCount > 0 ? 'text-blue-600' : 'text-muted-foreground/40'
                               )}>
                                 {allDone ? '전체완료' : `${completedCount}/${taskAssigneeNames.length}`}
                               </span>
                             </div>
                           </td>
-                          <td className="px-1.5 py-0 text-center">
-                            <span className="text-[9px] text-muted-foreground/30">-</span>
+                          <td className="px-3 py-1 text-center">
+                            <span className="text-[11px] text-stone-300">-</span>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <span className="text-[9px] text-muted-foreground/40">펼쳐서 입력</span>
+                          <td className="px-3 py-1">
+                            <span className="text-[11px] text-stone-300">펼쳐서 입력</span>
                           </td>
                         </tr>
                         {/* Expanded: individual assignee rows */}
@@ -909,20 +909,20 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           const isCompleted = check?.status === '완료';
                           return (
                             <tr key={`${group.assignee}-${task.id}-${aName}`} className={cn(
-                              'border-b border-border/30 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/20',
+                              'border-b border-border/30 hover:bg-orange-50/30 transition-colors h-[38px] bg-stone-50/40',
                               isCompleted && 'bg-muted/20',
                             )}>
-                              <td className="px-1.5 py-0 max-w-0">
-                                <span className="text-[9px] text-muted-foreground/50 pl-5">↳</span>
+                              <td className="px-3 py-1 max-w-0">
+                                <span className="text-[10px] text-stone-400 pl-5">↳</span>
                               </td>
-                              <td className="px-1.5 py-0" />
-                              <td className="px-1.5 py-0">
-                                <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap font-medium">
+                              <td className="px-3 py-1" />
+                              <td className="px-3 py-1">
+                                <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap font-medium">
                                   {aName.trim()}
                                 </span>
                               </td>
-                              <td className="px-1.5 py-0" />
-                              <td className="px-1.5 py-0">
+                              <td className="px-3 py-1" />
+                              <td className="px-3 py-1">
                                 <div className="flex items-center justify-center gap-0.5">
                                   <GlobalStatusSelect
                                     check={check}
@@ -942,15 +942,15 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   )}
                                 </div>
                               </td>
-                              <td className="px-1.5 py-0 text-center">
+                              <td className="px-3 py-1 text-center">
                                 {check?.started_at ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <div className="flex flex-col items-center leading-tight cursor-default">
-                                        <span className="text-[8px] tabular-nums text-muted-foreground/60">
+                                        <span className="text-[10px] tabular-nums text-stone-400">
                                           {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
-                                        <span className="text-[9px] tabular-nums text-foreground font-semibold">
+                                        <span className="text-[11px] tabular-nums text-stone-800 font-bold">
                                           {new Date(check.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                       </div>
@@ -964,10 +964,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                     </TooltipContent>
                                   </Tooltip>
                                 ) : (
-                                  <span className="text-[9px] text-muted-foreground/30">-</span>
+                                  <span className="text-[11px] text-stone-300">-</span>
                                 )}
                               </td>
-                              <td className="px-1.5 py-0">
+                              <td className="px-3 py-1">
                                 <ResultValueInput
                                   check={check}
                                   taskId={task.id}
@@ -983,33 +983,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           const subCatColor = CATEGORY_COLORS[subTask.category];
                           const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
                           return (
-                            <tr key={`sub-${subTask.id}`} className="border-b border-border/20 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/10">
-                              <td className="px-1.5 py-0 max-w-0">
+                            <tr key={`sub-${subTask.id}`} className="border-b border-stone-50 hover:bg-orange-50/30 transition-colors h-[38px] bg-stone-50/30">
+                              <td className="px-3 py-1 max-w-0">
                                 <div className="flex items-center gap-1 pl-5">
-                                  <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
-                                  <span className="text-[10px] text-muted-foreground font-medium truncate">{subTask.task_name}</span>
+                                  <span className="text-[10px] font-mono text-stone-400">{task.loop_order}-{subTask.sub_order}</span>
+                                  <span className="text-[12px] text-stone-600 font-medium truncate">{subTask.task_name}</span>
                                 </div>
                               </td>
-                              <td className="px-1.5 py-0">
-                                <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
+                              <td className="px-3 py-1">
+                                <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0.5 rounded-md', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
                                   {subTask.category}
                                 </Badge>
                               </td>
-                              <td className="px-1.5 py-0">
-                                <span className="text-[9px] text-muted-foreground truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
+                              <td className="px-3 py-1">
+                                <span className="text-[11px] text-stone-600 truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
                               </td>
-                              <td className="px-1.5 py-0">
-                                <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
+                              <td className="px-3 py-1">
+                                <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
                               </td>
-                              <td className="px-1.5 py-0">
+                              <td className="px-3 py-1">
                                 <div className="flex items-center justify-center">
                                   <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
                                 </div>
                               </td>
-                              <td className="px-1.5 py-0 text-center">
-                                <span className="text-[9px] text-muted-foreground/30">-</span>
+                              <td className="px-3 py-1 text-center">
+                                <span className="text-[11px] text-stone-300">-</span>
                               </td>
-                              <td className="px-1.5 py-0">
+                              <td className="px-3 py-1">
                                 <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
                               </td>
                             </tr>
@@ -1042,23 +1042,23 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <Fragment key={`${group.assignee}-${task.id}-wrap`}>
                     <tr key={`${group.assignee}-${task.id}`} className={cn(
-                      'border-b border-border/30 hover:bg-muted/20 transition-colors h-[22px]',
+                      'border-b border-stone-100 hover:bg-orange-50/40 transition-colors h-[38px]',
                       isCompleted && 'bg-muted/20',
                       getPriorityBorderClass(task.priority)
                     )}>
                       <td className={cn(
-                        'px-1.5 py-0 max-w-0',
+                        'px-3 py-1 max-w-0',
                         isCompleted && 'border-l-[2px] border-l-foreground/30'
                       )}>
                         <div className="flex items-center gap-1">
-                          <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
+                          <span className="text-[10px] font-mono text-stone-400 shrink-0">{task.loop_order}</span>
                           {isCompleted && (
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span
-                                className={cn('text-[10px] font-medium truncate block cursor-pointer hover:underline', isCompleted && 'text-foreground')}
+                                className={cn('text-[13px] font-semibold truncate block cursor-pointer hover:underline hover:text-orange-600', isCompleted && 'text-foreground')}
                                 onClick={() => setSelectedTask(task)}
                               >{task.task_name}</span>
                             </TooltipTrigger>
@@ -1069,7 +1069,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           </Tooltip>
                           {task.frequency !== 'daily' && (
                             <span className={cn(
-                              'text-[7px] px-1 py-0 rounded-sm font-medium shrink-0',
+                              'text-[9px] px-1.5 py-0.5 rounded-md font-semibold shrink-0',
                               task.frequency === 'weekly' ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                 : task.frequency === 'monthly' ? 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400'
                                 : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
@@ -1104,8 +1104,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
                                 title="단계 보기"
                               >
-                                <ListChecks className="size-2.5" />
-                                <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                                <ListChecks className="size-3" />
+                                <span className="text-[9px] font-bold">{taskSteps.length}</span>
                               </button>
                             ) : (
                               <button
@@ -1119,22 +1119,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           })()}
                         </div>
                       </td>
-                      <td className="px-1.5 py-0">
-                        <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', catColor?.text ?? '', catColor?.bg ?? '')}>
+                      <td className="px-3 py-1">
+                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0.5 rounded-md', catColor?.text ?? '', catColor?.bg ?? '')}>
                           {task.category}
                         </Badge>
                       </td>
-                      <td className="px-1.5 py-0">
+                      <td className="px-3 py-1">
                         {assignees ? (
-                          <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{assignees}</span>
+                          <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap">{assignees}</span>
                         ) : (
-                          <span className="text-[9px] text-destructive font-medium truncate block whitespace-nowrap">지정안됨</span>
+                          <span className="text-[11px] text-red-500 font-semibold truncate block whitespace-nowrap">지정안됨</span>
                         )}
                       </td>
-                      <td className="px-1.5 py-0">
-                        <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{task.tool || '-'}</span>
+                      <td className="px-3 py-1">
+                        <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap">{task.tool || '-'}</span>
                       </td>
-                      <td className="px-1.5 py-0">
+                      <td className="px-3 py-1">
                         <div className="flex items-center justify-center gap-0.5">
                           <GlobalStatusSelect
                             check={check}
@@ -1154,15 +1154,15 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           )}
                         </div>
                       </td>
-                      <td className="px-1.5 py-0 text-center">
+                      <td className="px-3 py-1 text-center">
                         {check?.started_at ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="flex flex-col items-center leading-tight cursor-default">
-                                <span className="text-[8px] tabular-nums text-muted-foreground/60">
+                                <span className="text-[10px] tabular-nums text-stone-400">
                                   {new Date(check.started_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <span className="text-[9px] tabular-nums text-foreground font-semibold">
+                                <span className="text-[11px] tabular-nums text-stone-800 font-bold">
                                   {new Date(check.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
@@ -1176,10 +1176,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <span className="text-[9px] text-muted-foreground/30">-</span>
+                          <span className="text-[11px] text-stone-300">-</span>
                         )}
                       </td>
-                      <td className="px-1.5 py-0">
+                      <td className="px-3 py-1">
                         <ResultValueInput
                           check={check}
                           taskId={task.id}
@@ -1193,33 +1193,33 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       const subCatColor = CATEGORY_COLORS[subTask.category];
                       const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
                       return (
-                        <tr key={`sub-${subTask.id}`} className="border-b border-border/20 hover:bg-muted/10 transition-colors h-[22px] bg-secondary/10">
-                          <td className="px-1.5 py-0 max-w-0">
+                        <tr key={`sub-${subTask.id}`} className="border-b border-stone-50 hover:bg-orange-50/30 transition-colors h-[38px] bg-stone-50/30">
+                          <td className="px-3 py-1 max-w-0">
                             <div className="flex items-center gap-1 pl-4">
-                              <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
-                              <span className="text-[10px] text-muted-foreground font-medium truncate">{subTask.task_name}</span>
+                              <span className="text-[10px] font-mono text-stone-400">{task.loop_order}-{subTask.sub_order}</span>
+                              <span className="text-[12px] text-stone-600 font-medium truncate">{subTask.task_name}</span>
                             </div>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <Badge variant="outline" className={cn('text-[7px] px-0.5 py-0', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
+                          <td className="px-3 py-1">
+                            <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0.5 rounded-md', subCatColor?.text ?? '', subCatColor?.bg ?? '')}>
                               {subTask.category}
                             </Badge>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <span className="text-[9px] text-muted-foreground truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
+                          <td className="px-3 py-1">
+                            <span className="text-[11px] text-stone-600 truncate block">{subTask.default_assignees?.join(', ') || '-'}</span>
                           </td>
-                          <td className="px-1.5 py-0">
-                            <span className="text-[9px] text-muted-foreground truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
+                          <td className="px-3 py-1">
+                            <span className="text-[11px] text-stone-600 truncate block whitespace-nowrap">{subTask.tool || '-'}</span>
                           </td>
-                          <td className="px-1.5 py-0">
+                          <td className="px-3 py-1">
                             <div className="flex items-center justify-center">
                               <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
                             </div>
                           </td>
-                          <td className="px-1.5 py-0 text-center">
-                            <span className="text-[9px] text-muted-foreground/30">-</span>
+                          <td className="px-3 py-1 text-center">
+                            <span className="text-[11px] text-stone-300">-</span>
                           </td>
-                          <td className="px-1.5 py-0">
+                          <td className="px-3 py-1">
                             <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
                           </td>
                         </tr>
@@ -1275,10 +1275,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
               });
             }}
             className={cn(
-              'text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors',
+              'text-[11px] font-semibold px-3 py-1 rounded-full border transition-colors',
               isActive
-                ? 'bg-foreground text-background border-foreground'
-                : 'bg-transparent text-muted-foreground border-border hover:border-foreground/30'
+                ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                : 'bg-white text-stone-500 border-stone-200 hover:border-orange-300 hover:text-orange-600'
             )}
           >
             {type} ({count})
@@ -1286,12 +1286,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
         );
       })}
     </div>
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="px-3 py-1.5 border-b border-border bg-secondary/50 flex items-center gap-2">
-        <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50/80 flex items-center gap-2">
+        <h3 className="text-[12px] font-bold text-stone-700 tracking-tight">
           일일 캠페인별 업무
         </h3>
-        <Badge variant="secondary" className="text-[11px] rounded-full px-2 py-0 ml-auto">
+        <Badge variant="secondary" className="text-[11px] rounded-full px-2.5 py-0.5 ml-auto bg-blue-50 text-blue-600 border-blue-200 font-bold">
           {visibleCampaigns.length}개 캠페인
         </Badge>
       </div>
@@ -1304,8 +1304,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
             <th
               className={cn(
                 'sticky left-0 top-0 z-30 min-w-[180px] max-w-[220px]',
-                'bg-background border-b border-r px-2 py-0.5',
-                'text-left text-[10px] font-semibold text-muted-foreground'
+                'bg-white border-b border-r border-stone-200 px-3 py-2',
+                'text-left text-[11px] font-bold text-stone-600'
               )}
             >
               업무
@@ -1319,17 +1319,17 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   key={campaign.id}
                   className={cn(
                     'sticky top-0 z-20',
-                    'bg-background border-b px-0.5 py-0.5',
-                    'text-center min-w-[40px] max-w-[46px]'
+                    'bg-white border-b border-stone-100 px-1 py-2',
+                    'text-center min-w-[44px] max-w-[50px]'
                   )}
                 >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex flex-col items-center gap-0 cursor-help">
-                        <span className="text-[8px] font-semibold text-foreground leading-tight">
+                        <span className="text-[10px] font-bold text-stone-800 leading-tight">
                           {campaign.client_name.slice(0, 3)}
                         </span>
-                        <span className="text-[7px] text-muted-foreground/70 leading-tight">
+                        <span className="text-[9px] text-stone-400 leading-tight">
                           {campaign.campaign_name.slice(0, 3)}
                         </span>
                       </div>
@@ -1351,8 +1351,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
             <th
               className={cn(
                 'sticky top-0 right-0 z-20',
-                'bg-background border-b border-l px-1.5 py-0.5',
-                'text-center text-[9px] font-semibold text-muted-foreground',
+                'bg-white border-b border-l border-stone-200 px-2 py-2',
+                'text-center text-[10px] font-bold text-stone-600',
                 'min-w-[50px]'
               )}
             >
@@ -1372,9 +1372,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                     colSpan={visibleCampaigns.length + 2}
                     className={cn(
                       'sticky left-0 z-10',
-                      'px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                      'bg-secondary/50 text-muted-foreground',
-                      'border-b border-border'
+                      'px-3 py-2 text-[11px] font-bold tracking-tight',
+                      'bg-stone-50 text-stone-600',
+                      'border-b border-stone-200'
                     )}
                   >
                     {group.category}
@@ -1393,21 +1393,21 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   return (
                     <Fragment key={`${task.id}-wrap`}>
                     <tr key={task.id} className={cn(
-                      'hover:bg-muted/30 transition-colors',
+                      'hover:bg-orange-50/40 transition-colors',
                       getPriorityBorderClass(task.priority)
                     )}>
                       {/* Task Name (sticky left) */}
                       <td
                         className={cn(
                           'sticky left-0 z-10',
-                          'border-b border-r border-border px-2 py-1',
-                          'text-[12px] font-medium text-foreground',
-                          'min-w-[180px] max-w-[220px]',
-                          'bg-background'
+                          'border-b border-r border-stone-100 px-3 py-2',
+                          'text-[13px] font-semibold text-stone-800',
+                          'min-w-[200px] max-w-[240px]',
+                          'bg-white'
                         )}
                       >
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-mono text-muted-foreground/50 shrink-0">{task.loop_order}</span>
+                          <span className="text-[10px] font-mono text-stone-400 shrink-0">{task.loop_order}</span>
                           {pct === 100 && (
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
                           )}
@@ -1445,7 +1445,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 <button
                                   type="button"
                                   onClick={() => handleBulkComplete(task)}
-                                  className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium text-foreground bg-secondary hover:bg-secondary/80 transition-colors"
+                                  className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors"
                                 >
                                   <Trophy className="size-3" />
                                 </button>
@@ -1467,14 +1467,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 onClick={(e) => { e.stopPropagation(); toggleStepExpand(task.id); }}
                                 title="단계 보기"
                               >
-                                <ListChecks className="size-2.5" />
-                                <span className="text-[8px] font-bold">{taskSteps.length}</span>
+                                <ListChecks className="size-3" />
+                                <span className="text-[9px] font-bold">{taskSteps.length}</span>
                               </button>
                             ) : null;
                           })()}
                         </div>
                         {!assigneeName && task.default_assignees && task.default_assignees.length > 0 && (
-                          <span className="text-[9px] text-muted-foreground/70 truncate block">
+                          <span className="text-[11px] text-stone-400 truncate block">
                             {task.default_assignees.join(', ')}
                           </span>
                         )}
@@ -1540,7 +1540,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           )}
                         >
                           <div className="flex items-center gap-1 pl-4">
-                            <span className="text-[9px] font-mono text-muted-foreground/40">{task.loop_order}-{subTask.sub_order}</span>
+                            <span className="text-[10px] font-mono text-stone-400">{task.loop_order}-{subTask.sub_order}</span>
                             <span className="truncate font-medium">{subTask.task_name}</span>
                           </div>
                         </td>
@@ -1564,19 +1564,19 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           );
                         })}
                         <td className={cn('sticky right-0 z-10', 'border-b border-l px-1.5 py-0', 'text-center', 'bg-background')}>
-                          <span className="text-[9px] text-muted-foreground/40">-</span>
+                          <span className="text-[11px] text-stone-300">-</span>
                         </td>
                       </tr>
                     ))}
                     {/* Inline Step rows for campaign-scope tasks (interactive) */}
                     {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => (
-                      <tr key={`step-${step.id}`} className="h-[20px] bg-primary/5">
+                      <tr key={`step-${step.id}`} className="h-[30px] bg-orange-50/30">
                         <td
-                          className={cn('sticky left-0 z-10', 'border-b border-r border-border px-2 py-0', 'bg-primary/5', 'min-w-[180px] max-w-[220px]')}
+                          className={cn('sticky left-0 z-10', 'border-b border-r border-border px-2 py-0', 'bg-orange-50/30', 'min-w-[200px] max-w-[240px]')}
                         >
                           <div className="flex items-center gap-1.5 pl-4">
-                            <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">{step.step_order}</span>
-                            <span className="text-[10px] text-foreground/80 font-medium truncate">{step.step_name}</span>
+                            <span className="text-[9px] font-bold text-orange-600 bg-orange-100 rounded-full size-5 flex items-center justify-center shrink-0">{step.step_order}</span>
+                            <span className="text-[11px] text-stone-700 font-medium truncate">{step.step_name}</span>
                             {step.tool_url && (
                               <a href={step.tool_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors">
                                 <ExternalLink className="size-2.5" />
@@ -1751,7 +1751,7 @@ function StepCheckRow({
 
   return (
     <tr className="h-[20px] bg-primary/5 border-b border-border/20">
-      <td colSpan={colSpan} className="px-1.5 py-0">
+      <td colSpan={colSpan} className="px-3 py-1">
         <div className={cn('flex items-center gap-1.5', paddingLeft)}>
           {/* Checkbox */}
           <button
@@ -1767,13 +1767,13 @@ function StepCheckRow({
             {stepCheck?.is_completed && <Check className="size-2.5" />}
           </button>
           {/* Step order badge */}
-          <span className="text-[8px] font-bold text-primary/70 bg-primary/10 rounded-full size-4 flex items-center justify-center shrink-0">
+          <span className="text-[9px] font-bold text-orange-600 bg-orange-100 rounded-full size-5 flex items-center justify-center shrink-0">
             {step.step_order}
           </span>
           {/* Step name */}
           <span className={cn(
-            'text-[10px] font-medium truncate',
-            stepCheck?.is_completed ? 'text-foreground/50 line-through' : 'text-foreground/80'
+            'text-[11px] font-medium truncate',
+            stepCheck?.is_completed ? 'text-stone-400 line-through' : 'text-stone-700'
           )}>
             {step.step_name}
           </span>
@@ -1800,7 +1800,7 @@ function StepCheckRow({
                   if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave();
                   if (e.key === 'Escape') setEditing(false);
                 }}
-                className="w-full text-[9px] bg-transparent border-b border-primary/40 outline-none px-0.5 py-0"
+                className="w-full text-[11px] bg-transparent border-b border-orange-300 outline-none px-0.5 py-0.5 text-stone-800"
                 placeholder="결과값..."
               />
             ) : (
@@ -1808,8 +1808,8 @@ function StepCheckRow({
                 type="button"
                 onClick={handleStartEdit}
                 className={cn(
-                  'w-full text-left text-[9px] px-0.5 py-0 truncate rounded hover:bg-accent/50 transition-colors cursor-text min-h-[14px]',
-                  stepCheck?.result_value ? 'text-foreground/70' : 'text-muted-foreground/30'
+                  'w-full text-left text-[11px] px-0.5 py-0.5 truncate rounded hover:bg-orange-50 transition-colors cursor-text min-h-[16px]',
+                  stepCheck?.result_value ? 'text-stone-700' : 'text-stone-300'
                 )}
               >
                 {stepCheck?.result_value || '값 입력'}
