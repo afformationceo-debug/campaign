@@ -248,6 +248,20 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     return map;
   }, [users]);
 
+  // Resolve the correct user ID for a global task.
+  // When a specific assignee is filtered, use that ID.
+  // When "전체 담당자", resolve from the task's default_assignees
+  // so that check lookups find the correct per-user record.
+  const resolveGlobalUserId = useCallback((task: Task): string => {
+    if (assigneeId) return assigneeId;
+    const names = task.default_assignees?.map((n) => n.trim()).filter(Boolean) ?? [];
+    if (names.length === 1) {
+      const resolvedId = nameToIdMap.get(names[0]);
+      if (resolvedId) return resolvedId;
+    }
+    return effectiveUserId;
+  }, [assigneeId, nameToIdMap, effectiveUserId]);
+
   const { mutate: bulkUpdateStatus } = useUpdateCheckStatus();
   const { mutate: bulkCreateCheck } = useCreateCheck();
 
@@ -981,7 +995,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                         {/* Sub-tasks (하위 업무) for multi-assignee parent */}
                         {subTasks.map((subTask) => {
                           const subCatColor = CATEGORY_COLORS[subTask.category];
-                          const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
+                          const subUserId = resolveGlobalUserId(subTask);
+                          const subCheck = checkMap.get(`null:${subTask.id}:${subUserId}`) ?? null;
                           return (
                             <tr key={`sub-${subTask.id}`} className="border-b border-stone-50 hover:bg-orange-50/30 transition-colors h-[38px] bg-stone-50/30">
                               <td className="px-3 py-1 max-w-0">
@@ -1003,21 +1018,22 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               </td>
                               <td className="px-3 py-1">
                                 <div className="flex items-center justify-center">
-                                  <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                                  <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                                 </div>
                               </td>
                               <td className="px-3 py-1 text-center">
                                 <span className="text-[11px] text-stone-300">-</span>
                               </td>
                               <td className="px-3 py-1">
-                                <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                                <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                               </td>
                             </tr>
                           );
                         })}
                         {/* Inline Step rows (interactive) */}
                         {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => {
-                          const parentCheck = checkMap.get(`null:${task.id}:${effectiveUserId}`);
+                          const resolvedId = resolveGlobalUserId(task);
+                          const parentCheck = checkMap.get(`null:${task.id}:${resolvedId}`);
                           const sc = parentCheck ? stepCheckMap.get(`${parentCheck.id}:${step.id}`) : undefined;
                           return (
                             <StepCheckRow
@@ -1026,8 +1042,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               stepCheck={sc}
                               colSpan={7}
                               paddingLeft="pl-5"
-                              onToggle={() => upsertStepCheck(task.id, step.id, effectiveUserId, null, { is_completed: !sc?.is_completed })}
-                              onResultSave={(val) => upsertStepCheck(task.id, step.id, effectiveUserId, null, { result_value: val })}
+                              onToggle={() => upsertStepCheck(task.id, step.id, resolvedId, null, { is_completed: !sc?.is_completed })}
+                              onResultSave={(val) => upsertStepCheck(task.id, step.id, resolvedId, null, { result_value: val })}
                             />
                           );
                         })}
@@ -1036,7 +1052,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                   }
 
                   // Single assignee or specific assignee view: original single-row rendering
-                  const check = checkMap.get(`null:${task.id}:${effectiveUserId}`) ?? null;
+                  const resolvedUserId = resolveGlobalUserId(task);
+                  const check = checkMap.get(`null:${task.id}:${resolvedUserId}`) ?? null;
                   const assignees = task.default_assignees?.join(', ') || null;
                   const isCompleted = check?.status === '완료';
                   return (
@@ -1140,7 +1157,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             check={check}
                             taskId={task.id}
                             date={date}
-                            assigneeId={effectiveUserId}
+                            assigneeId={resolvedUserId}
                           />
                           {check?.note && (
                             <Tooltip>
@@ -1184,14 +1201,15 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           check={check}
                           taskId={task.id}
                           date={date}
-                          assigneeId={effectiveUserId}
+                          assigneeId={resolvedUserId}
                         />
                       </td>
                     </tr>
                     {/* Sub-tasks (하위 업무) for single-assignee parent */}
                     {subTasks.map((subTask) => {
                       const subCatColor = CATEGORY_COLORS[subTask.category];
-                      const subCheck = checkMap.get(`null:${subTask.id}:${effectiveUserId}`) ?? null;
+                      const subUserId = resolveGlobalUserId(subTask);
+                      const subCheck = checkMap.get(`null:${subTask.id}:${subUserId}`) ?? null;
                       return (
                         <tr key={`sub-${subTask.id}`} className="border-b border-stone-50 hover:bg-orange-50/30 transition-colors h-[38px] bg-stone-50/30">
                           <td className="px-3 py-1 max-w-0">
@@ -1213,21 +1231,21 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           </td>
                           <td className="px-3 py-1">
                             <div className="flex items-center justify-center">
-                              <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                              <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                             </div>
                           </td>
                           <td className="px-3 py-1 text-center">
                             <span className="text-[11px] text-stone-300">-</span>
                           </td>
                           <td className="px-3 py-1">
-                            <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={effectiveUserId} />
+                            <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                           </td>
                         </tr>
                       );
                     })}
                     {/* Inline Step rows (interactive) */}
                     {expandedStepTaskIds.has(task.id) && (stepsMap.get(task.id) || []).map((step) => {
-                      const parentCheck = checkMap.get(`null:${task.id}:${effectiveUserId}`);
+                      const parentCheck = checkMap.get(`null:${task.id}:${resolvedUserId}`);
                       const sc = parentCheck ? stepCheckMap.get(`${parentCheck.id}:${step.id}`) : undefined;
                       return (
                         <StepCheckRow
@@ -1236,8 +1254,8 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           stepCheck={sc}
                           colSpan={7}
                           paddingLeft="pl-4"
-                          onToggle={() => upsertStepCheck(task.id, step.id, effectiveUserId, null, { is_completed: !sc?.is_completed })}
-                          onResultSave={(val) => upsertStepCheck(task.id, step.id, effectiveUserId, null, { result_value: val })}
+                          onToggle={() => upsertStepCheck(task.id, step.id, resolvedUserId, null, { is_completed: !sc?.is_completed })}
+                          onResultSave={(val) => upsertStepCheck(task.id, step.id, resolvedUserId, null, { result_value: val })}
                         />
                       );
                     })}
