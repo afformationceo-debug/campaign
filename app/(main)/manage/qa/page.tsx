@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isPast, isToday, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -153,7 +153,7 @@ function DueDateBadge({ dueDate, status }: { dueDate: string | null; status: QaS
 
 /* ── Inline Edit Cells ──────────────────── */
 
-function InlineTextCell({
+const InlineTextCell = memo(function InlineTextCell({
   value,
   qaId,
   field,
@@ -224,9 +224,9 @@ function InlineTextCell({
       )}
     </Tooltip>
   );
-}
+});
 
-function InlineDateCell({
+const InlineDateCell = memo(function InlineDateCell({
   value,
   qaId,
   status,
@@ -271,7 +271,257 @@ function InlineDateCell({
       <DueDateBadge dueDate={value} status={status} />
     </button>
   );
-}
+});
+
+/* ── QA Form Dialog (isolated to prevent parent re-renders on typing) ── */
+
+const QaFormDialog = memo(function QaFormDialog({
+  open,
+  onOpenChange,
+  editingQa,
+  campaigns,
+  campaignMap,
+  users,
+  onSubmit,
+  isPending,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingQa: CampaignQa | null;
+  campaigns: Campaign[];
+  campaignMap: Map<string, Campaign>;
+  users: User[];
+  onSubmit: (data: QaFormData, isEdit: boolean) => void;
+  isPending: boolean;
+}) {
+  const [formData, setFormData] = useState<QaFormData>(defaultFormData);
+  const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
+
+  // Sync form data when dialog opens or editingQa changes
+  useEffect(() => {
+    if (open) {
+      if (editingQa) {
+        setFormData({
+          campaign_id: editingQa.campaign_id,
+          qa_type: editingQa.qa_type,
+          content: editingQa.content,
+          due_date: editingQa.due_date || '',
+          status: editingQa.status,
+          resolution: editingQa.resolution || '',
+          priority: editingQa.priority,
+          created_by: editingQa.created_by || '',
+          assigned_to: editingQa.assigned_to || '',
+        });
+      } else {
+        setFormData(defaultFormData);
+      }
+    }
+  }, [open, editingQa]);
+
+  const handleSubmit = useCallback(() => {
+    if (!formData.campaign_id || !formData.content.trim()) return;
+    onSubmit(formData, !!editingQa);
+  }, [formData, editingQa, onSubmit]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[560px] bg-white border-stone-100 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold">
+            {editingQa ? 'QA 수정' : 'QA 등록'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {/* Campaign Select (Searchable) */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">캠페인 *</label>
+            <Popover open={campaignSearchOpen} onOpenChange={setCampaignSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={campaignSearchOpen}
+                  className="w-full h-9 justify-between text-sm font-normal bg-secondary/50 border-border"
+                >
+                  {formData.campaign_id
+                    ? (() => {
+                        const c = campaignMap.get(formData.campaign_id);
+                        return c ? `${c.client_name} - ${c.campaign_name}` : '캠페인을 선택하세요';
+                      })()
+                    : '캠페인을 선택하세요'}
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="캠페인 검색..." className="h-9 text-sm" />
+                  <CommandList>
+                    <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                    <CommandGroup>
+                      {campaigns.map((c) => (
+                        <CommandItem
+                          key={c.id}
+                          value={`${c.client_name} ${c.campaign_name}`}
+                          onSelect={() => {
+                            setFormData((prev) => ({ ...prev, campaign_id: c.id }));
+                            setCampaignSearchOpen(false);
+                          }}
+                          className="text-sm"
+                        >
+                          <Check className={cn('mr-2 h-3.5 w-3.5', formData.campaign_id === c.id ? 'opacity-100' : 'opacity-0')} />
+                          {c.client_name} - {c.campaign_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Type + Priority Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">유형 *</label>
+              <Select
+                value={formData.qa_type}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, qa_type: v as QaType }))}
+              >
+                <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QA_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">우선순위</label>
+              <Select
+                value={formData.priority}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, priority: v as QaPriority }))}
+              >
+                <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QA_PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">QA 내용 *</label>
+            <textarea
+              value={formData.content}
+              onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
+              placeholder="QA 내용을 입력하세요..."
+              rows={3}
+              className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
+            />
+          </div>
+
+          {/* Due Date + Status + Created By + Assigned To Row */}
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">기한</label>
+              <Input
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
+                className="h-9 text-sm bg-secondary/50 border-border"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">상태</label>
+              <Select
+                value={formData.status}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v as QaStatus }))}
+              >
+                <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QA_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">작성자</label>
+              <Select
+                value={formData.created_by}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, created_by: v }))}
+              >
+                <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
+                  <SelectValue placeholder="작성자 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.name}>
+                      {u.name}{u.position ? ` (${u.position})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">실행자</label>
+              <Select
+                value={formData.assigned_to}
+                onValueChange={(v) => setFormData((prev) => ({ ...prev, assigned_to: v }))}
+              >
+                <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
+                  <SelectValue placeholder="실행자 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.name}>
+                      {u.name}{u.position ? ` (${u.position})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Resolution */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">해결 상세내용</label>
+            <textarea
+              value={formData.resolution}
+              onChange={(e) => setFormData((prev) => ({ ...prev, resolution: e.target.value }))}
+              placeholder="해결 내용을 입력하세요 (해결 후 작성)..."
+              rows={2}
+              className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full border-stone-200 hover:bg-stone-50">
+              취소
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!formData.campaign_id || !formData.content.trim() || isPending}
+              className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
+            >
+              {isPending ? '저장 중...' : editingQa ? '수정' : '등록'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
 
 /* ── Main Page ──────────────────────── */
 
@@ -289,8 +539,6 @@ export default function CampaignQaPage() {
   const [groupBy, setGroupBy] = useState<'campaign' | 'assignee'>('campaign');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQa, setEditingQa] = useState<CampaignQa | null>(null);
-  const [formData, setFormData] = useState<QaFormData>(defaultFormData);
-  const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
 
   // ── Data Fetching ──
 
@@ -371,7 +619,6 @@ export default function CampaignQaPage() {
         newValue: { qa_type: data.qa_type, campaign_id: data.campaign_id, status: data.status },
       });
       setDialogOpen(false);
-      setFormData(defaultFormData);
     },
   });
 
@@ -408,7 +655,6 @@ export default function CampaignQaPage() {
       });
       setDialogOpen(false);
       setEditingQa(null);
-      setFormData(defaultFormData);
     },
   });
 
@@ -538,18 +784,16 @@ export default function CampaignQaPage() {
 
   const handleOpenCreate = useCallback(() => {
     setEditingQa(null);
-    setFormData(defaultFormData);
     setDialogOpen(true);
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (!formData.campaign_id || !formData.content.trim()) return;
-    if (editingQa) {
+  const handleDialogSubmit = useCallback((formData: QaFormData, isEdit: boolean) => {
+    if (isEdit && editingQa) {
       updateMutation.mutate({ id: editingQa.id, data: formData });
     } else {
       createMutation.mutate(formData);
     }
-  }, [formData, editingQa, createMutation, updateMutation]);
+  }, [editingQa, createMutation, updateMutation]);
 
   const handleDelete = useCallback((id: string) => {
     if (confirm('정말 삭제하시겠습니까?')) {
@@ -1051,202 +1295,16 @@ export default function CampaignQaPage() {
         )}
 
         {/* Create/Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[560px] bg-white border-stone-100 rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold">
-                {editingQa ? 'QA 수정' : 'QA 등록'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-2">
-              {/* Campaign Select (Searchable) */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">캠페인 *</label>
-                <Popover open={campaignSearchOpen} onOpenChange={setCampaignSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={campaignSearchOpen}
-                      className="w-full h-9 justify-between text-sm font-normal bg-secondary/50 border-border"
-                    >
-                      {formData.campaign_id
-                        ? (() => {
-                            const c = campaignMap.get(formData.campaign_id);
-                            return c ? `${c.client_name} - ${c.campaign_name}` : '캠페인을 선택하세요';
-                          })()
-                        : '캠페인을 선택하세요'}
-                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="캠페인 검색..." className="h-9 text-sm" />
-                      <CommandList>
-                        <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
-                        <CommandGroup>
-                          {campaigns.map((c) => (
-                            <CommandItem
-                              key={c.id}
-                              value={`${c.client_name} ${c.campaign_name}`}
-                              onSelect={() => {
-                                setFormData((prev) => ({ ...prev, campaign_id: c.id }));
-                                setCampaignSearchOpen(false);
-                              }}
-                              className="text-sm"
-                            >
-                              <Check className={cn('mr-2 h-3.5 w-3.5', formData.campaign_id === c.id ? 'opacity-100' : 'opacity-0')} />
-                              {c.client_name} - {c.campaign_name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Type + Priority Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">유형 *</label>
-                  <Select
-                    value={formData.qa_type}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, qa_type: v as QaType }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QA_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">우선순위</label>
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, priority: v as QaPriority }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QA_PRIORITIES.map((p) => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">QA 내용 *</label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
-                  placeholder="QA 내용을 입력하세요..."
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
-                />
-              </div>
-
-              {/* Due Date + Status + Created By + Assigned To Row */}
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">기한</label>
-                  <Input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
-                    className="h-9 text-sm bg-secondary/50 border-border"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">상태</label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v as QaStatus }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QA_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">작성자</label>
-                  <Select
-                    value={formData.created_by}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, created_by: v }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
-                      <SelectValue placeholder="작성자 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((u) => (
-                        <SelectItem key={u.id} value={u.name}>
-                          {u.name}{u.position ? ` (${u.position})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">실행자</label>
-                  <Select
-                    value={formData.assigned_to}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, assigned_to: v }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm bg-secondary/50 border-border">
-                      <SelectValue placeholder="실행자 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((u) => (
-                        <SelectItem key={u.id} value={u.name}>
-                          {u.name}{u.position ? ` (${u.position})` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Resolution */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">해결 상세내용</label>
-                <textarea
-                  value={formData.resolution}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, resolution: e.target.value }))}
-                  placeholder="해결 내용을 입력하세요 (해결 후 작성)..."
-                  rows={2}
-                  className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-full border-stone-200 hover:bg-stone-50">
-                  취소
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!formData.campaign_id || !formData.content.trim() || createMutation.isPending || updateMutation.isPending}
-                  className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? '저장 중...' : editingQa ? '수정' : '등록'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <QaFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          editingQa={editingQa}
+          campaigns={campaigns}
+          campaignMap={campaignMap}
+          users={users}
+          onSubmit={handleDialogSubmit}
+          isPending={createMutation.isPending || updateMutation.isPending}
+        />
       </motion.div>
     </TooltipProvider>
   );
