@@ -296,6 +296,8 @@ const QaFormDialog = memo(function QaFormDialog({
 }) {
   const [formData, setFormData] = useState<QaFormData>(defaultFormData);
   const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const resolutionRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync form data when dialog opens or editingQa changes
   useEffect(() => {
@@ -312,15 +314,26 @@ const QaFormDialog = memo(function QaFormDialog({
           created_by: editingQa.created_by || '',
           assigned_to: editingQa.assigned_to || '',
         });
+        // Sync uncontrolled textareas
+        setTimeout(() => {
+          if (contentRef.current) contentRef.current.value = editingQa.content || '';
+          if (resolutionRef.current) resolutionRef.current.value = editingQa.resolution || '';
+        }, 0);
       } else {
         setFormData(defaultFormData);
+        setTimeout(() => {
+          if (contentRef.current) contentRef.current.value = '';
+          if (resolutionRef.current) resolutionRef.current.value = '';
+        }, 0);
       }
     }
   }, [open, editingQa]);
 
   const handleSubmit = useCallback(() => {
-    if (!formData.campaign_id || !formData.content.trim()) return;
-    onSubmit(formData, !!editingQa);
+    const content = contentRef.current?.value || '';
+    const resolution = resolutionRef.current?.value || '';
+    if (!formData.campaign_id || !content.trim()) return;
+    onSubmit({ ...formData, content, resolution }, !!editingQa);
   }, [formData, editingQa, onSubmit]);
 
   return (
@@ -415,12 +428,12 @@ const QaFormDialog = memo(function QaFormDialog({
             </div>
           </div>
 
-          {/* Content */}
+          {/* Content — uncontrolled for zero re-render typing */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">QA 내용 *</label>
             <textarea
-              value={formData.content}
-              onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
+              ref={contentRef}
+              defaultValue={formData.content}
               placeholder="QA 내용을 입력하세요..."
               rows={3}
               className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
@@ -492,12 +505,12 @@ const QaFormDialog = memo(function QaFormDialog({
             </div>
           </div>
 
-          {/* Resolution */}
+          {/* Resolution — uncontrolled for zero re-render typing */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">해결 상세내용</label>
             <textarea
-              value={formData.resolution}
-              onChange={(e) => setFormData((prev) => ({ ...prev, resolution: e.target.value }))}
+              ref={resolutionRef}
+              defaultValue={formData.resolution}
               placeholder="해결 내용을 입력하세요 (해결 후 작성)..."
               rows={2}
               className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20 resize-none"
@@ -511,7 +524,7 @@ const QaFormDialog = memo(function QaFormDialog({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.campaign_id || !formData.content.trim() || isPending}
+              disabled={!formData.campaign_id || isPending}
               className="bg-orange-500 text-white hover:bg-orange-600 rounded-full"
             >
               {isPending ? '저장 중...' : editingQa ? '수정' : '등록'}
