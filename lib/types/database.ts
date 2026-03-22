@@ -334,3 +334,62 @@ export interface TaskTrainingWithRelations extends TaskTraining {
 export interface DailyReportWithUser extends DailyReport {
   users: User;
 }
+
+// ── 협업상품 & 워크플로우 ──
+export type WorkflowSection = '영업' | '온보딩' | '인플루언서' | '일반고객 CS 대행';
+export type WorkflowCheckStatus = '진행전' | '진행중' | '완료' | '해당없음';
+
+export interface CollaborationProduct {
+  id: string;
+  product_name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowTask {
+  id: string;
+  task_number: number;
+  section: WorkflowSection;
+  task_name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ProductTaskDefault {
+  id: string;
+  product_id: string;
+  workflow_task_id: string;
+  is_required: boolean;
+  created_at: string;
+}
+
+export interface CampaignProduct {
+  id: string;
+  campaign_id: string;
+  product_id: string;
+  created_at: string;
+}
+
+export interface CampaignWorkflowCheck {
+  id: string;
+  campaign_id: string;
+  product_id: string;
+  workflow_task_id: string;
+  status: WorkflowCheckStatus;
+  note: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignProductWithProduct extends CampaignProduct {
+  collaboration_products: CollaborationProduct;
+}
+
+export interface CampaignWorkflowCheckWithTask extends CampaignWorkflowCheck {
+  workflow_tasks: WorkflowTask;
+}

@@ -86,4 +86,23 @@ export const queryKeys = {
     byDailyCheck: (dailyCheckId: string) => ['stepChecks', dailyCheckId] as const,
     byDate: (date: string) => ['stepChecks', 'date', date] as const,
   },
+  collabProducts: {
+    all: ['collabProducts'] as const,
+    detail: (id: string) => ['collabProducts', id] as const,
+  },
+  workflowTasks: {
+    all: ['workflowTasks'] as const,
+  },
+  productDefaults: {
+    all: ['productDefaults'] as const,
+    byProduct: (productId: string) => ['productDefaults', productId] as const,
+  },
+  campaignProducts: {
+    all: ['campaignProducts'] as const,
+    byCampaign: (campaignId: string) => ['campaignProducts', campaignId] as const,
+  },
+  workflowChecks: {
+    byCampaign: (campaignId: string) => ['workflowChecks', campaignId] as const,
+    byCampaignProduct: (campaignId: string, productId: string) => ['workflowChecks', campaignId, productId] as const,
+  },
 };

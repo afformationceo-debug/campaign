@@ -20,6 +20,8 @@ import {
   BookOpen,
   ClipboardCheck,
   GraduationCap,
+  Package,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar-store';
@@ -47,6 +49,8 @@ const manageNav = [
   { href: '/manage/users', label: '담당자 관리', desc: '팀원 추가/수정', icon: UserCog, color: 'bg-teal-100 text-teal-600' },
   { href: '/manage/configs', label: '캠페인 세팅', desc: '상세 설정 관리', icon: Wrench, color: 'bg-indigo-100 text-indigo-600' },
   { href: '/manage/training', label: '교육 관리', desc: '교육 이수 현황', icon: GraduationCap, color: 'bg-pink-100 text-pink-600' },
+  { href: '/manage/products', label: '협업상품 설정', desc: '상품 목록 및 맵핑', icon: Package, color: 'bg-cyan-100 text-cyan-600' },
+  { href: '/manage/workflow', label: '워크플로우', desc: '세팅 체크리스트', icon: ClipboardList, color: 'bg-orange-100 text-orange-600' },
 ];
 
 const projectNav = [

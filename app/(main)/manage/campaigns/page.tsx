@@ -43,6 +43,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useLinkCampaignProducts } from '@/hooks/use-workflow-mutations';
 import type {
   Campaign,
   CampaignStatus,
@@ -52,6 +54,7 @@ import type {
   InterpreterStatus,
   BrandPhase,
   VatType,
+  CollaborationProduct,
 } from '@/lib/types/database';
 
 // ─── Config ─────────────────────────────────────────────
@@ -328,8 +331,19 @@ export default function CampaignsPage() {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  const linkProducts = useLinkCampaignProducts();
 
   useRealtimeCampaigns();
+
+  const { data: collabProducts = [] } = useQuery({
+    queryKey: queryKeys.collabProducts.all,
+    queryFn: async () => {
+      const { data } = await supabase.from('collaboration_products').select('*').eq('is_active', true).order('sort_order');
+      return (data || []) as CollaborationProduct[];
+    },
+  });
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: queryKeys.campaigns.all,
@@ -463,6 +477,15 @@ export default function CampaignsPage() {
       }));
 
       await supabase.from('campaign_configs').insert(configInserts);
+
+      // 협업상품 연결 + 워크플로우 체크 자동 생성
+      if (selectedProductIds.length > 0) {
+        await linkProducts.mutateAsync({
+          campaignId: created.id,
+          productIds: selectedProductIds,
+          userId: profile?.id,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all });
@@ -486,6 +509,7 @@ export default function CampaignsPage() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setFormData(defaultFormData);
+    setSelectedProductIds([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1266,6 +1290,33 @@ export default function CampaignsPage() {
               <Label htmlFor="homepage_url" className="text-[13px] font-medium">홈페이지 URL</Label>
               <Input id="homepage_url" type="url" value={formData.homepage_url} onChange={(e) => setFormData((prev) => ({ ...prev, homepage_url: e.target.value }))} className="h-9 bg-secondary/50 border-border text-[13px]" />
             </div>
+
+            {/* 협업상품 선택 */}
+            {collabProducts.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium">협업상품 (복수 선택 가능)</Label>
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-secondary/30 border border-border">
+                  {collabProducts.map((product) => (
+                    <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-secondary/50 rounded px-2 py-1.5 transition-colors">
+                      <Checkbox
+                        checked={selectedProductIds.includes(product.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedProductIds((prev) =>
+                            checked
+                              ? [...prev, product.id]
+                              : prev.filter((id) => id !== product.id)
+                          );
+                        }}
+                      />
+                      <span className="text-[12px] text-stone-700">{product.product_name}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedProductIds.length > 0 && (
+                  <p className="text-[11px] text-stone-500">{selectedProductIds.length}개 상품 선택됨 — 캠페인 등록 시 워크플로우가 자동 생성됩니다</p>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog} className="rounded-xl border-stone-200">취소</Button>
