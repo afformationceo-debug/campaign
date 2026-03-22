@@ -229,7 +229,7 @@ export default function WorkflowPage() {
       {/* Header */}
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-stone-900">워크플로우 체크리스트</h1>
+          <h1 className="text-xl font-bold tracking-tight text-stone-900">캠페인별 워크플로우</h1>
           <p className="text-sm text-stone-500 mt-1">캠페인별 협업상품 세팅 진행 현황</p>
         </div>
       </motion.div>
@@ -243,7 +243,7 @@ export default function WorkflowPage() {
             <SelectContent>
               {campaigns.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  <span className={c.status !== 'active' ? 'text-stone-400' : ''}>{c.client_name} {c.campaign_name}</span>
+                  <span className={c.status !== 'active' ? 'text-stone-400' : ''}>{c.campaign_name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
