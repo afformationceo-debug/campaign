@@ -459,22 +459,52 @@ export default function WorkflowPage() {
                           const cfg = STATUS_CONFIG[check.status];
                           const Icon = cfg.icon;
                           return (
-                            <div key={product.id} className="flex items-center gap-1">
-                              {productsToShow.length > 1 && <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>}
-                              <button
-                                type="button"
-                                className={cn('h-7 px-2.5 text-xs border rounded-lg flex items-center gap-1.5 transition-all hover:shadow-sm hover:scale-[1.02] cursor-pointer', cfg.bg, cfg.text, 'border-transparent')}
-                                onClick={() => {
-                                  setCellDetail({ check, campaignName: campaigns.find(c => c.id === check.campaign_id)?.campaign_name || '', taskName: task.task_name });
-                                  setCellDetailStatus(check.status);
-                                  setCellDetailMemo(check.note || '');
-                                }}
-                              >
-                                <Icon className="size-3.5" />
-                                <span className="font-medium">{cfg.label}</span>
-                                {check.note && <MessageSquare className="size-3 text-blue-400 ml-0.5" />}
-                              </button>
-                            </div>
+                            <Tooltip key={product.id} delayDuration={300}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1">
+                                  {productsToShow.length > 1 && <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>}
+                                  <button
+                                    type="button"
+                                    className={cn('h-7 px-2.5 text-xs border rounded-lg flex items-center gap-1.5 transition-all hover:shadow-sm hover:scale-[1.02] cursor-pointer', cfg.bg, cfg.text, 'border-transparent')}
+                                    onClick={() => {
+                                      setCellDetail({ check, campaignName: campaigns.find(c => c.id === check.campaign_id)?.campaign_name || '', taskName: task.task_name });
+                                      setCellDetailStatus(check.status);
+                                      setCellDetailMemo(check.note || '');
+                                    }}
+                                  >
+                                    <Icon className="size-3.5" />
+                                    <span className="font-medium">{cfg.label}</span>
+                                    {check.note && <MessageSquare className="size-3 text-blue-400 ml-0.5" />}
+                                  </button>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="end" className="max-w-[320px] p-0 rounded-xl shadow-lg border border-orange-100 bg-white">
+                                <div className="px-3.5 py-2.5 border-b border-orange-100 bg-orange-50/50 rounded-t-xl flex items-center justify-between">
+                                  <span className="text-xs font-bold text-stone-700">{task.task_name}</span>
+                                  <span className="text-[10px] text-orange-500 font-medium cursor-pointer hover:underline"
+                                    onClick={() => {
+                                      setCellDetail({ check, campaignName: campaigns.find(c => c.id === check.campaign_id)?.campaign_name || '', taskName: task.task_name });
+                                      setCellDetailStatus(check.status);
+                                      setCellDetailMemo(check.note || '');
+                                    }}
+                                  >상태 변경</span>
+                                </div>
+                                <div className="px-3.5 py-2.5 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-stone-400 w-10 shrink-0">현황</span>
+                                    <Badge className={cn('text-[11px] px-2 py-0.5 rounded-full', cfg.bg, cfg.text)}>
+                                      <Icon className="size-3 mr-1" />{cfg.label}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-[10px] text-stone-400 w-10 shrink-0 mt-0.5">메모</span>
+                                    <span className="text-xs text-stone-600 leading-relaxed">
+                                      {check.note || <span className="text-stone-300 italic">메모 없음</span>}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           );
                         })}
                       </div>
