@@ -452,28 +452,29 @@ export default function WorkflowPage() {
                           const cfg = STATUS_CONFIG[check.status];
                           const Icon = cfg.icon;
                           return (
-                            <Tooltip key={product.id}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1">
-                                  {productsToShow.length > 1 && <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>}
-                                  <Select value={check.status} onValueChange={(v) => handleStatusChange(check, v as WorkflowCheckStatus)}>
-                                    <SelectTrigger className={cn('h-7 w-[105px] text-xs border rounded-lg', cfg.bg, cfg.text, 'border-transparent')}>
-                                      <div className="flex items-center gap-1.5"><Icon className="size-3.5" /><span className="font-medium">{cfg.label}</span></div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {ALL_STATUSES.map((s) => { const sc = STATUS_CONFIG[s]; const SIcon = sc.icon; return (
-                                        <SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SIcon className={cn('size-3.5', sc.text)} /><span>{sc.label}</span></div></SelectItem>
-                                      ); })}
-                                    </SelectContent>
-                                  </Select>
-                                  {check.note && <MessageSquare className="size-3 text-blue-400" />}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-[300px]">
-                                <p className="font-medium text-xs">{product.product_name} — {cfg.label}</p>
-                                {check.note && <p className="text-xs text-muted-foreground mt-1">{check.note}</p>}
-                              </TooltipContent>
-                            </Tooltip>
+                            <div key={product.id} className="flex items-center gap-1">
+                              {productsToShow.length > 1 && <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>}
+                              <Select value={check.status} onValueChange={(v) => handleStatusChange(check, v as WorkflowCheckStatus)}>
+                                <SelectTrigger className={cn('h-7 w-[105px] text-xs border rounded-lg', cfg.bg, cfg.text, 'border-transparent')}>
+                                  <div className="flex items-center gap-1.5"><Icon className="size-3.5" /><span className="font-medium">{cfg.label}</span></div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ALL_STATUSES.map((s) => { const sc = STATUS_CONFIG[s]; const SIcon = sc.icon; return (
+                                    <SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SIcon className={cn('size-3.5', sc.text)} /><span>{sc.label}</span></div></SelectItem>
+                                  ); })}
+                                </SelectContent>
+                              </Select>
+                              {check.note && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <MessageSquare className="size-3 text-blue-400 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[250px]">
+                                    <p className="text-xs">{check.note}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
