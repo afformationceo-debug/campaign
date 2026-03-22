@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, MoreHorizontal, ExternalLink, Bot } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, ExternalLink, Bot, Pencil } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -333,6 +333,8 @@ export default function CampaignsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, unknown>>({});
 
   const linkProducts = useLinkCampaignProducts();
 
@@ -696,7 +698,11 @@ export default function CampaignsPage() {
                   return (
                   <tr
                     key={campaign.id}
-                    className="border-b border-stone-100 last:border-b-0 hover:bg-orange-50/40 transition-colors"
+                    className="border-b border-stone-100 last:border-b-0 hover:bg-orange-50/40 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setEditCampaign(campaign);
+                      setEditForm({ ...campaign });
+                    }}
                   >
                     {/* 유형 */}
                     <td className="py-0.5 px-2 min-w-[90px]">
@@ -1057,7 +1063,7 @@ export default function CampaignsPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-0.5 px-2">
+                    <td className="py-0.5 px-2" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -1065,6 +1071,15 @@ export default function CampaignsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditCampaign(campaign);
+                              setEditForm({ ...campaign });
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-2" />
+                            수정
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => {
@@ -1403,6 +1418,147 @@ export default function CampaignsPage() {
               }}
             >
               {deleteMutation.isPending ? '삭제 중...' : '삭제'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Campaign Dialog */}
+      <Dialog open={!!editCampaign} onOpenChange={(open) => { if (!open) setEditCampaign(null); }}>
+        <DialogContent className="sm:max-w-lg bg-card border-stone-100 rounded-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">캠페인 수정</DialogTitle>
+            <DialogDescription className="text-[13px] text-stone-500">
+              {editCampaign?.campaign_name} 캠페인의 정보를 수정합니다.
+            </DialogDescription>
+          </DialogHeader>
+          {editCampaign && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">캠페인명</Label>
+                  <Input value={(editForm.campaign_name as string) || ''} onChange={(e) => setEditForm((p) => ({ ...p, campaign_name: e.target.value }))} className="h-9 text-[13px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">클라이언트</Label>
+                  <Input value={(editForm.client_name as string) || ''} onChange={(e) => setEditForm((p) => ({ ...p, client_name: e.target.value }))} className="h-9 text-[13px]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">유형</Label>
+                  <Select value={(editForm.campaign_type as string) || '해외마케팅'} onValueChange={(v) => setEditForm((p) => ({ ...p, campaign_type: v }))}>
+                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(CAMPAIGN_TYPE_CONFIG) as CampaignType[]).map((t) => (
+                        <SelectItem key={t} value={t}>{CAMPAIGN_TYPE_CONFIG[t].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">상태</Label>
+                  <Select value={(editForm.status as string) || 'active'} onValueChange={(v) => setEditForm((p) => ({ ...p, status: v }))}>
+                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">단계</Label>
+                  <Select value={(editForm.phase as string) || 'onboarding'} onValueChange={(v) => setEditForm((p) => ({ ...p, phase: v }))}>
+                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="onboarding">Onboarding</SelectItem>
+                      <SelectItem value="running">Running</SelectItem>
+                      <SelectItem value="scaling">Scaling</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">대상 국가</Label>
+                  <Input value={(editForm.target_country as string) || ''} onChange={(e) => setEditForm((p) => ({ ...p, target_country: e.target.value }))} className="h-9 text-[13px]" placeholder="예: 일본" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">시작일</Label>
+                  <Input type="date" value={(editForm.start_date as string) || ''} onChange={(e) => setEditForm((p) => ({ ...p, start_date: e.target.value }))} className="h-9 text-[13px]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">월 고정비</Label>
+                  <Input type="number" value={(editForm.monthly_fixed_cost as number) ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, monthly_fixed_cost: e.target.value ? Number(e.target.value) : null }))} className="h-9 text-[13px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">섭외당 비용</Label>
+                  <Input type="number" value={(editForm.cost_per_influencer as number) ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, cost_per_influencer: e.target.value ? Number(e.target.value) : null }))} className="h-9 text-[13px]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">원고료 예산</Label>
+                  <Input type="number" value={(editForm.influencer_fee_budget as number) ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, influencer_fee_budget: e.target.value ? Number(e.target.value) : null }))} className="h-9 text-[13px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">수수료(%)</Label>
+                  <Input type="number" step="0.1" value={(editForm.commission_rate as number) ?? ''} onChange={(e) => setEditForm((p) => ({ ...p, commission_rate: e.target.value ? Number(e.target.value) : null }))} className="h-9 text-[13px]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">VAT</Label>
+                  <Select value={(editForm.vat_type as string) || 'VAT별도'} onValueChange={(v) => setEditForm((p) => ({ ...p, vat_type: v }))}>
+                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VAT별도">VAT별도</SelectItem>
+                      <SelectItem value="VAT포함">VAT포함</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[13px] font-medium">통역</Label>
+                  <Select value={(editForm.interpreter_status as string) || '통역 필요 없음'} onValueChange={(v) => setEditForm((p) => ({ ...p, interpreter_status: v }))}>
+                    <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {INTERPRETER_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium">홈페이지 URL</Label>
+                <Input type="url" value={(editForm.homepage_url as string) || ''} onChange={(e) => setEditForm((p) => ({ ...p, homepage_url: e.target.value }))} className="h-9 text-[13px]" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCampaign(null)} className="rounded-xl border-stone-200">취소</Button>
+            <Button
+              className="bg-orange-500 text-white hover:bg-orange-600 rounded-xl"
+              disabled={updateMutation.isPending}
+              onClick={() => {
+                if (!editCampaign) return;
+                const { id, created_at, updated_at, ...rest } = editForm as Campaign & Record<string, unknown>;
+                updateMutation.mutate(
+                  { id: editCampaign.id, updates: rest as Partial<Campaign> },
+                  { onSuccess: () => setEditCampaign(null) }
+                );
+              }}
+            >
+              {updateMutation.isPending ? '저장 중...' : '저장'}
             </Button>
           </DialogFooter>
         </DialogContent>
