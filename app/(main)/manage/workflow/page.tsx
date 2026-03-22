@@ -62,6 +62,9 @@ export default function WorkflowPage() {
   const [bulkStatus, setBulkStatus] = useState<WorkflowCheckStatus>('완료');
   const [bulkExcludeNA, setBulkExcludeNA] = useState(true);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [cellDetail, setCellDetail] = useState<{ check: CampaignWorkflowCheck; campaignName: string; taskName: string } | null>(null);
+  const [cellDetailStatus, setCellDetailStatus] = useState<WorkflowCheckStatus>('진행전');
+  const [cellDetailMemo, setCellDetailMemo] = useState('');
 
   const isAllView = selectedCampaignId === VIEW_ALL;
   useRealtimeWorkflow(isAllView ? undefined : (selectedCampaignId || undefined));
@@ -357,8 +360,12 @@ export default function WorkflowPage() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
-                                    className={cn('size-6 rounded-md flex items-center justify-center mx-auto transition-all hover:scale-125 hover:shadow-sm', cfg.bg)}
-                                    onClick={() => handleStatusChange(check, ALL_STATUSES[(ALL_STATUSES.indexOf(check.status) + 1) % ALL_STATUSES.length])}
+                                    className={cn('size-6 rounded-md flex items-center justify-center mx-auto transition-all hover:scale-125 hover:shadow-sm cursor-pointer', cfg.bg)}
+                                    onClick={() => {
+                                      setCellDetail({ check, campaignName: campaign.campaign_name, taskName: task.task_name });
+                                      setCellDetailStatus(check.status);
+                                      setCellDetailMemo(check.note || '');
+                                    }}
                                   >
                                     <div className={cn('size-2.5 rounded-full', cfg.dot)} />
                                   </button>
@@ -454,26 +461,19 @@ export default function WorkflowPage() {
                           return (
                             <div key={product.id} className="flex items-center gap-1">
                               {productsToShow.length > 1 && <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>}
-                              <Select value={check.status} onValueChange={(v) => handleStatusChange(check, v as WorkflowCheckStatus)}>
-                                <SelectTrigger className={cn('h-7 w-[105px] text-xs border rounded-lg', cfg.bg, cfg.text, 'border-transparent')}>
-                                  <div className="flex items-center gap-1.5"><Icon className="size-3.5" /><span className="font-medium">{cfg.label}</span></div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ALL_STATUSES.map((s) => { const sc = STATUS_CONFIG[s]; const SIcon = sc.icon; return (
-                                    <SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SIcon className={cn('size-3.5', sc.text)} /><span>{sc.label}</span></div></SelectItem>
-                                  ); })}
-                                </SelectContent>
-                              </Select>
-                              {check.note && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <MessageSquare className="size-3 text-blue-400 cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[250px]">
-                                    <p className="text-xs">{check.note}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
+                              <button
+                                type="button"
+                                className={cn('h-7 px-2.5 text-xs border rounded-lg flex items-center gap-1.5 transition-all hover:shadow-sm hover:scale-[1.02] cursor-pointer', cfg.bg, cfg.text, 'border-transparent')}
+                                onClick={() => {
+                                  setCellDetail({ check, campaignName: campaigns.find(c => c.id === check.campaign_id)?.campaign_name || '', taskName: task.task_name });
+                                  setCellDetailStatus(check.status);
+                                  setCellDetailMemo(check.note || '');
+                                }}
+                              >
+                                <Icon className="size-3.5" />
+                                <span className="font-medium">{cfg.label}</span>
+                                {check.note && <MessageSquare className="size-3 text-blue-400 ml-0.5" />}
+                              </button>
                             </div>
                           );
                         })}
@@ -555,6 +555,97 @@ export default function WorkflowPage() {
       </Dialog>
 
       {/* CSS for vertical text */}
+      {/* Cell Detail Dialog (상태 변경 + 메모) */}
+      <Dialog open={!!cellDetail} onOpenChange={() => setCellDetail(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="text-base">업무 상태 변경</DialogTitle>
+          </DialogHeader>
+          {cellDetail && (
+            <div className="space-y-4">
+              {/* 캠페인 / TASK 정보 */}
+              <div className="rounded-lg bg-stone-50 p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-stone-400 uppercase font-semibold">캠페인</span>
+                  <span className="text-sm font-medium text-stone-800">{cellDetail.campaignName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-stone-400 uppercase font-semibold">업무</span>
+                  <span className="text-sm text-stone-700">{cellDetail.taskName}</span>
+                </div>
+              </div>
+
+              {/* 상태 선택 */}
+              <div>
+                <Label className="text-xs text-stone-500 mb-2 block">상태</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {ALL_STATUSES.map((s) => {
+                    const sc = STATUS_CONFIG[s];
+                    const SIcon = sc.icon;
+                    const isSelected = cellDetailStatus === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        className={cn(
+                          'flex flex-col items-center gap-1 rounded-xl p-2.5 border-2 transition-all text-xs font-medium',
+                          isSelected ? 'border-orange-400 shadow-sm' : 'border-transparent hover:border-stone-200',
+                          sc.bg, sc.text
+                        )}
+                        onClick={() => setCellDetailStatus(s)}
+                      >
+                        <SIcon className="size-5" />
+                        <span>{sc.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 메모 */}
+              <div>
+                <Label className="text-xs text-stone-500">메모</Label>
+                <Input
+                  value={cellDetailMemo}
+                  onChange={(e) => setCellDetailMemo(e.target.value)}
+                  placeholder="메모를 입력하세요..."
+                  className="mt-1"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    // save
+                    (async () => {
+                      await supabase.from('campaign_workflow_checks').update({ status: cellDetailStatus, note: cellDetailMemo || null, updated_by: user?.id ?? null, updated_at: new Date().toISOString() }).eq('id', cellDetail.check.id);
+                      if (isAllView) queryClient.invalidateQueries({ queryKey: ['workflowChecks', 'all'] });
+                      else queryClient.invalidateQueries({ queryKey: queryKeys.workflowChecks.byCampaign(selectedCampaignId) });
+                      setCellDetail(null);
+                    })();
+                  }}}
+                />
+              </div>
+
+              {/* 현재 메모 표시 */}
+              {cellDetail.check.note && cellDetailMemo === cellDetail.check.note && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-2.5">
+                  <p className="text-[10px] text-blue-500 font-semibold mb-0.5">기존 메모</p>
+                  <p className="text-xs text-blue-700">{cellDetail.check.note}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setCellDetail(null)}>취소</Button>
+            <Button size="sm" onClick={async () => {
+              if (!cellDetail) return;
+              await supabase.from('campaign_workflow_checks').update({ status: cellDetailStatus, note: cellDetailMemo || null, updated_by: user?.id ?? null, updated_at: new Date().toISOString() }).eq('id', cellDetail.check.id);
+              await logActivity({ userId: user?.id, actionType: 'update', targetTable: 'campaign_workflow_checks', targetId: cellDetail.check.id, newValue: { status: cellDetailStatus, note: cellDetailMemo } });
+              if (isAllView) queryClient.invalidateQueries({ queryKey: ['workflowChecks', 'all'] });
+              else queryClient.invalidateQueries({ queryKey: queryKeys.workflowChecks.byCampaign(selectedCampaignId) });
+              setCellDetail(null);
+            }}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <style>{`.writing-vertical-rl { writing-mode: vertical-rl; text-orientation: mixed; }`}</style>
     </motion.div>
   );
