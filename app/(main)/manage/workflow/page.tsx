@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, Circle, Ban, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
@@ -10,7 +10,7 @@ import { queryKeys } from '@/lib/utils/query-keys';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtimeWorkflow } from '@/hooks/use-realtime-workflow';
-import { useUpdateWorkflowCheck, useBulkUpdateWorkflowChecks } from '@/hooks/use-workflow-mutations';
+import { logActivity } from '@/lib/utils/log-activity';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import type {
   Campaign,
-  CollaborationProduct,
   WorkflowTask,
   CampaignWorkflowCheck,
   CampaignProductWithProduct,
@@ -32,11 +32,11 @@ import type {
 
 const supabase = createClient();
 
-const STATUS_CONFIG: Record<WorkflowCheckStatus, { label: string; icon: React.ElementType; className: string; textClass: string }> = {
-  '진행전': { label: '진행전', icon: Circle, className: 'bg-stone-100 text-stone-500', textClass: 'text-stone-600' },
-  '진행중': { label: '진행중', icon: Clock, className: 'bg-amber-100 text-amber-600', textClass: 'text-amber-700' },
-  '완료': { label: '완료', icon: CheckCircle2, className: 'bg-emerald-100 text-emerald-600', textClass: 'text-emerald-700' },
-  '해당없음': { label: '해당없음', icon: Ban, className: 'bg-stone-50 text-stone-300', textClass: 'text-stone-400 line-through' },
+const STATUS_CONFIG: Record<WorkflowCheckStatus, { label: string; icon: React.ElementType; bg: string; text: string; dot: string }> = {
+  '진행전': { label: '진행전', icon: Circle, bg: 'bg-stone-100', text: 'text-stone-500', dot: 'bg-stone-400' },
+  '진행중': { label: '진행중', icon: Clock, bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-500' },
+  '완료': { label: '완료', icon: CheckCircle2, bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  '해당없음': { label: '해당없음', icon: Ban, bg: 'bg-stone-50', text: 'text-stone-300', dot: 'bg-stone-300' },
 };
 
 const SECTION_COLORS: Record<WorkflowSection, string> = {
@@ -51,6 +51,7 @@ const ALL_STATUSES: WorkflowCheckStatus[] = ['진행전', '진행중', '완료',
 export default function WorkflowPage() {
   const isAdmin = useIsAdmin();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedProductId, setSelectedProductId] = useState<string>('all');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -59,10 +60,9 @@ export default function WorkflowPage() {
   const [bulkDialog, setBulkDialog] = useState<{ scope: 'section' | 'all'; section?: WorkflowSection } | null>(null);
   const [bulkStatus, setBulkStatus] = useState<WorkflowCheckStatus>('완료');
   const [bulkExcludeNA, setBulkExcludeNA] = useState(true);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useRealtimeWorkflow(selectedCampaignId || undefined);
-  const updateCheck = useUpdateWorkflowCheck();
-  const bulkUpdate = useBulkUpdateWorkflowChecks();
 
   // ── 데이터 ──
   const { data: campaigns = [] } = useQuery({
@@ -137,11 +137,13 @@ export default function WorkflowPage() {
 
   // ── 통계 ──
   const stats = useMemo(() => {
-    const total = filteredChecks.filter((c) => c.status !== '해당없음').length;
-    const completed = filteredChecks.filter((c) => c.status === '완료').length;
-    const inProgress = filteredChecks.filter((c) => c.status === '진행중').length;
-    const pending = filteredChecks.filter((c) => c.status === '진행전').length;
-    return { total, completed, inProgress, pending, rate: total > 0 ? Math.round((completed / total) * 100) : 0 };
+    const applicable = filteredChecks.filter((c) => c.status !== '해당없음');
+    const total = applicable.length;
+    const completed = applicable.filter((c) => c.status === '완료').length;
+    const inProgress = applicable.filter((c) => c.status === '진행중').length;
+    const pending = applicable.filter((c) => c.status === '진행전').length;
+    const na = filteredChecks.length - total;
+    return { total, completed, inProgress, pending, na, rate: total > 0 ? Math.round((completed / total) * 100) : 0 };
   }, [filteredChecks]);
 
   // ── 핸들러 ──
@@ -154,25 +156,31 @@ export default function WorkflowPage() {
   };
 
   const handleStatusChange = (check: CampaignWorkflowCheck, newStatus: WorkflowCheckStatus) => {
+    if (check.status === newStatus) return;
     setMemoDialog({ check, newStatus });
     setMemoText(check.note || '');
   };
 
-  const confirmStatusChange = (skipMemo: boolean) => {
+  const confirmStatusChange = async (skipMemo: boolean) => {
     if (!memoDialog) return;
-    updateCheck.mutate({
-      id: memoDialog.check.id,
-      status: memoDialog.newStatus,
-      note: skipMemo ? memoDialog.check.note : memoText || null,
-      userId: user?.id,
-      campaignId: selectedCampaignId,
-    });
+    const { check, newStatus } = memoDialog;
+    const note = skipMemo ? check.note : (memoText || null);
+
+    await supabase
+      .from('campaign_workflow_checks')
+      .update({ status: newStatus, note, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+      .eq('id', check.id);
+
+    await logActivity({ userId: user?.id, actionType: 'update', targetTable: 'campaign_workflow_checks', targetId: check.id, newValue: { status: newStatus, note } });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workflowChecks.byCampaign(selectedCampaignId) });
     setMemoDialog(null);
     setMemoText('');
   };
 
-  const handleBulkChange = () => {
+  const handleBulkChange = async () => {
     if (!bulkDialog) return;
+    setBulkLoading(true);
+
     let targetChecks: CampaignWorkflowCheck[];
     if (bulkDialog.scope === 'section' && bulkDialog.section) {
       const taskIds = new Set(workflowTasks.filter((t) => t.section === bulkDialog.section).map((t) => t.id));
@@ -180,17 +188,41 @@ export default function WorkflowPage() {
     } else {
       targetChecks = filteredChecks;
     }
-    bulkUpdate.mutate({
-      ids: targetChecks.map((c) => c.id),
-      status: bulkStatus,
-      excludeNA: bulkExcludeNA,
+
+    // 해당없음 제외 옵션
+    if (bulkExcludeNA) {
+      targetChecks = targetChecks.filter((c) => c.status !== '해당없음');
+    }
+
+    if (targetChecks.length === 0) {
+      setBulkLoading(false);
+      setBulkDialog(null);
+      return;
+    }
+
+    const ids = targetChecks.map((c) => c.id);
+
+    // Supabase .in()은 최대 배열 크기 제한 있으므로 chunk 처리
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      await supabase
+        .from('campaign_workflow_checks')
+        .update({ status: bulkStatus, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+        .in('id', chunk);
+    }
+
+    await logActivity({
       userId: user?.id,
-      campaignId: selectedCampaignId,
+      actionType: 'bulk_update',
+      targetTable: 'campaign_workflow_checks',
+      newValue: { count: ids.length, status: bulkStatus, scope: bulkDialog.scope, section: bulkDialog.section },
     });
+
+    queryClient.invalidateQueries({ queryKey: queryKeys.workflowChecks.byCampaign(selectedCampaignId) });
+    setBulkLoading(false);
     setBulkDialog(null);
   };
-
-  const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
 
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-6 p-6">
@@ -209,8 +241,10 @@ export default function WorkflowPage() {
           <Select value={selectedCampaignId} onValueChange={(v) => { setSelectedCampaignId(v); setSelectedProductId('all'); }}>
             <SelectTrigger><SelectValue placeholder="캠페인을 선택하세요" /></SelectTrigger>
             <SelectContent>
-              {campaigns.filter((c) => c.status === 'active').map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.client_name} {c.campaign_name}</SelectItem>
+              {campaigns.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  <span className={c.status !== 'active' ? 'text-stone-400' : ''}>{c.client_name} {c.campaign_name}</span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -238,28 +272,34 @@ export default function WorkflowPage() {
         )}
       </motion.div>
 
-      {/* Stats */}
+      {/* Stats + Progress */}
       {selectedCampaignId && filteredChecks.length > 0 && (
-        <motion.div variants={fadeUpItem} className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="rounded-xl bg-white border border-stone-100 p-3 text-center">
-            <div className="text-2xl font-bold text-stone-900">{stats.rate}%</div>
-            <div className="text-xs text-stone-500">완료율</div>
-          </div>
-          <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
-            <div className="text-2xl font-bold text-emerald-600">{stats.completed}</div>
-            <div className="text-xs text-emerald-600">완료</div>
-          </div>
-          <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
-            <div className="text-2xl font-bold text-amber-600">{stats.inProgress}</div>
-            <div className="text-xs text-amber-600">진행중</div>
-          </div>
-          <div className="rounded-xl bg-stone-50 border border-stone-100 p-3 text-center">
-            <div className="text-2xl font-bold text-stone-500">{stats.pending}</div>
-            <div className="text-xs text-stone-500">진행전</div>
-          </div>
-          <div className="rounded-xl bg-white border border-stone-100 p-3 text-center">
-            <div className="text-2xl font-bold text-stone-400">{filteredChecks.filter((c) => c.status === '해당없음').length}</div>
-            <div className="text-xs text-stone-400">해당없음</div>
+        <motion.div variants={fadeUpItem} className="space-y-3">
+          {/* Progress bar */}
+          <div className="rounded-xl border border-stone-200 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-stone-700">전체 진행률</span>
+              <span className="text-2xl font-black text-stone-900">{stats.rate}%</span>
+            </div>
+            <Progress value={stats.rate} className="h-3" />
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div className="size-2.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-stone-600">완료 {stats.completed}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="size-2.5 rounded-full bg-amber-500" />
+                <span className="text-xs text-stone-600">진행중 {stats.inProgress}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="size-2.5 rounded-full bg-stone-400" />
+                <span className="text-xs text-stone-600">진행전 {stats.pending}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="size-2.5 rounded-full bg-stone-200" />
+                <span className="text-xs text-stone-400">해당없음 {stats.na}</span>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -273,7 +313,7 @@ export default function WorkflowPage() {
       )}
 
       {/* No products linked */}
-      {selectedCampaignId && linkedProducts.length === 0 && (
+      {selectedCampaignId && linkedProducts.length === 0 && checks.length === 0 && (
         <div className="text-center py-20 text-stone-400">
           <p className="text-lg font-medium">연결된 협업상품이 없습니다</p>
           <p className="text-sm mt-1">캠페인 관리에서 협업상품을 연결해주세요.</p>
@@ -283,12 +323,12 @@ export default function WorkflowPage() {
       {/* Checklist by section */}
       {selectedCampaignId && productsToShow.length > 0 && sections.map(({ section, tasks }) => {
         const isCollapsed = collapsedSections.has(section);
-        const sectionChecks = filteredChecks.filter((c) => {
-          const task = workflowTasks.find((t) => t.id === c.workflow_task_id);
-          return task?.section === section;
-        });
-        const sectionTotal = sectionChecks.filter((c) => c.status !== '해당없음').length;
-        const sectionDone = sectionChecks.filter((c) => c.status === '완료').length;
+        const sectionTaskIds = new Set(tasks.map((t) => t.id));
+        const sectionChecks = filteredChecks.filter((c) => sectionTaskIds.has(c.workflow_task_id));
+        const applicable = sectionChecks.filter((c) => c.status !== '해당없음');
+        const sectionDone = applicable.filter((c) => c.status === '완료').length;
+        const sectionInProgress = applicable.filter((c) => c.status === '진행중').length;
+        const sectionTotal = applicable.length;
         const sectionRate = sectionTotal > 0 ? Math.round((sectionDone / sectionTotal) * 100) : 0;
 
         return (
@@ -304,7 +344,14 @@ export default function WorkflowPage() {
                 <span className="text-xs opacity-70">{tasks[0]?.task_number}~{tasks[tasks.length - 1]?.task_number}번</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-medium">{sectionDone}/{sectionTotal} ({sectionRate}%)</span>
+                {/* Section mini stats */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="font-bold">{sectionRate}%</span>
+                  <span className="opacity-60">({sectionDone}/{sectionTotal})</span>
+                  {sectionInProgress > 0 && (
+                    <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-amber-100 text-amber-700">{sectionInProgress} 진행중</Badge>
+                  )}
+                </div>
                 {isAdmin && (
                   <Button
                     variant="ghost"
@@ -318,66 +365,95 @@ export default function WorkflowPage() {
               </div>
             </div>
 
+            {/* Section progress bar */}
+            {!isCollapsed && sectionTotal > 0 && (
+              <div className="px-4 py-1.5 bg-stone-50/50 border-b border-stone-100">
+                <div className="flex h-1.5 rounded-full overflow-hidden bg-stone-200">
+                  {sectionDone > 0 && <div className="bg-emerald-500" style={{ width: `${(sectionDone / sectionTotal) * 100}%` }} />}
+                  {sectionInProgress > 0 && <div className="bg-amber-400" style={{ width: `${(sectionInProgress / sectionTotal) * 100}%` }} />}
+                </div>
+              </div>
+            )}
+
             {/* Tasks */}
             {!isCollapsed && (
               <div className="divide-y divide-stone-100 bg-white">
-                {tasks.map((task) => (
-                  <div key={task.id} className="flex items-center gap-2 px-4 py-2 hover:bg-stone-50/50 transition-colors">
-                    <span className="text-xs text-stone-400 w-6 text-right shrink-0">{task.task_number}.</span>
-                    <span className={cn('flex-1 text-sm', 'text-stone-700')}>{task.task_name}</span>
+                {tasks.map((task) => {
+                  // 이 TASK의 모든 상품 체크 상태 수집
+                  const taskChecks = productsToShow.map((p) => checkMap.get(`${p.id}:${task.id}`)).filter(Boolean) as CampaignWorkflowCheck[];
+                  const hasNA = taskChecks.every((c) => c.status === '해당없음');
 
-                    {/* Per-product status */}
-                    <div className="flex items-center gap-1.5">
-                      {productsToShow.map((product) => {
-                        const check = checkMap.get(`${product.id}:${task.id}`);
-                        if (!check) return null;
-                        const cfg = STATUS_CONFIG[check.status];
-                        const Icon = cfg.icon;
-                        return (
-                          <Tooltip key={product.id}>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1">
-                                {productsToShow.length > 1 && (
-                                  <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>
-                                )}
-                                <Select
-                                  value={check.status}
-                                  onValueChange={(v) => handleStatusChange(check, v as WorkflowCheckStatus)}
-                                >
-                                  <SelectTrigger className={cn('h-7 w-[100px] text-xs border-0', cfg.className)}>
-                                    <div className="flex items-center gap-1">
-                                      <Icon className="size-3" />
-                                      <span>{cfg.label}</span>
-                                    </div>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ALL_STATUSES.map((s) => {
-                                      const sc = STATUS_CONFIG[s];
-                                      const SIcon = sc.icon;
-                                      return (
-                                        <SelectItem key={s} value={s}>
-                                          <div className="flex items-center gap-1.5">
-                                            <SIcon className={cn('size-3', sc.className.split(' ')[1])} />
-                                            <span>{sc.label}</span>
-                                          </div>
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
-                                {check.note && <MessageSquare className="size-3 text-stone-400" />}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[300px]">
-                              <p className="font-medium text-xs">{product.product_name} — {cfg.label}</p>
-                              {check.note && <p className="text-xs text-muted-foreground mt-1">{check.note}</p>}
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
+                  return (
+                    <div
+                      key={task.id}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2.5 transition-colors',
+                        hasNA ? 'bg-stone-50/30' : 'hover:bg-stone-50/50'
+                      )}
+                    >
+                      {/* Task number */}
+                      <span className={cn('text-xs w-6 text-right shrink-0 font-mono', hasNA ? 'text-stone-300' : 'text-stone-400')}>
+                        {task.task_number}.
+                      </span>
+
+                      {/* Task name */}
+                      <span className={cn('flex-1 text-sm', hasNA ? 'text-stone-300 line-through' : 'text-stone-700')}>
+                        {task.task_name}
+                      </span>
+
+                      {/* Per-product status dropdowns */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {productsToShow.map((product) => {
+                          const check = checkMap.get(`${product.id}:${task.id}`);
+                          if (!check) return null;
+                          const cfg = STATUS_CONFIG[check.status];
+                          const Icon = cfg.icon;
+                          return (
+                            <Tooltip key={product.id}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1">
+                                  {productsToShow.length > 1 && (
+                                    <span className="text-[10px] text-stone-400 max-w-[60px] truncate">{product.product_name}</span>
+                                  )}
+                                  <Select
+                                    value={check.status}
+                                    onValueChange={(v) => handleStatusChange(check, v as WorkflowCheckStatus)}
+                                  >
+                                    <SelectTrigger className={cn('h-7 w-[105px] text-xs border rounded-lg', cfg.bg, cfg.text, 'border-transparent')}>
+                                      <div className="flex items-center gap-1.5">
+                                        <Icon className="size-3.5" />
+                                        <span className="font-medium">{cfg.label}</span>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ALL_STATUSES.map((s) => {
+                                        const sc = STATUS_CONFIG[s];
+                                        const SIcon = sc.icon;
+                                        return (
+                                          <SelectItem key={s} value={s}>
+                                            <div className="flex items-center gap-1.5">
+                                              <SIcon className={cn('size-3.5', sc.text)} />
+                                              <span>{sc.label}</span>
+                                            </div>
+                                          </SelectItem>
+                                        );
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                  {check.note && <MessageSquare className="size-3 text-blue-400" />}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[300px]">
+                                <p className="font-medium text-xs">{product.product_name} — {cfg.label}</p>
+                                {check.note && <p className="text-xs text-muted-foreground mt-1">{check.note}</p>}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -393,9 +469,9 @@ export default function WorkflowPage() {
           {memoDialog && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Badge className={STATUS_CONFIG[memoDialog.check.status].className}>{memoDialog.check.status}</Badge>
+                <Badge className={cn(STATUS_CONFIG[memoDialog.check.status].bg, STATUS_CONFIG[memoDialog.check.status].text)}>{memoDialog.check.status}</Badge>
                 <span className="text-stone-400">→</span>
-                <Badge className={STATUS_CONFIG[memoDialog.newStatus].className}>{memoDialog.newStatus}</Badge>
+                <Badge className={cn(STATUS_CONFIG[memoDialog.newStatus].bg, STATUS_CONFIG[memoDialog.newStatus].text)}>{memoDialog.newStatus}</Badge>
               </div>
               <div>
                 <Label className="text-xs text-stone-500">메모 (선택)</Label>
@@ -404,6 +480,7 @@ export default function WorkflowPage() {
                   onChange={(e) => setMemoText(e.target.value)}
                   placeholder="메모를 입력하세요..."
                   className="mt-1"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) confirmStatusChange(false); }}
                 />
               </div>
             </div>
@@ -417,7 +494,7 @@ export default function WorkflowPage() {
 
       {/* Bulk Change Dialog */}
       <Dialog open={!!bulkDialog} onOpenChange={() => setBulkDialog(null)}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle className="text-base">
               {bulkDialog?.scope === 'section' ? `[${bulkDialog.section}] 일괄 상태변경` : '전체 일괄 상태변경'}
@@ -429,20 +506,48 @@ export default function WorkflowPage() {
               <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as WorkflowCheckStatus)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ALL_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
-                  ))}
+                  {ALL_STATUSES.map((s) => {
+                    const sc = STATUS_CONFIG[s];
+                    const SIcon = sc.icon;
+                    return (
+                      <SelectItem key={s} value={s}>
+                        <div className="flex items-center gap-1.5">
+                          <SIcon className={cn('size-3.5', sc.text)} />
+                          <span>{sc.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-stone-500">&quot;해당없음&quot; 항목 제외</Label>
+            <div className="flex items-center justify-between rounded-lg border border-stone-200 p-3">
+              <div>
+                <Label className="text-xs text-stone-700 font-medium">&quot;해당없음&quot; 항목 제외</Label>
+                <p className="text-[10px] text-stone-400 mt-0.5">해당없음 상태는 변경하지 않습니다</p>
+              </div>
               <Switch checked={bulkExcludeNA} onCheckedChange={setBulkExcludeNA} />
             </div>
+            {bulkDialog && (
+              <p className="text-xs text-stone-500 bg-stone-50 rounded-lg p-2.5">
+                {(() => {
+                  let targets = bulkDialog.scope === 'section' && bulkDialog.section
+                    ? filteredChecks.filter((c) => {
+                        const taskIds = new Set(workflowTasks.filter((t) => t.section === bulkDialog.section).map((t) => t.id));
+                        return taskIds.has(c.workflow_task_id);
+                      })
+                    : filteredChecks;
+                  if (bulkExcludeNA) targets = targets.filter((c) => c.status !== '해당없음');
+                  return `${targets.length}개 항목이 "${STATUS_CONFIG[bulkStatus].label}"(으)로 변경됩니다.`;
+                })()}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setBulkDialog(null)}>취소</Button>
-            <Button size="sm" onClick={handleBulkChange}>일괄 변경</Button>
+            <Button size="sm" onClick={handleBulkChange} disabled={bulkLoading}>
+              {bulkLoading ? '변경 중...' : '일괄 변경'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
