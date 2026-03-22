@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, MoreHorizontal, ExternalLink, Bot } from 'lucide-react';
@@ -55,6 +55,7 @@ import type {
   BrandPhase,
   VatType,
   CollaborationProduct,
+  CampaignProductWithProduct,
 } from '@/lib/types/database';
 
 // ─── Config ─────────────────────────────────────────────
@@ -344,6 +345,25 @@ export default function CampaignsPage() {
       return (data || []) as CollaborationProduct[];
     },
   });
+
+  const { data: allCampaignProducts = [] } = useQuery({
+    queryKey: queryKeys.campaignProducts.all,
+    queryFn: async () => {
+      const { data } = await supabase.from('campaign_products').select('*, collaboration_products(*)').order('created_at');
+      return (data || []) as CampaignProductWithProduct[];
+    },
+  });
+
+  // 캠페인ID → 협업상품명 배열 맵
+  const campaignProductMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    allCampaignProducts.forEach((cp) => {
+      const names = map.get(cp.campaign_id) || [];
+      names.push(cp.collaboration_products.product_name);
+      map.set(cp.campaign_id, names);
+    });
+    return map;
+  }, [allCampaignProducts]);
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: queryKeys.campaigns.all,
@@ -656,6 +676,7 @@ export default function CampaignsPage() {
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">유형</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">캠페인명</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">클라이언트</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">협업상품</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">상태</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">시작일</th>
                   <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">국가/단계</th>
@@ -719,6 +740,30 @@ export default function CampaignsPage() {
                         onStartEdit={() => startEdit(campaign.id, 'client_name')}
                         onSave={(v) => handleInlineUpdate(campaign.id, 'client_name', v)}
                       />
+                    </td>
+
+                    {/* 협업상품 */}
+                    <td className="py-0.5 px-2 min-w-[100px]">
+                      <div className="flex flex-wrap gap-0.5">
+                        {(campaignProductMap.get(campaign.id) || []).map((name) => (
+                          <Badge
+                            key={name}
+                            variant="secondary"
+                            className={cn(
+                              'text-[10px] px-1.5 py-0 rounded-full',
+                              name === '계약종료' ? 'bg-red-50 text-red-500' :
+                              name === '인플루언서 마케팅' ? 'bg-purple-50 text-purple-600' :
+                              name === '해외환자유치상품' ? 'bg-blue-50 text-blue-600' :
+                              'bg-stone-100 text-stone-500'
+                            )}
+                          >
+                            {name}
+                          </Badge>
+                        ))}
+                        {!(campaignProductMap.get(campaign.id) || []).length && (
+                          <span className="text-[10px] text-stone-300">-</span>
+                        )}
+                      </div>
                     </td>
 
                     {/* 상태 */}
