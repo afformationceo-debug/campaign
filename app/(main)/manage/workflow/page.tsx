@@ -332,7 +332,7 @@ export default function WorkflowPage() {
                         <th key={c.id} className="py-2 px-1 font-medium text-stone-500 min-w-[36px] max-w-[36px]">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="writing-vertical-lr text-[10px] leading-tight h-[100px] overflow-hidden cursor-default whitespace-nowrap">
+                              <div className="writing-vertical-rl text-[10px] leading-tight h-[100px] overflow-hidden cursor-default whitespace-nowrap">
                                 {c.campaign_name}
                               </div>
                             </TooltipTrigger>
@@ -555,7 +555,7 @@ export default function WorkflowPage() {
       </Dialog>
 
       {/* CSS for vertical text */}
-      <style>{`.writing-vertical-lr { writing-mode: vertical-lr; text-orientation: mixed; transform: rotate(180deg); }`}</style>
+      <style>{`.writing-vertical-rl { writing-mode: vertical-rl; text-orientation: mixed; }`}</style>
     </motion.div>
   );
 }
