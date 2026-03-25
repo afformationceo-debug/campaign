@@ -1240,7 +1240,7 @@ export default function RoadmapPage() {
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openEditDialog(project)}><Pencil className="size-3.5 mr-2" />수정</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => {
-                                    createProject({
+                                    const data = {
                                       project_name: `${project.project_name} (복사)`,
                                       url: project.url,
                                       assignee_id: project.assignee_id,
@@ -1249,9 +1249,15 @@ export default function RoadmapPage() {
                                       state: project.state,
                                       memo: project.memo,
                                       sort_order: project.sort_order + 1,
-                                    }, {
-                                      onError: (err) => window.alert('복사 실패: ' + (err as Error).message),
-                                    });
+                                    };
+                                    try {
+                                      createProject(data, {
+                                        onSuccess: () => window.alert('복사 완료!'),
+                                        onError: (err) => window.alert('복사 실패: ' + (err as Error).message),
+                                      });
+                                    } catch (e) {
+                                      window.alert('복사 호출 에러: ' + (e as Error).message);
+                                    }
                                   }}><Copy className="size-3.5 mr-2" />행 복사</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive"><Trash2 className="size-3.5 mr-2" />삭제</DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -1381,26 +1387,34 @@ export default function RoadmapPage() {
                     <tr className="border-b bg-stone-50/30">
                       <td className="px-1 py-0.5"></td>
                       <td className="px-1 py-0.5"></td>
-                      <td className="px-2 py-0.5" colSpan={9}>
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-2 py-1" colSpan={9}>
+                        <form
+                          className="flex items-center gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const form = e.currentTarget;
+                            const input = form.querySelector('input') as HTMLInputElement;
+                            const name = input?.value?.trim();
+                            if (!name) return;
+                            createProject(
+                              { project_name: name, state: '진행전' as ProjectState, sort_order: projectList.length },
+                              {
+                                onSuccess: () => { if (input) input.value = ''; },
+                                onError: (err) => window.alert('추가 실패: ' + (err as Error).message),
+                              }
+                            );
+                          }}
+                        >
                           <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                           <input
-                            className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
-                            placeholder="새 프로젝트 추가... (Enter로 저장)"
-                            onKeyUp={(e) => {
-                              if (e.key === 'Enter') {
-                                const input = e.currentTarget;
-                                const name = input.value.trim();
-                                if (name) {
-                                  createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: projectList.length }, {
-                                    onError: (err) => window.alert('프로젝트 추가 실패: ' + (err as Error).message),
-                                  });
-                                  input.value = '';
-                                }
-                              }
-                            }}
+                            name="projectName"
+                            className="flex-1 bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
+                            placeholder="새 프로젝트 이름 입력..."
                           />
-                        </div>
+                          <button type="submit" className="shrink-0 px-2 py-0.5 text-[10px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-md transition-colors">
+                            추가
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   </tbody>
@@ -1960,22 +1974,31 @@ export default function RoadmapPage() {
                   <Plus className="size-3.5 text-muted-foreground/30" />
                 </td>
                 <td className="px-2 py-1" colSpan={9}>
-                  <input
-                    className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
-                    placeholder="새 프로젝트 추가... (Enter로 생성)"
-                    onKeyUp={(e) => {
-                      if (e.key === 'Enter') {
-                        const input = e.currentTarget;
-                        const name = input.value.trim();
-                        if (name) {
-                          createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length }, {
-                            onError: (err) => window.alert('프로젝트 추가 실패: ' + (err as Error).message),
-                          });
-                          input.value = '';
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                      const name = input?.value?.trim();
+                      if (!name) return;
+                      createProject(
+                        { project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length },
+                        {
+                          onSuccess: () => { if (input) input.value = ''; },
+                          onError: (err) => window.alert('추가 실패: ' + (err as Error).message),
                         }
-                      }
+                      );
                     }}
-                  />
+                  >
+                    <input
+                      name="projectName"
+                      className="flex-1 bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
+                      placeholder="새 프로젝트 이름 입력..."
+                    />
+                    <button type="submit" className="shrink-0 px-2.5 py-0.5 text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-md transition-colors">
+                      추가
+                    </button>
+                  </form>
                 </td>
               </tr>
             </tbody>
