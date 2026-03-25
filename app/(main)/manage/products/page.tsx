@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { WorkflowTaskManager } from '@/components/manage/workflow-task-manager';
 import type { CollaborationProduct, WorkflowTask, ProductTaskDefault, WorkflowSection } from '@/lib/types/database';
 
 const supabase = createClient();
@@ -30,6 +31,7 @@ const SECTION_COLORS: Record<WorkflowSection, string> = {
 
 export default function ProductsPage() {
   const isAdmin = useIsAdmin();
+  const [activeTab, setActiveTab] = useState<'products' | 'tasks'>('products');
   const [editingProduct, setEditingProduct] = useState<CollaborationProduct | null>(null);
   const [newProductName, setNewProductName] = useState('');
   const [newProductDesc, setNewProductDesc] = useState('');
@@ -138,15 +140,50 @@ export default function ProductsPage() {
       <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-stone-900">협업상품 설정</h1>
-          <p className="text-sm text-stone-500 mt-1">협업상품 목록 관리 및 디폴트 TASK 맵핑 설정</p>
+          <p className="text-sm text-stone-500 mt-1">협업상품 목록 관리 및 워크플로우 TASK 설정</p>
         </div>
-        {isAdmin && (
+        {activeTab === 'products' && isAdmin && (
           <Button size="sm" onClick={() => setShowAddDialog(true)}>
             <Plus className="size-4 mr-1" /> 상품 추가
           </Button>
         )}
       </motion.div>
 
+      {/* Tab Navigation */}
+      <motion.div variants={fadeUpItem} className="flex gap-1 bg-stone-100 rounded-xl p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('products')}
+          className={cn(
+            'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all',
+            activeTab === 'products'
+              ? 'bg-white text-stone-900 shadow-sm'
+              : 'text-stone-500 hover:text-stone-700'
+          )}
+        >
+          협업상품 관리
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('tasks')}
+          className={cn(
+            'flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all',
+            activeTab === 'tasks'
+              ? 'bg-white text-stone-900 shadow-sm'
+              : 'text-stone-500 hover:text-stone-700'
+          )}
+        >
+          워크플로우 Task 관리
+        </button>
+      </motion.div>
+
+      {activeTab === 'tasks' && (
+        <motion.div variants={fadeUpItem}>
+          <WorkflowTaskManager />
+        </motion.div>
+      )}
+
+      {activeTab === 'products' && <>
       {/* Products List */}
       <motion.div variants={fadeUpItem} className="grid gap-3">
         {products.map((product) => {
@@ -316,6 +353,7 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>}
     </motion.div>
   );
 }

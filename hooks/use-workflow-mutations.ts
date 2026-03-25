@@ -167,3 +167,42 @@ export function useSaveProductDefaults() {
     },
   });
 }
+
+// ── 워크플로우 Task CRUD ──
+export function useCreateWorkflowTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { task_number: number; section: string; task_name: string; sort_order: number; manual_text?: string; manual_url?: string }) => {
+      const { data: row, error } = await supabase.from('workflow_tasks').insert(data).select().single();
+      if (error) throw error;
+      return row;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.workflowTasks.all }),
+  });
+}
+
+export function useUpdateWorkflowTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; task_name?: string; section?: string; task_number?: number; sort_order?: number; is_active?: boolean; manual_text?: string | null; manual_url?: string | null }) => {
+      const { error } = await supabase.from('workflow_tasks').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.workflowTasks.all }),
+  });
+}
+
+export function useDeleteWorkflowTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // FK cascade: product_task_defaults, campaign_workflow_checks 자동 삭제
+      const { error } = await supabase.from('workflow_tasks').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.workflowTasks.all });
+      qc.invalidateQueries({ queryKey: queryKeys.productDefaults.all });
+    },
+  });
+}

@@ -358,6 +358,8 @@ export interface WorkflowTask {
   task_name: string;
   sort_order: number;
   is_active: boolean;
+  manual_text: string | null;
+  manual_url: string | null;
   created_at: string;
 }
 
