@@ -1249,6 +1249,8 @@ export default function RoadmapPage() {
                                       state: project.state,
                                       memo: project.memo,
                                       sort_order: project.sort_order + 1,
+                                    }, {
+                                      onError: (err) => window.alert('복사 실패: ' + (err as Error).message),
                                     });
                                   }}><Copy className="size-3.5 mr-2" />행 복사</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive"><Trash2 className="size-3.5 mr-2" />삭제</DropdownMenuItem>
@@ -1385,12 +1387,14 @@ export default function RoadmapPage() {
                           <input
                             className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
                             placeholder="새 프로젝트 추가... (Enter로 저장)"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                            onKeyUp={(e) => {
+                              if (e.key === 'Enter') {
                                 const input = e.currentTarget;
                                 const name = input.value.trim();
                                 if (name) {
-                                  createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: projectList.length });
+                                  createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: projectList.length }, {
+                                    onError: (err) => window.alert('프로젝트 추가 실패: ' + (err as Error).message),
+                                  });
                                   input.value = '';
                                 }
                               }
@@ -1959,12 +1963,14 @@ export default function RoadmapPage() {
                   <input
                     className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5 font-medium"
                     placeholder="새 프로젝트 추가... (Enter로 생성)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    onKeyUp={(e) => {
+                      if (e.key === 'Enter') {
                         const input = e.currentTarget;
                         const name = input.value.trim();
                         if (name) {
-                          createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length });
+                          createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length }, {
+                            onError: (err) => window.alert('프로젝트 추가 실패: ' + (err as Error).message),
+                          });
                           input.value = '';
                         }
                       }

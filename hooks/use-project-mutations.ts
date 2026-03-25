@@ -57,6 +57,9 @@ export function useCreateProject() {
         newValue: { project_name: data.project_name, state: data.state },
       });
     },
+    onError: (error) => {
+      console.error('[useCreateProject] Insert failed:', error);
+    },
   });
 }
 
