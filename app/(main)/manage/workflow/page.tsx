@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<WorkflowCheckStatus, { label: string; icon: React.El
 };
 
 const SECTION_COLORS: Record<WorkflowSection, string> = {
-  '영업': 'bg-blue-50 text-blue-700 border-blue-200',
+  'cms세팅': 'bg-blue-50 text-blue-700 border-blue-200',
   '온보딩': 'bg-amber-50 text-amber-700 border-amber-200',
   '인플루언서': 'bg-purple-50 text-purple-700 border-purple-200',
   '일반고객 CS 대행': 'bg-rose-50 text-rose-700 border-rose-200',
@@ -142,7 +142,7 @@ export default function WorkflowPage() {
   }, [filteredChecks]);
 
   const sections = useMemo(() => {
-    const sectionOrder: WorkflowSection[] = ['영업', '온보딩', '인플루언서', '일반고객 CS 대행'];
+    const sectionOrder: WorkflowSection[] = ['cms세팅', '온보딩', '인플루언서', '일반고객 CS 대행'];
     return sectionOrder.map((sec) => ({ section: sec, tasks: workflowTasks.filter((t) => t.section === sec) }));
   }, [workflowTasks]);
 

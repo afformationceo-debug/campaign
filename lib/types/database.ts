@@ -338,7 +338,7 @@ export interface DailyReportWithUser extends DailyReport {
 }
 
 // ── 협업상품 & 워크플로우 ──
-export type WorkflowSection = '영업' | '온보딩' | '인플루언서' | '일반고객 CS 대행';
+export type WorkflowSection = 'cms세팅' | '온보딩' | '인플루언서' | '일반고객 CS 대행';
 export type WorkflowCheckStatus = '진행전' | '진행중' | '완료' | '해당없음';
 
 export interface CollaborationProduct {

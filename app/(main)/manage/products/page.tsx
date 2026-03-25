@@ -22,7 +22,7 @@ import type { CollaborationProduct, WorkflowTask, ProductTaskDefault, WorkflowSe
 const supabase = createClient();
 
 const SECTION_COLORS: Record<WorkflowSection, string> = {
-  '영업': 'text-blue-700',
+  'cms세팅': 'text-blue-700',
   '온보딩': 'text-amber-700',
   '인플루언서': 'text-purple-700',
   '일반고객 CS 대행': 'text-rose-700',
@@ -68,7 +68,7 @@ export default function ProductsPage() {
   });
 
   const sections = useMemo(() => {
-    const sectionOrder: WorkflowSection[] = ['영업', '온보딩', '인플루언서', '일반고객 CS 대행'];
+    const sectionOrder: WorkflowSection[] = ['cms세팅', '온보딩', '인플루언서', '일반고객 CS 대행'];
     return sectionOrder.map((sec) => ({
       section: sec,
       tasks: workflowTasks.filter((t) => t.section === sec),
