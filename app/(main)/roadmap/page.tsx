@@ -31,6 +31,7 @@ import {
   EyeOff,
   Layers,
   Bot,
+  Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -1238,6 +1239,18 @@ export default function RoadmapPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => openEditDialog(project)}><Pencil className="size-3.5 mr-2" />수정</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    createProject({
+                                      project_name: `${project.project_name} (복사)`,
+                                      url: project.url,
+                                      assignee_id: project.assignee_id,
+                                      start_date: project.start_date,
+                                      due_date: project.due_date,
+                                      state: project.state,
+                                      memo: project.memo,
+                                      sort_order: project.sort_order + 1,
+                                    });
+                                  }}><Copy className="size-3.5 mr-2" />행 복사</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive"><Trash2 className="size-3.5 mr-2" />삭제</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -1321,9 +1334,14 @@ export default function RoadmapPage() {
                                   <InlineMemoCell value={task.memo} isEditing={isEditing(task.id, 'memo')} onStartEdit={() => startEdit(task.id, 'memo', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)} />
                                 </td>
                                 <td className="px-1 py-0.5">
-                                  <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-destructive/10 opacity-0 group-hover/task:opacity-100 transition-opacity" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
-                                    <Trash2 className="size-3 text-muted-foreground/50 hover:text-destructive" />
-                                  </button>
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
+                                    <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-blue-50" title="복사" onClick={() => createTask({ project_id: project.id, title: `${task.title} (복사)`, state: task.state, assignee_id: task.assignee_id, due_date: task.due_date, sort_order: (tasks.length), memo: task.memo })}>
+                                      <Copy className="size-2.5 text-muted-foreground/50 hover:text-blue-500" />
+                                    </button>
+                                    <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-destructive/10" title="삭제" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
+                                      <Trash2 className="size-2.5 text-muted-foreground/50 hover:text-destructive" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -1357,6 +1375,30 @@ export default function RoadmapPage() {
                         </React.Fragment>
                       );
                     })}
+                    {/* Quick add project row */}
+                    <tr className="border-b bg-stone-50/30">
+                      <td className="px-1 py-0.5"></td>
+                      <td className="px-1 py-0.5"></td>
+                      <td className="px-2 py-0.5" colSpan={9}>
+                        <div className="flex items-center gap-1.5">
+                          <Plus className="size-3 text-muted-foreground/30 shrink-0" />
+                          <input
+                            className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none py-0.5"
+                            placeholder="새 프로젝트 추가... (Enter로 저장)"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                const input = e.currentTarget;
+                                const name = input.value.trim();
+                                if (name) {
+                                  createProject({ project_name: name, state: '진행전' as ProjectState, sort_order: projectList.length });
+                                  input.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

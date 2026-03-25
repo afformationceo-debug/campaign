@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Users,
@@ -22,13 +23,18 @@ import {
   GraduationCap,
   Package,
   ClipboardList,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 import { useSidebarStore } from '@/stores/sidebar-store';
 import { useIsAdmin } from '@/hooks/use-is-admin';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PresenceIndicator } from './presence-indicator';
 
 const mainNav = [
@@ -152,8 +158,91 @@ function NavGroup({
   );
 }
 
+// All menu items for visibility settings
+const ALL_MENU_ITEMS: { href: string; label: string; group: string }[] = [
+  ...mainNav.map((m) => ({ href: m.href, label: m.label, group: '' })),
+  ...viewNav.map((m) => ({ href: m.href, label: m.label, group: '일일 업무' })),
+  ...projectNav.map((m) => ({ href: m.href, label: m.label, group: '프로젝트' })),
+  ...knowledgeNav.map((m) => ({ href: m.href, label: m.label, group: '지식베이스' })),
+  ...manageNav.map((m) => ({ href: m.href, label: m.label, group: '관리' })),
+  ...logNav.map((m) => ({ href: m.href, label: m.label, group: '' })),
+];
+
+function MenuVisibilityPopover({ isCollapsed, hiddenMenus, onToggle }: {
+  isCollapsed: boolean;
+  hiddenMenus: Set<string>;
+  onToggle: (href: string) => void;
+}) {
+  const trigger = (
+    <button
+      type="button"
+      className={cn(
+        'flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-medium text-stone-400 hover:bg-stone-50 hover:text-stone-600 transition-colors w-full',
+        isCollapsed && 'justify-center px-2'
+      )}
+    >
+      <Eye className="size-3.5" />
+      {!isCollapsed && <span>메뉴 표시 설정</span>}
+    </button>
+  );
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        {isCollapsed ? (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">메뉴 표시 설정</TooltipContent>
+          </Tooltip>
+        ) : trigger}
+      </PopoverTrigger>
+      <PopoverContent side="right" align="end" className="w-[220px] p-3 rounded-xl">
+        <p className="text-[11px] font-bold text-stone-700 mb-2">메뉴 표시/숨김</p>
+        <div className="space-y-1 max-h-[300px] overflow-y-auto">
+          {ALL_MENU_ITEMS.map((item) => (
+            <label key={item.href} className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-stone-50 cursor-pointer">
+              <Checkbox
+                checked={!hiddenMenus.has(item.href)}
+                onCheckedChange={() => onToggle(item.href)}
+              />
+              <span className="text-[12px] text-stone-700">{item.label}</span>
+              {item.group && <span className="text-[10px] text-stone-400 ml-auto">{item.group}</span>}
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
   const isAdmin = useIsAdmin();
+  const { profile } = useAuth();
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  const hiddenMenus = useMemo(() => new Set(profile?.hidden_menus ?? []), [profile?.hidden_menus]);
+
+  const filterItems = useCallback((items: NavItemData[]) => {
+    return items.filter((item) => !hiddenMenus.has(item.href));
+  }, [hiddenMenus]);
+
+  const toggleMenu = useCallback(async (href: string) => {
+    if (!profile) return;
+    const current = new Set(profile.hidden_menus ?? []);
+    if (current.has(href)) current.delete(href); else current.add(href);
+    const newHidden = Array.from(current);
+    // Optimistic update
+    queryClient.setQueryData(['auth', 'profile'], { ...profile, hidden_menus: newHidden });
+    await supabase.from('users').update({ hidden_menus: newHidden }).eq('id', profile.id);
+  }, [profile, supabase, queryClient]);
+
+  const filteredMainNav = useMemo(() => filterItems(mainNav), [filterItems]);
+  const filteredViewNav = useMemo(() => filterItems(viewNav), [filterItems]);
+  const filteredProjectNav = useMemo(() => filterItems(projectNav), [filterItems]);
+  const filteredKnowledgeNav = useMemo(() => filterItems(knowledgeNav), [filterItems]);
+  const filteredManageNav = useMemo(() => filterItems(manageNav), [filterItems]);
+  const filteredLogNav = useMemo(() => filterItems(logNav), [filterItems]);
 
   return (
     <div className="flex h-full flex-col">
@@ -177,16 +266,21 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
 
       {/* Nav */}
       <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5 scrollbar-thin">
-        <NavGroup items={mainNav} isCollapsed={isCollapsed} />
-        <NavGroup title="일일 업무" items={viewNav} isCollapsed={isCollapsed} />
-        <NavGroup title="프로젝트" items={projectNav} isCollapsed={isCollapsed} />
-        <NavGroup title="지식베이스" items={knowledgeNav} isCollapsed={isCollapsed} />
-        {isAdmin && (
-          <NavGroup title="관리" items={manageNav} isCollapsed={isCollapsed} />
+        {filteredMainNav.length > 0 && <NavGroup items={filteredMainNav} isCollapsed={isCollapsed} />}
+        {filteredViewNav.length > 0 && <NavGroup title="일일 업무" items={filteredViewNav} isCollapsed={isCollapsed} />}
+        {filteredProjectNav.length > 0 && <NavGroup title="프로젝트" items={filteredProjectNav} isCollapsed={isCollapsed} />}
+        {filteredKnowledgeNav.length > 0 && <NavGroup title="지식베이스" items={filteredKnowledgeNav} isCollapsed={isCollapsed} />}
+        {isAdmin && filteredManageNav.length > 0 && (
+          <NavGroup title="관리" items={filteredManageNav} isCollapsed={isCollapsed} />
         )}
-        {isAdmin && (
-          <NavGroup items={logNav} isCollapsed={isCollapsed} />
+        {isAdmin && filteredLogNav.length > 0 && (
+          <NavGroup items={filteredLogNav} isCollapsed={isCollapsed} />
         )}
+      </div>
+
+      {/* Menu visibility settings */}
+      <div className={cn('px-2.5 pb-1', isCollapsed && 'px-1.5')}>
+        <MenuVisibilityPopover isCollapsed={isCollapsed} hiddenMenus={hiddenMenus} onToggle={toggleMenu} />
       </div>
 
       {/* Presence */}

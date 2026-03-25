@@ -125,6 +125,7 @@ export interface User {
   email: string;
   avatar_url: string | null;
   is_active: boolean;
+  hidden_menus: string[];
   created_at: string;
 }
 
