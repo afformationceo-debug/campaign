@@ -22,6 +22,8 @@ interface CreateParams {
   status: CheckStatus;
   note?: string;
   result_value?: string;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 export function useUpdateCheckStatus() {
@@ -189,6 +191,27 @@ export function useCreateCheck() {
       if (params.note !== undefined) insertData.note = params.note;
       if (params.result_value !== undefined) insertData.result_value = params.result_value;
 
+      // Timeslot: use explicit params or copy from most recent check
+      if (params.start_time !== undefined) {
+        insertData.start_time = params.start_time;
+        insertData.end_time = params.end_time ?? null;
+      } else {
+        // Copy timeslot from the most recent check for same task+user
+        const { data: prev } = await supabase
+          .from('daily_checks')
+          .select('start_time, end_time')
+          .eq('task_id', params.task_id)
+          .eq('assigned_user_id', params.assigned_user_id)
+          .not('start_time', 'is', null)
+          .order('check_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (prev?.start_time) {
+          insertData.start_time = prev.start_time;
+          insertData.end_time = prev.end_time;
+        }
+      }
+
       // Always set started_at on first creation (최초 입력시간)
       const now = new Date().toISOString();
       insertData.started_at = now;
@@ -253,6 +276,58 @@ export function useCreateCheck() {
         targetId: data.id,
         newValue: { status: data.status, campaign_id: data.campaign_id, task_id: data.task_id },
       });
+    },
+  });
+}
+
+interface TimeslotParams {
+  checkId: string;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+export function useUpdateTimeslot() {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async (params: TimeslotParams) => {
+      const { data, error } = await supabase
+        .from('daily_checks')
+        .update({
+          start_time: params.start_time,
+          end_time: params.end_time,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.checkId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as DailyCheck;
+    },
+    onMutate: async ({ checkId, start_time, end_time }) => {
+      await queryClient.cancelQueries({ queryKey: ['checks'] });
+      const allQueries = queryClient.getQueriesData<DailyCheck[]>({ queryKey: ['checks'] });
+      const previousMap = new Map(allQueries);
+
+      allQueries.forEach(([key]) => {
+        queryClient.setQueryData(key, (old: DailyCheck[] | undefined) =>
+          (old || []).map((item) =>
+            item.id === checkId ? { ...item, start_time, end_time } : item
+          )
+        );
+      });
+      return { previousMap };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousMap) {
+        context.previousMap.forEach((data, key) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['checks'] });
     },
   });
 }

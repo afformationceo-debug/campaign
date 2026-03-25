@@ -151,6 +151,8 @@ export interface DailyCheck {
   result_value: string | null;
   started_at: string | null;
   completed_at: string | null;
+  start_time: string | null;
+  end_time: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { TaskDetailPanel } from '@/components/views/task-detail-panel';
+import { TimeSlotCell } from '@/components/views/timeslot-cell';
 import type {
   Task,
   Campaign,
@@ -555,6 +556,28 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
     return filtered;
   }, [tasks, categories, assigneeName]);
 
+  // Sort global tasks by timeslot (start_time) then loop_order
+  // Tasks with a timeslot come first (sorted by start_time), then tasks without
+  const getTaskTimeslot = useCallback((task: Task): { start: string | null; end: string | null } => {
+    const userId = resolveGlobalUserId(task);
+    const check = checkMap.get(`null:${task.id}:${userId}`);
+    return { start: check?.start_time ?? null, end: check?.end_time ?? null };
+  }, [checkMap, resolveGlobalUserId]);
+
+  const sortByTimeslot = useCallback((taskList: Task[]): Task[] => {
+    return [...taskList].sort((a, b) => {
+      const slotA = getTaskTimeslot(a).start;
+      const slotB = getTaskTimeslot(b).start;
+      // Both have timeslot: sort by start_time
+      if (slotA && slotB) return slotA.localeCompare(slotB);
+      // Only one has timeslot: it comes first
+      if (slotA && !slotB) return -1;
+      if (!slotA && slotB) return 1;
+      // Neither: keep loop_order
+      return a.loop_order - b.loop_order;
+    });
+  }, [getTaskTimeslot]);
+
   // Group global tasks by assignee combo for better visibility
   // e.g. ['강상우','심윤우','쇼코'] → one group "강상우, 심윤우, 쇼코"
   const globalTasksByAssignee = useMemo(() => {
@@ -572,7 +595,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
 
     // '전체' first, then sort groups by their tasks' minimum loop_order (퍼널 순서 유지)
     if (assigneeMap.has('전체')) {
-      groups.push({ assignee: '전체', tasks: assigneeMap.get('전체')! });
+      groups.push({ assignee: '전체', tasks: sortByTimeslot(assigneeMap.get('전체')!) });
     }
     Array.from(assigneeMap.entries())
       .filter(([key]) => key !== '전체')
@@ -581,10 +604,10 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
         const minB = Math.min(...tasksB.map((t) => t.loop_order));
         return minA - minB;
       })
-      .forEach(([assignee, tasks]) => groups.push({ assignee, tasks }));
+      .forEach(([assignee, tasks]) => groups.push({ assignee, tasks: sortByTimeslot(tasks) }));
 
     return groups;
-  }, [globalTasks]);
+  }, [globalTasks, sortByTimeslot]);
 
   // Group campaign-scope tasks by category in CATEGORY_ORDER
   const taskGroups = useMemo(() => {
@@ -733,13 +756,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
         <table className="w-full text-left table-fixed">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50">
-              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '30%' }}>업무</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '25%' }}>업무</th>
               <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '7%' }}>카테고리</th>
-              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '9%' }}>담당자</th>
-              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '8%' }}>도구</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '8%' }}>담당자</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '7%' }}>도구</th>
               <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '7%' }}>상태</th>
-              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '9%' }}>시간</th>
-              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '30%' }}>결과값</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '10%' }}>타임슬롯</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500 text-center" style={{ width: '8%' }}>시간</th>
+              <th className="px-3 py-2.5 text-[11px] font-semibold text-stone-500" style={{ width: '28%' }}>결과값</th>
             </tr>
           </thead>
           <tbody>
@@ -749,7 +773,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                 {globalTasksByAssignee.length > 1 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-3 py-2 bg-amber-50/50 border-b border-stone-100"
                     >
                       <div className="flex items-center gap-1.5">
@@ -910,6 +934,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             </div>
                           </td>
                           <td className="px-3 py-1 text-center">
+                            <span className="text-[11px] text-stone-300">펼쳐서 설정</span>
+                          </td>
+                          <td className="px-3 py-1 text-center">
                             <span className="text-[11px] text-stone-300">-</span>
                           </td>
                           <td className="px-3 py-1">
@@ -955,6 +982,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                     </Tooltip>
                                   )}
                                 </div>
+                              </td>
+                              <td className="px-3 py-1">
+                                <TimeSlotCell
+                                  check={check}
+                                  taskId={task.id}
+                                  date={date}
+                                  assigneeId={aId || effectiveUserId}
+                                />
                               </td>
                               <td className="px-3 py-1 text-center">
                                 {check?.started_at ? (
@@ -1021,6 +1056,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                   <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                                 </div>
                               </td>
+                              <td className="px-3 py-1">
+                                <TimeSlotCell check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
+                              </td>
                               <td className="px-3 py-1 text-center">
                                 <span className="text-[11px] text-stone-300">-</span>
                               </td>
@@ -1040,7 +1078,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               key={`step-${step.id}`}
                               step={step}
                               stepCheck={sc}
-                              colSpan={7}
+                              colSpan={8}
                               paddingLeft="pl-5"
                               onToggle={() => upsertStepCheck(task.id, step.id, resolvedId, null, { is_completed: !sc?.is_completed })}
                               onResultSave={(val) => upsertStepCheck(task.id, step.id, resolvedId, null, { result_value: val })}
@@ -1171,6 +1209,14 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           )}
                         </div>
                       </td>
+                      <td className="px-3 py-1">
+                        <TimeSlotCell
+                          check={check}
+                          taskId={task.id}
+                          date={date}
+                          assigneeId={resolvedUserId}
+                        />
+                      </td>
                       <td className="px-3 py-1 text-center">
                         {check?.started_at ? (
                           <Tooltip>
@@ -1234,6 +1280,9 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               <GlobalStatusSelect check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
                             </div>
                           </td>
+                          <td className="px-3 py-1">
+                            <TimeSlotCell check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
+                          </td>
                           <td className="px-3 py-1 text-center">
                             <span className="text-[11px] text-stone-300">-</span>
                           </td>
@@ -1252,7 +1301,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                           key={`step-${step.id}`}
                           step={step}
                           stepCheck={sc}
-                          colSpan={7}
+                          colSpan={8}
                           paddingLeft="pl-4"
                           onToggle={() => upsertStepCheck(task.id, step.id, resolvedUserId, null, { is_completed: !sc?.is_completed })}
                           onResultSave={(val) => upsertStepCheck(task.id, step.id, resolvedUserId, null, { result_value: val })}
