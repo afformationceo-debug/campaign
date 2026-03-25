@@ -1099,8 +1099,8 @@ export default function RoadmapPage() {
               g.children ? g.children.flatMap(getAllProjects) : g.projects;
 
             // Helper: render project table rows (leaf level)
-            // groupKey: assignee 그룹이면 userId, state 그룹이면 '진행전'/'진행중'/'완료'
-            const renderProjectRows = (projectList: Project[], groupKey?: string) => (
+            // groupPath: 전체 그룹 키 경로 (예: '진행중/userId', 'userId/진행전')
+            const renderProjectRows = (projectList: Project[], groupPath?: string) => (
               <div className="border-t overflow-x-auto">
                 <table className="w-full text-[12px] min-w-[860px]" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
@@ -1397,14 +1397,16 @@ export default function RoadmapPage() {
                             const input = form.querySelector('input') as HTMLInputElement;
                             const name = input?.value?.trim();
                             if (!name) return;
-                            // groupKey로 담당자/상태 자동 매칭
-                            const isUserId = groupKey && !['진행전', '진행중', '완료', '__unassigned__'].includes(groupKey) && groupKey.includes('-');
-                            const isState = groupKey && ['진행전', '진행중', '완료'].includes(groupKey);
+                            // groupPath에서 상태와 담당자 추출 (예: '진행중/userId', 'userId/완료')
+                            const STATES = ['진행전', '진행중', '완료'];
+                            const segments = groupPath ? groupPath.split('/') : [];
+                            const stateSegment = segments.find((s) => STATES.includes(s));
+                            const userSegment = segments.find((s) => !STATES.includes(s) && s !== '__unassigned__' && s.includes('-'));
                             createProject(
                               {
                                 project_name: name,
-                                state: (isState ? groupKey : '진행전') as ProjectState,
-                                assignee_id: isUserId ? groupKey : undefined,
+                                state: (stateSegment ?? '진행전') as ProjectState,
+                                assignee_id: userSegment ?? undefined,
                                 sort_order: projectList.length,
                               },
                               {
@@ -1449,12 +1451,10 @@ export default function RoadmapPage() {
                 const projectCount = leafProjects.length;
 
                 // Determine content when expanded
-                // 그룹의 최하위 key 추출 (담당자 UUID 또는 상태명)
-                const leafKey = group.key.split('/').pop() ?? group.key;
                 const expandedContent = group.children
                   ? renderGroups(group.children, depth + 1)
                   : projectCount > 0
-                    ? renderProjectRows(group.projects, leafKey)
+                    ? renderProjectRows(group.projects, group.key)
                     : <div className="border-t border-stone-100 px-4 py-1.5 text-center text-[11px] text-stone-400">{group.label} 프로젝트가 없어요</div>;
 
                 if (depth === 0) {
