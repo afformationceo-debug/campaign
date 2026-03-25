@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Circle, Ban, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Ban, ChevronDown, ChevronRight, MessageSquare, FileText, ExternalLink } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -349,7 +349,25 @@ export default function WorkflowPage() {
                     {tasks.map((task) => (
                       <tr key={task.id} className="border-b border-stone-50 hover:bg-stone-50/30">
                         <td className="sticky left-0 z-10 bg-white py-1.5 px-3 text-stone-700 border-r border-stone-100 whitespace-nowrap">
-                          <span className="text-stone-400 mr-1">{task.task_number}.</span>{task.task_name}
+                          <div className="flex items-center gap-1">
+                            <span className="text-stone-400 mr-0.5">{task.task_number}.</span>
+                            <span>{task.task_name}</span>
+                            {task.manual_url && (
+                              <a href={task.manual_url} target="_blank" rel="noopener noreferrer" className="shrink-0 p-0.5 rounded hover:bg-blue-50 text-blue-400 hover:text-blue-600" title="매뉴얼 링크">
+                                <ExternalLink className="size-3" />
+                              </a>
+                            )}
+                            {task.manual_text && !task.manual_url && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <FileText className="size-3 text-stone-400 shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[300px]">
+                                  <p className="text-xs whitespace-pre-wrap">{task.manual_text}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                         </td>
                         {matrixCampaigns.map((campaign) => {
                           const check = matrixCheckMap.get(`${campaign.id}:${task.id}`);
@@ -451,7 +469,24 @@ export default function WorkflowPage() {
                   return (
                     <div key={task.id} className={cn('flex items-center gap-2 px-4 py-2.5 transition-colors', hasNA ? 'bg-stone-50/30' : 'hover:bg-stone-50/50')}>
                       <span className={cn('text-xs w-6 text-right shrink-0 font-mono', hasNA ? 'text-stone-300' : 'text-stone-400')}>{task.task_number}.</span>
-                      <span className={cn('flex-1 text-sm', hasNA ? 'text-stone-300 line-through' : 'text-stone-700')}>{task.task_name}</span>
+                      <span className={cn('flex-1 text-sm', hasNA ? 'text-stone-300 line-through' : 'text-stone-700')}>
+                        {task.task_name}
+                      </span>
+                      {task.manual_url && (
+                        <a href={task.manual_url} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1 rounded hover:bg-blue-50 text-blue-400 hover:text-blue-600" title="매뉴얼" onClick={(e) => e.stopPropagation()}>
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                      )}
+                      {task.manual_text && !task.manual_url && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="shrink-0 p-1"><FileText className="size-3.5 text-stone-400" /></span>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[300px]">
+                            <p className="text-xs whitespace-pre-wrap">{task.manual_text}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       <div className="flex items-center gap-2 shrink-0">
                         {productsToShow.map((product) => {
                           const check = checkMap.get(`${product.id}:${task.id}`);
