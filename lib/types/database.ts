@@ -195,6 +195,7 @@ export interface Project {
   project_name: string;
   url: string | null;
   assignee_id: string | null;
+  assignee_ids: string[];
   start_date: string | null;
   due_date: string | null;
   state: ProjectState;
@@ -211,6 +212,7 @@ export interface ProjectTask {
   title: string;
   state: ProjectState;
   assignee_id: string | null;
+  assignee_ids: string[];
   start_date: string | null;
   due_date: string | null;
   sort_order: number;

@@ -49,6 +49,7 @@ import {
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
 import { AiCommandCenter } from '@/components/ai/ai-command-center';
+import { MultiAssigneeSelect } from '@/components/views/multi-assignee-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1197,15 +1198,11 @@ export default function RoadmapPage() {
                               </Select>
                             </td>
                             <td className="px-2 py-0.5">
-                              <Select value={project.assignee_id ?? 'none'} onValueChange={(v) => saveProjectField(project.id, 'assignee_id', v === 'none' ? null : v)}>
-                                <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent px-1 text-muted-foreground">
-                                  <span className="truncate">{assignee?.name ?? '-'}</span>
-                                </SelectTrigger>
-                                <SelectContent position="popper">
-                                  <SelectItem value="none">미지정</SelectItem>
-                                  {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
-                                </SelectContent>
-                              </Select>
+                              <MultiAssigneeSelect
+                                assigneeIds={project.assignee_ids?.length ? project.assignee_ids : (project.assignee_id ? [project.assignee_id] : [])}
+                                users={users}
+                                onSave={(ids) => saveProjectField(project.id, 'assignee_ids', ids)}
+                              />
                             </td>
                             <td className="px-2 py-0.5">
                               {pct === 100 && tasks.length > 0 ? (
@@ -1319,15 +1316,12 @@ export default function RoadmapPage() {
                                   </Select>
                                 </td>
                                 <td className="px-2 py-0.5">
-                                  <Select value={task.assignee_id ?? 'none'} onValueChange={(v) => saveTaskField(task.id, project.id, 'assignee_id', v === 'none' ? null : v)}>
-                                    <SelectTrigger className="h-5 w-[68px] text-[10px] border-0 bg-transparent px-1 text-muted-foreground">
-                                      <span className="truncate">{taskAssignee?.name ?? '-'}</span>
-                                    </SelectTrigger>
-                                    <SelectContent position="popper">
-                                      <SelectItem value="none">미지정</SelectItem>
-                                      {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
-                                    </SelectContent>
-                                  </Select>
+                                  <MultiAssigneeSelect
+                                    assigneeIds={task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : [])}
+                                    users={users}
+                                    onSave={(ids) => saveTaskField(task.id, project.id, 'assignee_ids', ids)}
+                                    size="xs"
+                                  />
                                 </td>
                                 <td className="px-2 py-0.5"></td>
                                 <td className="px-2 py-0.5">
@@ -1710,15 +1704,11 @@ export default function RoadmapPage() {
                       </td>
                       {/* Assignee */}
                       <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                        <Select value={project.assignee_id ?? 'none'} onValueChange={(v) => saveProjectField(project.id, 'assignee_id', v === 'none' ? null : v)}>
-                          <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent px-1 text-muted-foreground">
-                            <span className="truncate">{assignee?.name ?? '-'}</span>
-                          </SelectTrigger>
-                          <SelectContent position="popper">
-                            <SelectItem value="none">미지정</SelectItem>
-                            {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
+                        <MultiAssigneeSelect
+                          assigneeIds={project.assignee_ids?.length ? project.assignee_ids : (project.assignee_id ? [project.assignee_id] : [])}
+                          users={users}
+                          onSave={(ids) => saveProjectField(project.id, 'assignee_ids', ids)}
+                        />
                       </td>
                       {/* Progress */}
                       <td className="px-2 py-0.5">
@@ -1874,15 +1864,12 @@ export default function RoadmapPage() {
                           </td>
                           {/* Assignee */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <Select value={task.assignee_id ?? 'none'} onValueChange={(v) => saveTaskField(task.id, project.id, 'assignee_id', v === 'none' ? null : v)}>
-                              <SelectTrigger className="h-5 w-[68px] text-[10px] border-0 bg-transparent px-1 text-muted-foreground">
-                                <span className="truncate">{taskAssignee?.name ?? '-'}</span>
-                              </SelectTrigger>
-                              <SelectContent position="popper">
-                                <SelectItem value="none">미지정</SelectItem>
-                                {users.filter((u) => u.is_active).map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
+                            <MultiAssigneeSelect
+                              assigneeIds={task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : [])}
+                              users={users}
+                              onSave={(ids) => saveTaskField(task.id, project.id, 'assignee_ids', ids)}
+                              size="xs"
+                            />
                           </td>
                           {/* Progress - empty for tasks */}
                           <td className="px-2 py-0.5"></td>
