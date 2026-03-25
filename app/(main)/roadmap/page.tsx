@@ -1242,7 +1242,7 @@ export default function RoadmapPage() {
                                   <DropdownMenuItem onClick={() => openEditDialog(project)}><Pencil className="size-3.5 mr-2" />수정</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => {
                                     const data = {
-                                      project_name: `${project.project_name} (복사)`,
+                                      project_name: project.project_name,
                                       url: project.url,
                                       assignee_id: project.assignee_id,
                                       start_date: project.start_date,
@@ -1344,7 +1344,7 @@ export default function RoadmapPage() {
                                 </td>
                                 <td className="px-1 py-0.5">
                                   <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
-                                    <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-blue-50" title="복사" onClick={() => createTask({ project_id: project.id, title: `${task.title} (복사)`, state: task.state, assignee_id: task.assignee_id, due_date: task.due_date, sort_order: (tasks.length), memo: task.memo })}>
+                                    <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-blue-50" title="복사" onClick={() => createTask({ project_id: project.id, title: task.title, state: task.state, assignee_id: task.assignee_id, due_date: task.due_date, sort_order: (tasks.length), memo: task.memo })}>
                                       <Copy className="size-2.5 text-muted-foreground/50 hover:text-blue-500" />
                                     </button>
                                     <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-destructive/10" title="삭제" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
