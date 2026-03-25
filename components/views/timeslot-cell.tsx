@@ -64,6 +64,7 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
       });
     } else {
       // No check exists yet: create one with '미완료' status + timeslot
+      // timeslot_only: 시간 칼럼(started_at/updated_at)에 영향 없음
       createCheck({
         campaign_id: null,
         task_id: taskId,
@@ -72,6 +73,7 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
         status: '미완료',
         start_time: startTime || null,
         end_time: endTime || null,
+        timeslot_only: true,
       });
     }
     setOpen(false);

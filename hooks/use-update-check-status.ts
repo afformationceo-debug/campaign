@@ -24,6 +24,8 @@ interface CreateParams {
   result_value?: string;
   start_time?: string | null;
   end_time?: string | null;
+  /** true이면 타임슬롯 전용 생성 — started_at/updated_at 미설정 */
+  timeslot_only?: boolean;
 }
 
 export function useUpdateCheckStatus() {
@@ -212,12 +214,14 @@ export function useCreateCheck() {
         }
       }
 
-      // Always set started_at on first creation (최초 입력시간)
-      const now = new Date().toISOString();
-      insertData.started_at = now;
-      insertData.updated_at = now;
-      if (params.status === '완료') {
-        insertData.completed_at = now;
+      // 타임슬롯 전용 생성이면 시간 타임스탬프 미설정
+      if (!params.timeslot_only) {
+        const now = new Date().toISOString();
+        insertData.started_at = now;
+        insertData.updated_at = now;
+        if (params.status === '완료') {
+          insertData.completed_at = now;
+        }
       }
 
       const { data, error } = await supabase
@@ -297,7 +301,7 @@ export function useUpdateTimeslot() {
         .update({
           start_time: params.start_time,
           end_time: params.end_time,
-          updated_at: new Date().toISOString(),
+          // updated_at을 갱신하지 않음: 타임슬롯 변경은 시간 칼럼에 영향 없음
         })
         .eq('id', params.checkId)
         .select()
