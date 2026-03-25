@@ -151,12 +151,12 @@ function ResultValueInput({
   const { mutate: createCheck } = useCreateCheck();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleStartEdit = () => {
     setValue(check?.result_value ?? '');
     setEditing(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   const handleSave = () => {
@@ -180,29 +180,37 @@ function ResultValueInput({
 
   if (editing) {
     return (
-      <input
-        ref={inputRef}
+      <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="w-full text-[12px] bg-orange-50/50 border-b-2 border-orange-400 outline-none px-1.5 py-1 rounded-t"
-        placeholder="결과값 입력..."
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) handleSave();
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="w-full text-[12px] bg-orange-50/50 border-2 border-orange-400 outline-none px-1.5 py-1 rounded-lg resize-none leading-relaxed"
+        rows={3}
+        placeholder="결과값 입력... (Ctrl+Enter 저장)"
       />
     );
   }
 
+  const displayValue = check?.result_value;
+  const isMultiLine = displayValue?.includes('\n');
+
   return (
-    <div className="flex items-center gap-0.5 min-w-0">
+    <div className="flex items-start gap-0.5 min-w-0">
       <button
         type="button"
         onClick={handleStartEdit}
         className={cn(
-          'flex-1 text-left text-[12px] px-1.5 py-1 truncate rounded-lg hover:bg-orange-50/60 transition-colors cursor-text min-h-[24px] min-w-0',
-          check?.result_value ? 'text-stone-800 font-medium' : 'text-stone-300'
+          'flex-1 text-left text-[12px] px-1.5 py-1 rounded-lg hover:bg-orange-50/60 transition-colors cursor-text min-h-[24px] min-w-0',
+          isMultiLine ? 'whitespace-pre-wrap line-clamp-2' : 'truncate',
+          displayValue ? 'text-stone-800 font-medium' : 'text-stone-300'
         )}
       >
-        {check?.result_value || '-'}
+        {displayValue || '-'}
       </button>
       {task && (
         <ResultViewDialog
