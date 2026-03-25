@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, MessageSquare, Info, ChevronRight, ChevronDown, ExternalLink, Check } from 'lucide-react';
+import { ListChecks, CheckCircle2, Trophy, Clock, Circle, Minus, Info, ChevronRight, ChevronDown, ExternalLink, Check, Expand } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAll } from '@/lib/supabase/fetch-all';
@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/popover';
 import { TaskDetailPanel } from '@/components/views/task-detail-panel';
 import { TimeSlotCell } from '@/components/views/timeslot-cell';
+import { NoteEditPopover } from '@/components/views/note-edit-popover';
+import { ResultViewDialog } from '@/components/views/result-view-dialog';
 import type {
   Task,
   Campaign,
@@ -132,12 +134,14 @@ function GlobalStatusSelect({
 // ─── Inline Result Value Input ───────────────────────
 function ResultValueInput({
   check,
+  task,
   taskId,
   date,
   assigneeId,
   campaignId,
 }: {
   check: DailyCheck | null;
+  task?: Task;
   taskId: string;
   date: string;
   assigneeId: string;
@@ -189,16 +193,27 @@ function ResultValueInput({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleStartEdit}
-      className={cn(
-        'w-full text-left text-[12px] px-1.5 py-1 truncate rounded-lg hover:bg-orange-50/60 transition-colors cursor-text min-h-[24px]',
-        check?.result_value ? 'text-stone-800 font-medium' : 'text-stone-300'
+    <div className="flex items-center gap-0.5 min-w-0">
+      <button
+        type="button"
+        onClick={handleStartEdit}
+        className={cn(
+          'flex-1 text-left text-[12px] px-1.5 py-1 truncate rounded-lg hover:bg-orange-50/60 transition-colors cursor-text min-h-[24px] min-w-0',
+          check?.result_value ? 'text-stone-800 font-medium' : 'text-stone-300'
+        )}
+      >
+        {check?.result_value || '-'}
+      </button>
+      {task && (
+        <ResultViewDialog
+          check={check}
+          task={task}
+          date={date}
+          assigneeId={assigneeId}
+          campaignId={campaignId}
+        />
       )}
-    >
-      {check?.result_value || '-'}
-    </button>
+    </div>
   );
 }
 
@@ -971,16 +986,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                     date={date}
                                     assigneeId={aId || effectiveUserId}
                                   />
-                                  {check?.note && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        <p className="text-xs">메모: {check.note}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
+                                  <NoteEditPopover
+                                    check={check}
+                                    taskId={task.id}
+                                    date={date}
+                                    assigneeId={aId || effectiveUserId}
+                                  />
                                 </div>
                               </td>
                               <td className="px-3 py-1">
@@ -1019,6 +1030,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                               <td className="px-3 py-1">
                                 <ResultValueInput
                                   check={check}
+                                  task={task}
                                   taskId={task.id}
                                   date={date}
                                   assigneeId={aId || effectiveUserId}
@@ -1063,7 +1075,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                                 <span className="text-[11px] text-stone-300">-</span>
                               </td>
                               <td className="px-3 py-1">
-                                <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
+                                <ResultValueInput check={subCheck} task={subTask} taskId={subTask.id} date={date} assigneeId={subUserId} />
                               </td>
                             </tr>
                           );
@@ -1197,16 +1209,12 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             date={date}
                             assigneeId={resolvedUserId}
                           />
-                          {check?.note && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <MessageSquare className="size-3 text-blue-500/50 shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p className="text-xs">메모: {check.note}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          <NoteEditPopover
+                            check={check}
+                            taskId={task.id}
+                            date={date}
+                            assigneeId={resolvedUserId}
+                          />
                         </div>
                       </td>
                       <td className="px-3 py-1">
@@ -1245,6 +1253,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                       <td className="px-3 py-1">
                         <ResultValueInput
                           check={check}
+                          task={task}
                           taskId={task.id}
                           date={date}
                           assigneeId={resolvedUserId}
@@ -1287,7 +1296,7 @@ export function AssigneeGrid({ date, assigneeId, assigneeName, categories, users
                             <span className="text-[11px] text-stone-300">-</span>
                           </td>
                           <td className="px-3 py-1">
-                            <ResultValueInput check={subCheck} taskId={subTask.id} date={date} assigneeId={subUserId} />
+                            <ResultValueInput check={subCheck} task={subTask} taskId={subTask.id} date={date} assigneeId={subUserId} />
                           </td>
                         </tr>
                       );
