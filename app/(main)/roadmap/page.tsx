@@ -32,6 +32,7 @@ import {
   Layers,
   Bot,
   Copy,
+  Expand,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -112,6 +113,88 @@ interface EditingCell {
   field: string;
   type: 'project' | 'task';
   projectId?: string;
+}
+
+// ─── Result Value Cell with expand dialog ───────────────
+function ResultValueCell({
+  value,
+  name,
+  onSave,
+}: {
+  value: string;
+  name: string;
+  onSave: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleOpen = () => { setDraft(value); setEditing(false); setOpen(true); };
+  const handleSave = () => {
+    const trimmed = draft.trim();
+    if (trimmed !== (value || '')) onSave(trimmed || null as unknown as string);
+    setEditing(false);
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-0.5 min-w-0">
+        <span
+          className={cn(
+            'flex-1 cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors min-h-[16px] leading-tight text-[11px]',
+            value ? 'line-clamp-2 whitespace-pre-wrap text-foreground' : 'text-muted-foreground/30 truncate',
+          )}
+          onClick={handleOpen}
+        >
+          {value || '결과값 입력...'}
+        </span>
+        {value && (
+          <button type="button" onClick={handleOpen} className="shrink-0 p-0.5 rounded text-stone-400 hover:text-orange-600 hover:bg-orange-50">
+            <Expand className="size-3" />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-50" onClick={() => setOpen(false)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[560px] max-w-[90vw] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-100 bg-stone-50/80">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[13px] font-bold text-stone-800 truncate">{name}</h3>
+                <span className="text-[10px] text-stone-400">결과값</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!editing && <button type="button" className="px-2.5 py-1 text-[11px] font-medium border border-stone-200 rounded-lg hover:bg-stone-50" onClick={() => { setEditing(true); setTimeout(() => textareaRef.current?.focus(), 50); }}>수정</button>}
+                {editing && <button type="button" className="px-2.5 py-1 text-[11px] font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600" onClick={handleSave}>저장</button>}
+                <button type="button" className="p-1.5 rounded-lg hover:bg-stone-200" onClick={() => setOpen(false)}>
+                  <X className="size-4 text-stone-500" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {editing ? (
+                <textarea
+                  ref={textareaRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) handleSave(); }}
+                  className="w-full text-[13px] border border-orange-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-200 resize-none leading-relaxed min-h-[200px]"
+                  placeholder="결과값을 입력하세요..."
+                />
+              ) : (
+                <div className="text-[13px] text-stone-800 whitespace-pre-wrap leading-relaxed bg-stone-50/50 rounded-xl p-4 border border-stone-100 min-h-[120px]">
+                  {value || <span className="text-stone-300">결과값이 없습니다</span>}
+                </div>
+              )}
+              {editing && <p className="text-[10px] text-stone-400 mt-2">Ctrl+Enter로 저장</p>}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
 }
 
 function InlineTextCell({
@@ -1232,7 +1315,7 @@ export default function RoadmapPage() {
                               <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
                             </td>
                             <td className="px-2 py-0.5 overflow-hidden">
-                              <InlineTextCell value={project.result_value ?? ''} isEditing={isEditing(project.id, 'result_value')} onStartEdit={() => startEdit(project.id, 'result_value', 'project')} onSave={(v) => saveProjectField(project.id, 'result_value', v || null)} className="text-[11px]" placeholder="결과값 입력..." />
+                              <ResultValueCell value={project.result_value ?? ''} name={project.project_name} onSave={(v) => saveProjectField(project.id, 'result_value', v || null)} />
                             </td>
                             <td className="px-2 py-0.5 overflow-hidden">
                               <InlineMemoCell value={project.memo} isEditing={isEditing(project.id, 'memo')} onStartEdit={() => startEdit(project.id, 'memo', 'project')} onSave={(v) => saveProjectField(project.id, 'memo', v)} />
@@ -1352,7 +1435,7 @@ export default function RoadmapPage() {
                                   <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
                                 </td>
                                 <td className="px-2 py-0.5 overflow-hidden">
-                                  <InlineTextCell value={task.result_value ?? ''} isEditing={isEditing(task.id, 'result_value')} onStartEdit={() => startEdit(task.id, 'result_value', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} className="text-[11px]" placeholder="결과값 입력..." />
+                                  <ResultValueCell value={task.result_value ?? ''} name={task.title} onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} />
                                 </td>
                                 <td className="px-2 py-0.5 overflow-hidden">
                                   <InlineMemoCell value={task.memo} isEditing={isEditing(task.id, 'memo')} onStartEdit={() => startEdit(task.id, 'memo', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)} />
