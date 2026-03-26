@@ -400,3 +400,56 @@ export interface CampaignProductWithProduct extends CampaignProduct {
 export interface CampaignWorkflowCheckWithTask extends CampaignWorkflowCheck {
   workflow_tasks: WorkflowTask;
 }
+
+// CS Manual Playbook (크몽 응대매뉴얼)
+export interface CsManualService {
+  id: string;
+  name: string;
+  icon: string;
+  punch_label: string | null;
+  punch_title: string | null;
+  punch_description: string | null;
+  punch_gradient: string | null;
+  form_fields: Array<{ key: string; type: string; options?: string[] }>;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CsManualSectionType = 'outbound' | 'funnel';
+
+export interface CsManualStep {
+  id: string;
+  service_id: string;
+  section_type: CsManualSectionType;
+  step_number: string;
+  title: string;
+  tag: string | null;
+  tag_color: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CsManualTemplateVariable {
+  key: string;
+  label: string;
+  default: string;
+}
+
+export interface CsManualTemplate {
+  id: string;
+  step_id: string;
+  label: string;
+  content: string;
+  variables: CsManualTemplateVariable[];
+  tip: string | null;
+  sort_order: number;
+  author_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CsManualStepWithTemplates extends CsManualStep {
+  cs_manual_templates: CsManualTemplate[];
+}

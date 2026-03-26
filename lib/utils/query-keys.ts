@@ -105,4 +105,9 @@ export const queryKeys = {
     byCampaign: (campaignId: string) => ['workflowChecks', campaignId] as const,
     byCampaignProduct: (campaignId: string, productId: string) => ['workflowChecks', campaignId, productId] as const,
   },
+  csManual: {
+    services: ['csManual', 'services'] as const,
+    steps: (serviceId: string) => ['csManual', 'steps', serviceId] as const,
+    templates: (stepId: string) => ['csManual', 'templates', stepId] as const,
+  },
 };

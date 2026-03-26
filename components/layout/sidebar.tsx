@@ -24,6 +24,7 @@ import {
   Package,
   ClipboardList,
   Eye,
+  Headset,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -65,6 +66,7 @@ const projectNav = [
 
 const knowledgeNav = [
   { href: '/manuals', label: '매뉴얼/가이드', desc: '사용법 안내', icon: BookOpen, color: 'bg-lime-100 text-lime-600' },
+  { href: '/manuals/kmong', label: '크몽 응대매뉴얼', desc: 'CS 템플릿 키트', icon: Headset, color: 'bg-orange-100 text-orange-600' },
 ];
 
 const logNav = [
