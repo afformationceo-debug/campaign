@@ -493,8 +493,9 @@ export default function RoadmapPage() {
     if (stateFilter) filtered = filtered.filter((p) => p.state === stateFilter);
     if (assigneeFilter) filtered = filtered.filter((p) => {
       if (p.assignee_id === assigneeFilter) return true;
+      if (p.assignee_ids?.includes(assigneeFilter)) return true;
       const tasks = tasksByProject.get(p.id) || [];
-      return tasks.some((t) => t.assignee_id === assigneeFilter);
+      return tasks.some((t) => t.assignee_id === assigneeFilter || t.assignee_ids?.includes(assigneeFilter));
     });
     if (searchText) {
       const lower = searchText.toLowerCase();
@@ -511,8 +512,9 @@ export default function RoadmapPage() {
     let filtered = projects.filter((p) => p.state === '완료');
     if (assigneeFilter) filtered = filtered.filter((p) => {
       if (p.assignee_id === assigneeFilter) return true;
+      if (p.assignee_ids?.includes(assigneeFilter)) return true;
       const tasks = tasksByProject.get(p.id) || [];
-      return tasks.some((t) => t.assignee_id === assigneeFilter);
+      return tasks.some((t) => t.assignee_id === assigneeFilter || t.assignee_ids?.includes(assigneeFilter));
     });
     if (searchText) {
       const lower = searchText.toLowerCase();
@@ -542,12 +544,15 @@ export default function RoadmapPage() {
         const assigneeMap = new Map<string, Project[]>();
         const unassigned: Project[] = [];
         projectList.forEach((p) => {
-          if (p.assignee_id) {
-            const existing = assigneeMap.get(p.assignee_id) || [];
-            existing.push(p);
-            assigneeMap.set(p.assignee_id, existing);
-          } else {
+          const ids = p.assignee_ids?.length ? p.assignee_ids : (p.assignee_id ? [p.assignee_id] : []);
+          if (ids.length === 0) {
             unassigned.push(p);
+          } else {
+            ids.forEach((uid) => {
+              const existing = assigneeMap.get(uid) || [];
+              existing.push(p);
+              assigneeMap.set(uid, existing);
+            });
           }
         });
         const sortedEntries = [...assigneeMap.entries()].sort((a, b) => {
