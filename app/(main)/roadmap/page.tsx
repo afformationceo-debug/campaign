@@ -1884,23 +1884,11 @@ export default function RoadmapPage() {
                       </td>
                       {/* Result Value */}
                       <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <InlineTextCell
-                          value={project.result_value ?? ''}
-                          isEditing={isEditing(project.id, 'result_value')}
-                          onStartEdit={() => startEdit(project.id, 'result_value', 'project')}
-                          onSave={(v) => saveProjectField(project.id, 'result_value', v || null)}
-                          className="text-[11px]"
-                          placeholder="결과값 입력..."
-                        />
+                        <ExpandableTextCell value={project.result_value ?? ''} name={project.project_name} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveProjectField(project.id, 'result_value', v || null)} />
                       </td>
                       {/* Memo */}
                       <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <InlineMemoCell
-                          value={project.memo}
-                          isEditing={isEditing(project.id, 'memo')}
-                          onStartEdit={() => startEdit(project.id, 'memo', 'project')}
-                          onSave={(v) => saveProjectField(project.id, 'memo', v)}
-                        />
+                        <ExpandableTextCell value={project.memo ?? ''} name={project.project_name} label="메모" placeholder="메모 입력..." onSave={(v) => saveProjectField(project.id, 'memo', v || null)} />
                       </td>
                       {/* Actions */}
                       <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
@@ -2031,23 +2019,11 @@ export default function RoadmapPage() {
                           </td>
                           {/* Result Value */}
                           <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <InlineTextCell
-                              value={task.result_value ?? ''}
-                              isEditing={isEditing(task.id, 'result_value')}
-                              onStartEdit={() => startEdit(task.id, 'result_value', 'task', project.id)}
-                              onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)}
-                              className="text-[11px]"
-                              placeholder="결과값 입력..."
-                            />
+                            <ExpandableTextCell value={task.result_value ?? ''} name={task.title} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} />
                           </td>
                           {/* Memo */}
                           <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <InlineMemoCell
-                              value={task.memo}
-                              isEditing={isEditing(task.id, 'memo')}
-                              onStartEdit={() => startEdit(task.id, 'memo', 'task', project.id)}
-                              onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)}
-                            />
+                            <ExpandableTextCell value={task.memo ?? ''} name={task.title} label="메모" placeholder="메모 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'memo', v || null)} />
                           </td>
                           {/* Delete */}
                           <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
