@@ -1108,20 +1108,19 @@ export default function RoadmapPage() {
             // groupPath: 전체 그룹 키 경로 (예: '진행중/userId', 'userId/진행전')
             const renderProjectRows = (projectList: Project[], groupPath?: string) => (
               <div className="border-t overflow-x-auto">
-                <table className="w-full text-[12px] min-w-[1020px]" style={{ tableLayout: 'fixed' }}>
+                <table className="w-full text-[12px] min-w-[920px]" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
                     <col style={{ width: 28 }} />
                     <col style={{ width: 28 }} />
-                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '20%' }} />
                     <col style={{ width: 72 }} />
                     <col style={{ width: 64 }} />
                     <col style={{ width: 52 }} />
                     <col style={{ width: 76 }} />
                     <col style={{ width: 76 }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: 80 }} />
-                    <col style={{ width: 80 }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: 72 }} />
                     <col style={{ width: 28 }} />
                   </colgroup>
                   <thead>
@@ -1136,8 +1135,7 @@ export default function RoadmapPage() {
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">마감일</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">결과값</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">메모</th>
-                      <th className="text-center px-1 py-0.5 font-medium text-muted-foreground text-[10px]">작성일</th>
-                      <th className="text-center px-1 py-0.5 font-medium text-muted-foreground text-[10px]">수정일</th>
+                      <th className="text-center px-1 py-0.5 font-medium text-muted-foreground text-[10px]">시간</th>
                       <th className="px-1 py-0.5"></th>
                     </tr>
                   </thead>
@@ -1242,17 +1240,15 @@ export default function RoadmapPage() {
                             <td className="px-1 py-0.5 text-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="text-[9px] tabular-nums text-muted-foreground/60 cursor-default">{new Date(project.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}</span>
+                                  <div className="flex flex-col items-center leading-tight cursor-default">
+                                    <span className="text-[10px] tabular-nums text-stone-800 font-bold">
+                                      {new Date(project.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="top"><p className="text-xs">{new Date(project.created_at).toLocaleString('ko-KR')}</p></TooltipContent>
-                              </Tooltip>
-                            </td>
-                            <td className="px-1 py-0.5 text-center">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-[9px] tabular-nums text-muted-foreground/60 cursor-default">{new Date(project.updated_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}</span>
-                                </TooltipTrigger>
-                                <TooltipContent side="top"><p className="text-xs">{new Date(project.updated_at).toLocaleString('ko-KR')}</p></TooltipContent>
+                                <TooltipContent side="top">
+                                  <p className="text-xs">최종 수정: {new Date(project.updated_at).toLocaleString('ko-KR')}</p>
+                                </TooltipContent>
                               </Tooltip>
                             </td>
                             <td className="px-1 py-0.5">
@@ -1362,10 +1358,9 @@ export default function RoadmapPage() {
                                   <InlineMemoCell value={task.memo} isEditing={isEditing(task.id, 'memo')} onStartEdit={() => startEdit(task.id, 'memo', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'memo', v)} />
                                 </td>
                                 <td className="px-1 py-0.5 text-center">
-                                  <span className="text-[9px] tabular-nums text-muted-foreground/40">{new Date(task.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}</span>
-                                </td>
-                                <td className="px-1 py-0.5 text-center">
-                                  <span className="text-[9px] tabular-nums text-muted-foreground/40">{new Date(task.updated_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })}</span>
+                                  <span className="text-[10px] tabular-nums text-stone-600 font-medium">
+                                    {new Date(task.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
                                 </td>
                                 <td className="px-1 py-0.5">
                                   <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
@@ -1385,7 +1380,7 @@ export default function RoadmapPage() {
                             <tr className="border-b border-border/30 bg-stone-50/30">
                               <td className="px-1 py-0.5"></td>
                               <td className="px-1 py-0.5"></td>
-                              <td className="px-2 py-0.5 pl-8" colSpan={11}>
+                              <td className="px-2 py-0.5 pl-8" colSpan={10}>
                                 <div className="flex items-center gap-1.5">
                                   <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                                   <input
@@ -1413,7 +1408,7 @@ export default function RoadmapPage() {
                     <tr className="border-b bg-stone-50/30">
                       <td className="px-1 py-0.5"></td>
                       <td className="px-1 py-0.5"></td>
-                      <td className="px-2 py-1" colSpan={11}>
+                      <td className="px-2 py-1" colSpan={10}>
                         <form
                           className="flex items-center gap-2"
                           onSubmit={(e) => {
@@ -1960,7 +1955,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={11}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={10}>
                           <span className="text-[11px] text-stone-400 italic">하위 업무가 없어요. 아래에서 추가해 보세요!</span>
                         </td>
                       </tr>
@@ -1971,7 +1966,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={11}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={10}>
                           <div className="flex items-center gap-1.5">
                             <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                             <input
@@ -2002,7 +1997,7 @@ export default function RoadmapPage() {
                 <td className="px-1 py-1">
                   <Plus className="size-3.5 text-muted-foreground/30" />
                 </td>
-                <td className="px-2 py-1" colSpan={11}>
+                <td className="px-2 py-1" colSpan={10}>
                   <form
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
