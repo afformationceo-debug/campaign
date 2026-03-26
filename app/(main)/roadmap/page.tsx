@@ -154,8 +154,8 @@ function ExpandableTextCell({
         {inlineEditing ? (
           <textarea
             ref={inlineRef}
-            className="flex-1 text-[11px] bg-orange-50/50 border border-orange-400 rounded px-1.5 py-0.5 outline-none resize-none leading-relaxed -mx-1"
-            rows={2}
+            className="flex-1 text-[11px] bg-orange-50/50 border border-orange-400 rounded px-1.5 py-0.5 outline-none resize-none leading-relaxed -mx-1 overflow-y-auto overflow-x-hidden"
+            rows={3}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={handleInlineSave}
@@ -166,15 +166,15 @@ function ExpandableTextCell({
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span
+          <div
             className={cn(
-              'flex-1 cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors min-h-[16px] leading-tight text-[11px]',
-              value ? 'line-clamp-2 whitespace-pre-wrap text-foreground' : 'text-muted-foreground/30 truncate',
+              'flex-1 cursor-text rounded px-1 -mx-1 hover:bg-orange-50/50 transition-colors min-h-[16px] max-h-[48px] overflow-y-auto overflow-x-hidden leading-tight text-[11px] break-words whitespace-pre-wrap',
+              value ? 'text-foreground' : 'text-muted-foreground/30',
             )}
             onClick={(e) => { e.stopPropagation(); setDraft(value); setInlineEditing(true); setTimeout(() => inlineRef.current?.focus(), 0); }}
           >
             {value || placeholder || '-'}
-          </span>
+          </div>
         )}
         <button
           type="button"
