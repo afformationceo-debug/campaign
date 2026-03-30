@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 import { useUpdateTimeslot, useCreateCheck } from '@/hooks/use-update-check-status';
 import {
   Popover,
@@ -36,19 +38,47 @@ interface TimeSlotCellProps {
 }
 
 export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellProps) {
+  const supabase = createClient();
   const { mutate: updateTimeslot } = useUpdateTimeslot();
   const { mutate: createCheck } = useCreateCheck();
   const [open, setOpen] = useState(false);
-  const [startTime, setStartTime] = useState<string>(check?.start_time ?? '');
-  const [endTime, setEndTime] = useState<string>(check?.end_time ?? '');
+  const [startTime, setStartTime] = useState<string>('');
+  const [endTime, setEndTime] = useState<string>('');
+
+  // 오늘 체크에 타임슬롯이 없으면 → 이전 날짜에서 최근 타임슬롯 조회
+  const needsFallback = !check?.start_time;
+  const { data: prevSlot } = useQuery({
+    queryKey: ['timeslot-fallback', taskId, assigneeId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('daily_checks')
+        .select('start_time, end_time')
+        .eq('task_id', taskId)
+        .eq('assigned_user_id', assigneeId)
+        .is('campaign_id', null)
+        .not('start_time', 'is', null)
+        .order('check_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as { start_time: string; end_time: string } | null;
+    },
+    enabled: needsFallback && !!assigneeId,
+    staleTime: 10 * 60 * 1000, // 10분 캐시
+  });
+
+  // 실제 표시할 타임슬롯: 오늘 체크 > 이전 날짜 fallback
+  const displayStart = check?.start_time ?? prevSlot?.start_time ?? null;
+  const displayEnd = check?.end_time ?? prevSlot?.end_time ?? null;
+  const hasSlot = !!displayStart;
+  const isFallback = !check?.start_time && !!prevSlot?.start_time;
 
   const handleOpen = useCallback((isOpen: boolean) => {
     if (isOpen) {
-      setStartTime(check?.start_time ?? '');
-      setEndTime(check?.end_time ?? '');
+      setStartTime(displayStart ?? '');
+      setEndTime(displayEnd ?? '');
     }
     setOpen(isOpen);
-  }, [check]);
+  }, [displayStart, displayEnd]);
 
   const handleSave = useCallback(() => {
     if (!startTime) {
@@ -63,8 +93,6 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
         end_time: endTime || null,
       });
     } else {
-      // No check exists yet: create one with '미완료' status + timeslot
-      // timeslot_only: 시간 칼럼(started_at/updated_at)에 영향 없음
       createCheck({
         campaign_id: null,
         task_id: taskId,
@@ -92,10 +120,6 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
     setOpen(false);
   }, [check, updateTimeslot]);
 
-  const displayStart = check?.start_time;
-  const displayEnd = check?.end_time;
-  const hasSlot = !!displayStart;
-
   return (
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
@@ -104,7 +128,9 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
           className={cn(
             'w-full flex items-center justify-center gap-1 px-1 py-0.5 rounded-lg text-[11px] transition-colors min-h-[24px]',
             hasSlot
-              ? 'text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/80 font-semibold'
+              ? isFallback
+                ? 'text-indigo-400 bg-indigo-50/40 hover:bg-indigo-100/60 font-medium italic'
+                : 'text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/80 font-semibold'
               : 'text-stone-300 hover:bg-stone-50 hover:text-stone-500'
           )}
         >
@@ -167,7 +193,7 @@ export function TimeSlotCell({ check, taskId, date, assigneeId }: TimeSlotCellPr
             >
               저장
             </Button>
-            {hasSlot && (
+            {(hasSlot && !isFallback) && (
               <Button
                 size="sm"
                 variant="outline"
