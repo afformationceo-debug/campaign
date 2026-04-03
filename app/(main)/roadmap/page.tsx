@@ -100,12 +100,11 @@ interface GroupDefinition {
 }
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; bg: string }> = {
-  '진행전': { label: '진행전', color: 'text-stone-400', icon: CircleDashed, bg: 'bg-stone-100' },
   '진행중': { label: '진행중', color: 'text-orange-600', icon: Clock, bg: 'bg-orange-50' },
   '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 text-emerald-600' },
 };
 
-const KANBAN_COLUMNS: ProjectState[] = ['진행전', '진행중', '완료'];
+const KANBAN_COLUMNS: ProjectState[] = ['진행중', '완료'];
 
 // ─── Inline Editable Cell ─────────────────────────────────
 interface EditingCell {
@@ -493,7 +492,7 @@ function EmptyProjectForm({ formData, setFormData, users }: { formData: Partial<
         </div>
         <div>
           <Label htmlFor="state">상태</Label>
-          <Select value={formData.state ?? '진행전'} onValueChange={(v) => setFormData({ ...formData, state: v as ProjectState })}>
+          <Select value={formData.state ?? '진행중'} onValueChange={(v) => setFormData({ ...formData, state: v as ProjectState })}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>{KANBAN_COLUMNS.map((s) => (<SelectItem key={s} value={s}>{STATE_CONFIG[s].label}</SelectItem>))}</SelectContent>
           </Select>
@@ -635,8 +634,8 @@ export default function RoadmapPage() {
     return filtered;
   }, [projects, stateFilter, assigneeFilter, searchText, showCompleted, tasksByProject]);
 
-  // Group order for grouped view: 진행중 first, then 진행전, then 완료
-  const GROUPED_ORDER: ProjectState[] = ['진행중', '진행전', '완료'];
+  // Group order for grouped view: 진행중 first, then 완료
+  const GROUPED_ORDER: ProjectState[] = ['진행중', '완료'];
 
   // ─── Multi-level grouping logic ─────────────────────────
   const groupProjectsByOne = useCallback((projectList: Project[], criterion: GroupBy): GroupDefinition[] => {
@@ -653,32 +652,34 @@ export default function RoadmapPage() {
 
       case 'assignee': {
         const groups: GroupDefinition[] = [];
-        const assigneeMap = new Map<string, Project[]>();
+        // 담당자 조합별로 그룹핑 (복수 담당자는 별도 섹션)
+        const comboMap = new Map<string, Project[]>();
         const unassigned: Project[] = [];
         projectList.forEach((p) => {
-          const ids = p.assignee_ids?.length ? p.assignee_ids : (p.assignee_id ? [p.assignee_id] : []);
+          const ids = p.assignee_ids?.length ? [...p.assignee_ids].sort() : (p.assignee_id ? [p.assignee_id] : []);
           if (ids.length === 0) {
             unassigned.push(p);
           } else {
-            ids.forEach((uid) => {
-              const existing = assigneeMap.get(uid) || [];
-              existing.push(p);
-              assigneeMap.set(uid, existing);
-            });
+            const comboKey = ids.join('+');
+            const existing = comboMap.get(comboKey) || [];
+            existing.push(p);
+            comboMap.set(comboKey, existing);
           }
         });
-        const sortedEntries = [...assigneeMap.entries()].sort((a, b) => {
-          const nameA = users.find((u) => u.id === a[0])?.name ?? '';
-          const nameB = users.find((u) => u.id === b[0])?.name ?? '';
-          return nameA.localeCompare(nameB);
+        const sortedEntries = [...comboMap.entries()].sort((a, b) => {
+          const namesA = a[0].split('+').map((id) => users.find((u) => u.id === id)?.name ?? '').join(', ');
+          const namesB = b[0].split('+').map((id) => users.find((u) => u.id === id)?.name ?? '').join(', ');
+          return namesA.localeCompare(namesB);
         });
-        sortedEntries.forEach(([userId, projs]) => {
-          const user = users.find((u) => u.id === userId);
+        sortedEntries.forEach(([comboKey, projs]) => {
+          const ids = comboKey.split('+');
+          const names = ids.map((id) => users.find((u) => u.id === id)?.name ?? '알 수 없음');
+          const label = names.join(', ');
           groups.push({
-            key: userId,
-            label: user?.name ?? '알 수 없음',
+            key: comboKey,
+            label,
             color: 'text-foreground',
-            icon: User,
+            icon: ids.length > 1 ? Users : User,
             bg: 'bg-secondary',
             projects: projs,
           });
@@ -786,16 +787,14 @@ export default function RoadmapPage() {
     const total = projects.length;
     const inProgress = projects.filter((p) => p.state === '진행중').length;
     const completed = projects.filter((p) => p.state === '완료').length;
-    const notStarted = projects.filter((p) => p.state === '진행전').length;
     const totalTasks = allTasks.length;
     const tasksInProgress = allTasks.filter((t) => t.state === '진행중').length;
     const tasksCompleted = allTasks.filter((t) => t.state === '완료').length;
-    const tasksNotStarted = allTasks.filter((t) => t.state === '진행전').length;
-    return { total, inProgress, completed, notStarted, totalTasks, tasksInProgress, tasksCompleted, tasksNotStarted };
+    return { total, inProgress, completed, totalTasks, tasksInProgress, tasksCompleted };
   }, [projects, allTasks]);
 
   // ─── Dialog handlers ──────────────────────────────────
-  const openCreateDialog = () => { setEditingProject(null); setFormData({ state: '진행전' }); setDialogOpen(true); };
+  const openCreateDialog = () => { setEditingProject(null); setFormData({ state: '진행중' }); setDialogOpen(true); };
   const openEditDialog = (project: Project) => { setEditingProject(project); setFormData(project); setDialogOpen(true); };
   const openDeleteDialog = (id: string) => { setDeletingId(id); setDeleteDialogOpen(true); };
 
@@ -1079,13 +1078,13 @@ export default function RoadmapPage() {
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">프로젝트</span>
           <span className="font-bold text-sm">{stats.total}</span>
-          <span className="text-muted-foreground">({stats.notStarted} 진행전 · <span className="text-foreground font-medium">{stats.inProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.completed} 완료</span>)</span>
+          <span className="text-muted-foreground">(<span className="text-foreground font-medium">{stats.inProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.completed} 완료</span>)</span>
         </div>
         <span className="text-muted-foreground/30">|</span>
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">하위업무</span>
           <span className="font-bold text-sm">{stats.totalTasks}</span>
-          <span className="text-muted-foreground">({stats.tasksNotStarted} 진행전 · <span className="text-foreground font-medium">{stats.tasksInProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.tasksCompleted} 완료</span>)</span>
+          <span className="text-muted-foreground">(<span className="text-foreground font-medium">{stats.tasksInProgress} 진행중</span> · <span className="text-foreground font-bold">{stats.tasksCompleted} 완료</span>)</span>
         </div>
       </div>
 
@@ -1217,7 +1216,7 @@ export default function RoadmapPage() {
               g.children ? g.children.flatMap(getAllProjects) : g.projects;
 
             // Helper: render project table rows (leaf level)
-            // groupPath: 전체 그룹 키 경로 (예: '진행중/userId', 'userId/진행전')
+            // groupPath: 전체 그룹 키 경로 (예: '진행중/userId', 'userId/완료')
             const renderProjectRows = (projectList: Project[], groupPath?: string) => (
               <div className="border-t overflow-x-auto">
                 <table className="w-full text-[12px] min-w-[920px]" style={{ tableLayout: 'fixed' }}>
@@ -1503,7 +1502,7 @@ export default function RoadmapPage() {
                                         const input = e.currentTarget;
                                         const title = input.value.trim();
                                         if (title) {
-                                          createTask({ project_id: project.id, title, state: '진행전' as ProjectState, sort_order: tasks.length });
+                                          createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length });
                                           input.value = '';
                                         }
                                       }
@@ -1530,14 +1529,14 @@ export default function RoadmapPage() {
                             const name = input?.value?.trim();
                             if (!name) return;
                             // groupPath에서 상태와 담당자 추출 (예: '진행중/userId', 'userId/완료')
-                            const STATES = ['진행전', '진행중', '완료'];
+                            const STATES = ['진행중', '완료'];
                             const segments = groupPath ? groupPath.split('/') : [];
                             const stateSegment = segments.find((s) => STATES.includes(s));
                             const userSegment = segments.find((s) => !STATES.includes(s) && s !== '__unassigned__' && s.includes('-'));
                             createProject(
                               {
                                 project_name: name,
-                                state: (stateSegment ?? '진행전') as ProjectState,
+                                state: (stateSegment ?? '진행중') as ProjectState,
                                 assignee_id: userSegment ?? undefined,
                                 sort_order: projectList.length,
                               },
@@ -1579,7 +1578,7 @@ export default function RoadmapPage() {
                 const lastSegment = group.key.split('/').pop() ?? group.key;
                 const isCompletedState = lastSegment === '완료';
                 const isActiveState = lastSegment === '진행중';
-                const isPendingState = lastSegment === '진행전';
+                const isPendingState = false;
                 const projectCount = leafProjects.length;
 
                 // Determine content when expanded
@@ -2065,7 +2064,7 @@ export default function RoadmapPage() {
                                   const input = e.currentTarget;
                                   const title = input.value.trim();
                                   if (title) {
-                                    createTask({ project_id: project.id, title, state: '진행전' as ProjectState, sort_order: tasks.length });
+                                    createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length });
                                     input.value = '';
                                   }
                                 }
@@ -2094,7 +2093,7 @@ export default function RoadmapPage() {
                       const name = input?.value?.trim();
                       if (!name) return;
                       createProject(
-                        { project_name: name, state: '진행전' as ProjectState, sort_order: filteredProjects.length },
+                        { project_name: name, state: '진행중' as ProjectState, sort_order: filteredProjects.length },
                         {
                           onSuccess: () => { if (input) input.value = ''; },
                           onError: (err) => window.alert('추가 실패: ' + (err as Error).message),

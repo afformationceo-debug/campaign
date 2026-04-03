@@ -15,7 +15,6 @@ import {
   User,
   CheckCircle2,
   Clock,
-  CircleDashed,
   GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,12 +56,11 @@ import {
 import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
 
 const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: React.ElementType; badgeBg: string }> = {
-  '진행전': { label: '진행전', color: 'text-gray-500', icon: CircleDashed, badgeBg: 'bg-gray-100 dark:bg-gray-800' },
   '진행중': { label: '진행중', color: 'text-blue-600', icon: Clock, badgeBg: 'bg-blue-50 dark:bg-blue-950' },
   '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, badgeBg: 'bg-emerald-50 dark:bg-emerald-950' },
 };
 
-const STATES: ProjectState[] = ['진행전', '진행중', '완료'];
+const STATES: ProjectState[] = ['진행중', '완료'];
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -127,7 +125,7 @@ export default function ProjectDetailPage() {
 
   const openCreateTask = () => {
     setEditingTask(null);
-    setTaskForm({ state: '진행전', sort_order: tasks.length });
+    setTaskForm({ state: '진행중', sort_order: tasks.length });
     setTaskDialogOpen(true);
   };
 
@@ -154,7 +152,7 @@ export default function ProjectDetailPage() {
       createTask({
         project_id: projectId,
         title: taskForm.title!,
-        state: (taskForm.state as ProjectState) ?? '진행전',
+        state: (taskForm.state as ProjectState) ?? '진행중',
         assignee_id: taskForm.assignee_id,
         due_date: taskForm.due_date,
         sort_order: taskForm.sort_order,
@@ -439,7 +437,7 @@ export default function ProjectDetailPage() {
               <div>
                 <Label>상태</Label>
                 <Select
-                  value={taskForm.state ?? '진행전'}
+                  value={taskForm.state ?? '진행중'}
                   onValueChange={(v) => setTaskForm({ ...taskForm, state: v as ProjectState })}
                 >
                   <SelectTrigger className="mt-1">
@@ -562,7 +560,7 @@ export default function ProjectDetailPage() {
               <div>
                 <Label>상태</Label>
                 <Select
-                  value={projectForm.state ?? '진행전'}
+                  value={projectForm.state ?? '진행중'}
                   onValueChange={(v) => setProjectForm({ ...projectForm, state: v as ProjectState })}
                 >
                   <SelectTrigger className="mt-1">

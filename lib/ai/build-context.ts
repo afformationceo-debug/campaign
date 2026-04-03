@@ -381,7 +381,7 @@ async function fetchProjectContext() {
 
   const userMap = new Map((users ?? []).map((u) => [u.id, u.name]));
 
-  const byState: Record<string, number> = { '진행전': 0, '진행중': 0, '완료': 0 };
+  const byState: Record<string, number> = { '진행중': 0, '완료': 0 };
   const list = projects.map((p) => {
     if (p.state in byState) byState[p.state as keyof typeof byState]++;
     const pTasks = tasks.filter((t) => t.project_id === p.id);

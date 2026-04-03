@@ -39,7 +39,6 @@ import {
   Settings2,
   Filter,
   CalendarDays,
-  CircleDashed,
   AlertCircle,
   Layers,
   ChevronRight,
@@ -118,7 +117,6 @@ const PHASE_CONFIG: Record<string, { label: string; color: string; bg: string; b
 };
 
 const PROJECT_STATE_CONFIG: Record<ProjectState, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  '진행전': { label: '진행전', color: 'text-stone-400', bg: 'bg-stone-100', icon: CircleDashed },
   '진행중': { label: '진행중', color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
   '완료': { label: '완료', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle2 },
 };
@@ -323,12 +321,11 @@ export default function DashboardPage() {
     const total = projects.length;
     const inProgress = projects.filter((p) => p.state === '진행중').length;
     const completed = projects.filter((p) => p.state === '완료').length;
-    const notStarted = projects.filter((p) => p.state === '진행전').length;
     const overdue = projects.filter((p) => p.due_date && p.state !== '완료' && isBefore(parseISO(p.due_date), new Date())).length;
     const totalTasks = projectTasks.length;
     const completedTasks = projectTasks.filter((t) => t.state === '완료').length;
     const taskRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    return { total, inProgress, completed, notStarted, overdue, totalTasks, completedTasks, taskRate };
+    return { total, inProgress, completed, overdue, totalTasks, completedTasks, taskRate };
   }, [projects, projectTasks]);
 
   // ─── Campaign Config Setup Status ────────────────────
@@ -1054,11 +1051,11 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    {(['진행전', '진행중', '완료'] as ProjectState[]).map((state) => {
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {(['진행중', '완료'] as ProjectState[]).map((state) => {
                       const cfg = PROJECT_STATE_CONFIG[state];
                       const Icon = cfg.icon;
-                      const count = state === '진행전' ? projectStats.notStarted : state === '진행중' ? projectStats.inProgress : projectStats.completed;
+                      const count = state === '진행중' ? projectStats.inProgress : projectStats.completed;
                       return (
                         <div key={state} className={cn('rounded-xl p-3 text-center', cfg.bg)}>
                           <Icon className={cn('size-4 mx-auto mb-1', cfg.color)} />
@@ -1555,12 +1552,6 @@ export default function DashboardPage() {
                 <CardContent className="p-3 text-center">
                   <p className="text-2xl font-black text-stone-800">{projectStats.total}</p>
                   <p className="text-[10px] text-stone-400">전체</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-stone-100 shadow-sm shadow-stone-100/50">
-                <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-black text-stone-400">{projectStats.notStarted}</p>
-                  <p className="text-[10px] text-stone-400">진행전</p>
                 </CardContent>
               </Card>
               <Card className="rounded-2xl border-stone-100 shadow-sm shadow-stone-100/50">
