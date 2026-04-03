@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Circle, Ban, ChevronDown, ChevronRight, MessageSquare, FileText, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock, Circle, Ban, ChevronDown, ChevronRight, MessageSquare, FileText, ExternalLink, ChevronsUpDown, Check, Search } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -54,6 +56,7 @@ export default function WorkflowPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
+  const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('all');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [memoDialog, setMemoDialog] = useState<{ check: CampaignWorkflowCheck; newStatus: WorkflowCheckStatus } | null>(null);
@@ -244,17 +247,45 @@ export default function WorkflowPage() {
       <motion.div variants={fadeUpItem} className="flex flex-wrap gap-3 items-end">
         <div className="min-w-[280px]">
           <Label className="text-xs text-stone-500 mb-1.5 block">캠페인 선택</Label>
-          <Select value={selectedCampaignId} onValueChange={(v) => { setSelectedCampaignId(v); setSelectedProductId('all'); }}>
-            <SelectTrigger><SelectValue placeholder="캠페인을 선택하세요" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={VIEW_ALL}><span className="font-bold">전체 캠페인 (매트릭스)</span></SelectItem>
-              {campaigns.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  <span className={c.status !== 'active' ? 'text-stone-400' : ''}>{c.campaign_name}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={campaignSearchOpen} onOpenChange={setCampaignSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" aria-expanded={campaignSearchOpen} className="w-full justify-between font-normal">
+                {selectedCampaignId === VIEW_ALL
+                  ? <span className="font-bold">전체 캠페인 (매트릭스)</span>
+                  : selectedCampaignId
+                    ? <span className={campaigns.find((c) => c.id === selectedCampaignId)?.status !== 'active' ? 'text-stone-400' : ''}>{campaigns.find((c) => c.id === selectedCampaignId)?.campaign_name}</span>
+                    : <span className="text-muted-foreground">캠페인을 선택하세요</span>}
+                <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="캠페인 검색..." />
+                <CommandList>
+                  <CommandEmpty>검색 결과 없음</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="전체 캠페인 매트릭스"
+                      onSelect={() => { setSelectedCampaignId(VIEW_ALL); setSelectedProductId('all'); setCampaignSearchOpen(false); }}
+                    >
+                      <Check className={cn('mr-2 size-4', selectedCampaignId === VIEW_ALL ? 'opacity-100' : 'opacity-0')} />
+                      <span className="font-bold">전체 캠페인 (매트릭스)</span>
+                    </CommandItem>
+                    {campaigns.map((c) => (
+                      <CommandItem
+                        key={c.id}
+                        value={c.campaign_name}
+                        onSelect={() => { setSelectedCampaignId(c.id); setSelectedProductId('all'); setCampaignSearchOpen(false); }}
+                      >
+                        <Check className={cn('mr-2 size-4', selectedCampaignId === c.id ? 'opacity-100' : 'opacity-0')} />
+                        <span className={c.status !== 'active' ? 'text-stone-400' : ''}>{c.campaign_name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {!isAllView && linkedProducts.length > 0 && (
