@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList, Bot, BookOpen } from 'lucide-react';
+import { Check, X, Plus, Trash2, FileText, Settings, LayoutGrid, List, Download, Upload, AlertTriangle, BarChart3, ExternalLink, Globe, Link2, KeyRound, ToggleLeft, ClipboardList, Bot, BookOpen, ChevronsUpDown } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '@/lib/utils/motion';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -38,6 +38,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { CredentialEditor, parseCredentials, credentialsToText, textToCredentialsJson } from '@/components/manage/credential-editor';
 import { OnboardingManual } from '@/components/manage/onboarding-manual';
 import type { Campaign, CampaignConfig, ConfigValueType } from '@/lib/types/database';
@@ -150,6 +152,7 @@ export default function ConfigsPage() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
+  const [campaignSearchOpen, setCampaignSearchOpen] = useState(false);
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -1090,42 +1093,51 @@ export default function ConfigsPage() {
 
       {/* Campaign selector + action buttons */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Select value={selectedCampaignId} onValueChange={setSelectedCampaignId}>
-          <SelectTrigger className="w-[320px]">
-            <SelectValue placeholder="캠페인을 선택하세요" />
-          </SelectTrigger>
-          <SelectContent>
-            {campaigns.map((campaign) => {
-              const counts = configCountMap.get(campaign.id);
-              return (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  <div className="flex items-center gap-2">
-                    <span>{campaign.campaign_name} ({campaign.client_name})</span>
-                    {counts ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-[9px] px-1.5 py-0 shrink-0 rounded-full',
-                          counts.done === counts.total
-                            ? 'bg-orange-500 text-white border-orange-500'
-                            : counts.done > 0
-                            ? 'bg-orange-50 text-orange-600 border-orange-200'
-                            : 'bg-stone-50 text-stone-400 border-stone-200'
-                        )}
+        <Popover open={campaignSearchOpen} onOpenChange={setCampaignSearchOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" role="combobox" aria-expanded={campaignSearchOpen} className="w-[320px] justify-between font-normal">
+              {selectedCampaignId ? (
+                <div className="flex items-center gap-2 truncate">
+                  <span className="truncate">{campaigns.find((c) => c.id === selectedCampaignId)?.campaign_name}</span>
+                  {(() => { const counts = configCountMap.get(selectedCampaignId); return counts ? (
+                    <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 shrink-0 rounded-full', counts.done === counts.total ? 'bg-orange-500 text-white border-orange-500' : counts.done > 0 ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-stone-50 text-stone-400 border-stone-200')}>{counts.done}/{counts.total}</Badge>
+                  ) : null; })()}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">캠페인을 선택하세요</span>
+              )}
+              <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[380px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="캠페인 검색..." />
+              <CommandList>
+                <CommandEmpty>검색 결과 없음</CommandEmpty>
+                <CommandGroup>
+                  {campaigns.map((campaign) => {
+                    const counts = configCountMap.get(campaign.id);
+                    return (
+                      <CommandItem
+                        key={campaign.id}
+                        value={`${campaign.campaign_name} ${campaign.client_name}`}
+                        onSelect={() => { setSelectedCampaignId(campaign.id); setCampaignSearchOpen(false); }}
                       >
-                        {counts.done}/{counts.total} 설정됨
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 text-muted-foreground rounded-full">
-                        미설정
-                      </Badge>
-                    )}
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+                        <Check className={cn('mr-2 size-4 shrink-0', selectedCampaignId === campaign.id ? 'opacity-100' : 'opacity-0')} />
+                        <span className="truncate">{campaign.campaign_name} ({campaign.client_name})</span>
+                        {counts ? (
+                          <Badge variant="outline" className={cn('ml-auto text-[9px] px-1.5 py-0 shrink-0 rounded-full', counts.done === counts.total ? 'bg-orange-500 text-white border-orange-500' : counts.done > 0 ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-stone-50 text-stone-400 border-stone-200')}>{counts.done}/{counts.total} 설정됨</Badge>
+                        ) : (
+                          <Badge variant="outline" className="ml-auto text-[9px] px-1.5 py-0 shrink-0 text-muted-foreground rounded-full">미설정</Badge>
+                        )}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         {selectedCampaignId && (
           <>
             <Badge variant="secondary">{configs.length}개 설정 항목</Badge>
