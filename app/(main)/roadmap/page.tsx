@@ -18,6 +18,7 @@ import {
   FolderOpen,
   CheckCircle2,
   Clock,
+  Circle,
   CircleDashed,
   ChevronDown,
   ChevronRight,
@@ -1363,30 +1364,37 @@ export default function RoadmapPage() {
 
                       return (
                         <React.Fragment key={project.id}>
+                          {/* ── 큰 프로젝트 행 (상위 개념 — 강조 스타일) ── */}
                           <tr className={cn(
-                            'border-b hover:bg-orange-50/60 transition-colors group/row whitespace-nowrap',
-                            isExpanded && 'bg-orange-50/30',
-                            project.state === '완료' && 'bg-emerald-50/30 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-300',
+                            'border-b-2 border-stone-200 hover:bg-orange-50/60 transition-colors group/row whitespace-nowrap',
+                            'bg-white font-medium',
+                            isExpanded && 'bg-orange-50/20 border-b-orange-200',
+                            project.state === '완료' && 'bg-emerald-50/40 border-l-[4px] border-l-emerald-400',
+                            project.state !== '완료' && 'border-l-[4px] border-l-orange-400',
                           )}>
-                            <td className="px-1 py-0.5">
-                              <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-orange-50" onClick={() => toggleExpand(project.id)}>
-                                {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
+                            <td className="px-1 py-1.5">
+                              <button type="button" className="size-6 flex items-center justify-center rounded-lg hover:bg-orange-100" onClick={() => toggleExpand(project.id)}>
+                                {isExpanded ? <ChevronDown className="size-4 text-stone-600" /> : <ChevronRight className="size-4 text-stone-600" />}
                               </button>
                             </td>
-                            <td className="px-1 py-0.5">
+                            <td className="px-1 py-1.5">
                               <Checkbox
                                 checked={selectedProjects.has(project.id)}
                                 onCheckedChange={() => toggleProjectSelection(project.id)}
-                                className="size-3.5"
+                                className="size-4"
                               />
                             </td>
-                            <td className="px-2 py-1 max-w-0">
+                            <td className="px-2 py-2 max-w-0">
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2">
                                   {project.state === '완료' ? (
-                                    <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                                    <div className="size-6 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                      <CheckCircle2 className="size-4 text-emerald-600" />
+                                    </div>
                                   ) : (
-                                    <Clock className="size-4 text-orange-400 shrink-0" />
+                                    <div className="size-6 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                                      <FolderOpen className="size-4 text-orange-600" />
+                                    </div>
                                   )}
                                   <div className="min-w-0 flex-1">
                                     <InlineTextCell
@@ -1394,7 +1402,7 @@ export default function RoadmapPage() {
                                       isEditing={isEditing(project.id, 'project_name')}
                                       onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
                                       onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                      className={cn('font-semibold text-[13px]', project.state === '완료' && 'line-through text-muted-foreground')}
+                                      className={cn('font-bold text-[14px] text-stone-800', project.state === '완료' && 'line-through text-muted-foreground')}
                                     />
                                   </div>
                                   {tasks.length > 0 && (
@@ -1537,6 +1545,7 @@ export default function RoadmapPage() {
                             const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
                             return (
                               <React.Fragment key={task.id}>
+                              {/* ── 하위 태스크 행 (액션 아이템 — 컴팩트 스타일) ── */}
                               <tr
                                 draggable
                                 onDragStart={() => handleTaskDragStart(task.id, project.id)}
@@ -1544,18 +1553,18 @@ export default function RoadmapPage() {
                                 onDrop={() => handleTaskDrop(project.id)}
                                 onDragEnd={handleDragEnd}
                                 className={cn(
-                                  'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap',
+                                  'border-b border-border/20 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap',
                                   isTaskCompleted
-                                    ? 'bg-emerald-50/30 border-l-[3px] border-l-emerald-300'
-                                    : 'bg-stone-50/30 border-l-[3px] border-l-orange-200',
-                                  isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 border-l-[3px] border-l-orange-300',
+                                    ? 'bg-emerald-50/20 opacity-60'
+                                    : 'bg-stone-50/20',
+                                  isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/30',
                                   dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
                                   dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                                 )}
                               >
-                                {/* Drag handle for reordering */}
+                                {/* Drag handle */}
                                 <td className="px-1 py-0.5 cursor-grab active:cursor-grabbing">
-                                  <GripVertical className="size-3 text-muted-foreground/20 group-hover/task:text-muted-foreground/50 transition-colors ml-2" />
+                                  <GripVertical className="size-2.5 text-muted-foreground/15 group-hover/task:text-muted-foreground/40 transition-colors ml-3" />
                                 </td>
                                 <td className="px-1 py-0.5">
                                   <Checkbox
@@ -1564,17 +1573,17 @@ export default function RoadmapPage() {
                                     className="size-3.5"
                                   />
                                 </td>
-                                <td className="px-2 py-0.5 pl-6 max-w-0">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {/* 완료/진행중 상태 아이콘 — 클릭으로 토글 */}
+                                <td className="px-2 py-0.5 pl-10 max-w-0">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {/* 체크리스트 스타일 상태 토글 */}
                                     <button
                                       type="button"
-                                      className="shrink-0"
+                                      className="shrink-0 p-0.5 rounded-md hover:bg-stone-100 transition-colors"
                                       onClick={(e) => { e.stopPropagation(); saveTaskField(task.id, project.id, 'state', isTaskCompleted ? '진행중' : '완료'); }}
                                     >
                                       {isTaskCompleted
                                         ? <CheckCircle2 className="size-4 text-emerald-500" />
-                                        : <Clock className="size-4 text-orange-400 hover:text-emerald-500 transition-colors" />
+                                        : <Circle className="size-4 text-stone-300 hover:text-orange-400 transition-colors" strokeWidth={2} />
                                       }
                                     </button>
                                     <div className="min-w-0 flex-1">
@@ -1584,9 +1593,9 @@ export default function RoadmapPage() {
                                         onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
                                         onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
                                         className={cn(
-                                          'text-[12px]',
-                                          isTaskCompleted && 'line-through text-muted-foreground',
-                                          !isTaskCompleted && isFilteredAssignee && 'font-semibold text-foreground',
+                                          'text-[12px] text-stone-600',
+                                          isTaskCompleted && 'line-through text-stone-400',
+                                          !isTaskCompleted && isFilteredAssignee && 'font-semibold text-stone-800',
                                         )}
                                       />
                                     </div>
