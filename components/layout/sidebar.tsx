@@ -299,10 +299,29 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
 export function Sidebar() {
   const { isCollapsed, toggle, isMobileOpen, setMobileOpen } = useSidebarStore();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname, setMobileOpen]);
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { setMobileOpen(false); }, [pathname, setMobileOpen]);
+
+  // SSR에서는 고정 레이아웃 반환 (hydration 불일치 방지)
+  if (!mounted) {
+    return (
+      <aside className="hidden md:flex flex-col border-r border-stone-100 bg-white w-[250px]">
+        <div className="flex items-center h-16 px-4 shrink-0 border-b border-stone-100">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm shadow-orange-200/50">
+              <span className="text-[11px] font-black text-white tracking-tight">AF</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold tracking-tight text-[14px] leading-none text-stone-900">어포메이션</span>
+              <span className="text-[10px] text-stone-400 leading-none mt-1">캠페인 관리 솔루션</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <>

@@ -1343,17 +1343,21 @@ export default function RoadmapPage() {
                               />
                             </td>
                             <td className="px-2 py-0.5">
-                              {pct === 100 && tasks.length > 0 ? (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-50 text-emerald-600 rounded-full gap-0.5">
-                                  <CheckCircle2 className="size-2.5" />{completed}/{tasks.length}
-                                </Badge>
-                              ) : (
+                              {tasks.length > 0 ? (
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-10 h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                                    <div className={cn('h-full rounded-full transition-all', pct > 0 ? 'bg-orange-500' : 'bg-stone-200')} style={{ width: `${pct}%` }} />
+                                  <div className="w-12 h-2 bg-stone-100 rounded-full overflow-hidden">
+                                    <div className={cn(
+                                      'h-full rounded-full transition-all duration-500',
+                                      pct === 100 ? 'bg-emerald-500' : pct > 50 ? 'bg-blue-500' : pct > 0 ? 'bg-orange-500' : 'bg-stone-200',
+                                    )} style={{ width: `${pct}%` }} />
                                   </div>
-                                  <span className="text-[10px] text-muted-foreground">{completed}/{tasks.length}</span>
+                                  <span className={cn(
+                                    'text-[10px] font-medium tabular-nums',
+                                    pct === 100 ? 'text-emerald-600' : 'text-muted-foreground',
+                                  )}>{completed}/{tasks.length}</span>
                                 </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/30">-</span>
                               )}
                             </td>
                             <td className="px-2 py-0.5">
@@ -1428,7 +1432,12 @@ export default function RoadmapPage() {
                           )}
 
                           {/* Sub-tasks with drag support */}
-                          {isExpanded && tasks.map((task, idx) => {
+                          {isExpanded && [...tasks].sort((a, b) => {
+                            // 진행중 먼저, 완료 아래로
+                            if (a.state === '완료' && b.state !== '완료') return 1;
+                            if (a.state !== '완료' && b.state === '완료') return -1;
+                            return a.sort_order - b.sort_order;
+                          }).map((task, idx) => {
                             const taskConfig = STATE_CONFIG[task.state];
                             const TaskIcon = taskConfig.icon;
                             const isTaskCompleted = task.state === '완료';
@@ -2017,8 +2026,12 @@ export default function RoadmapPage() {
                       </tr>
                     )}
 
-                    {/* ── Sub-task Rows ── */}
-                    {isExpanded && tasks.length > 0 && tasks.map((task, idx) => {
+                    {/* ── Sub-task Rows (진행중 먼저, 완료 아래) ── */}
+                    {isExpanded && tasks.length > 0 && [...tasks].sort((a, b) => {
+                      if (a.state === '완료' && b.state !== '완료') return 1;
+                      if (a.state !== '완료' && b.state === '완료') return -1;
+                      return a.sort_order - b.sort_order;
+                    }).map((task, idx) => {
                       const taskConfig = STATE_CONFIG[task.state];
                       const TaskIcon = taskConfig.icon;
                       const isTaskSelected = selectedTasks.has(task.id);

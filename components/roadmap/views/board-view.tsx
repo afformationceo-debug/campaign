@@ -474,7 +474,16 @@ export function BoardView({
         </button>
       </div>
 
-      <div className={cn('flex gap-4 overflow-x-auto pb-4 snap-x', 'max-md:flex-col max-md:overflow-x-visible')}>
+      <div className={cn(
+        'flex gap-4 pb-4 snap-x',
+        // 가로 스크롤: sticky bottom scrollbar — 맨 밑까지 안 내려가도 스크롤 가능
+        'overflow-x-auto overscroll-x-contain',
+        'max-md:flex-col max-md:overflow-x-visible',
+        // 스크롤바 항상 표시 (macOS에서 기본 숨김 방지)
+        '[&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-stone-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-stone-400',
+      )}
+      style={{ scrollbarGutter: 'stable' }}
+      >
         {columns.map((col) => {
           const visibleNodes = showCompleted
             ? col.nodes
