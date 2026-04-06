@@ -1299,29 +1299,35 @@ export default function RoadmapPage() {
                                 className="size-3.5"
                               />
                             </td>
-                            <td className="px-2 py-0.5 max-w-0">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="min-w-0 flex-1">
-                                      <InlineTextCell
-                                        value={project.project_name}
-                                        isEditing={isEditing(project.id, 'project_name')}
-                                        onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
-                                        onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                        className={cn('font-semibold text-[13px]', project.state === '완료' && 'line-through text-muted-foreground')}
-                                      />
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom"><p className="text-xs">{project.project_name}</p></TooltipContent>
-                                </Tooltip>
-                                {tasks.length > 0 && (
-                                  <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
-                                )}
-                                {project.url && (
-                                  <a href={project.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground/30 hover:text-primary shrink-0">
-                                    <ExternalLink className="size-3" />
-                                  </a>
+                            <td className="px-2 py-1 max-w-0">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  {project.state === '완료' ? (
+                                    <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                                  ) : (
+                                    <Clock className="size-4 text-orange-400 shrink-0" />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <InlineTextCell
+                                      value={project.project_name}
+                                      isEditing={isEditing(project.id, 'project_name')}
+                                      onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
+                                      onSave={(v) => saveProjectField(project.id, 'project_name', v)}
+                                      className={cn('font-semibold text-[13px]', project.state === '완료' && 'line-through text-muted-foreground')}
+                                    />
+                                  </div>
+                                  {tasks.length > 0 && (
+                                    <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
+                                  )}
+                                  {project.url && (
+                                    <a href={project.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground/30 hover:text-primary shrink-0">
+                                      <ExternalLink className="size-3" />
+                                    </a>
+                                  )}
+                                </div>
+                                {/* 메모 미리보기 */}
+                                {project.memo && !isExpanded && (
+                                  <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5 pl-5">{project.memo}</p>
                                 )}
                               </div>
                             </td>
@@ -1777,6 +1783,8 @@ export default function RoadmapPage() {
           tasksByProject={tasksByProject}
           onUpdateProject={(input) => updateProject(input as Parameters<typeof updateProject>[0])}
           onUpdateTask={(input) => updateTask(input as Parameters<typeof updateTask>[0])}
+          onReorderProjects={(items) => reorderProjects(items)}
+          onReorderTasks={(input) => reorderTasks(input)}
         />
       ) : (
         /* ═══════════════ TABLE VIEW ═══════════════ */
@@ -1877,37 +1885,36 @@ export default function RoadmapPage() {
                           {isExpanded ? <ChevronDown className="size-3.5 text-muted-foreground" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
                         </button>
                       </td>
-                      {/* Name */}
-                      <td className="px-2 py-0.5 max-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {project.state === '완료' && (
-                            <span className="shrink-0 size-5 rounded-full bg-emerald-50 flex items-center justify-center">
-                              <Trophy className="size-2.5 text-foreground" />
-                            </span>
-                          )}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="min-w-0 flex-1">
-                                <InlineTextCell
-                                  value={project.project_name}
-                                  isEditing={isEditing(project.id, 'project_name')}
-                                  onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
-                                  onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                  className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-foreground')}
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-[300px]">
-                              <p className="text-xs font-medium">{project.project_name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          {tasks.length > 0 && (
-                            <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
-                          )}
-                          {project.url && (
-                            <a href={project.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground/30 hover:text-primary shrink-0">
-                              <ExternalLink className="size-3" />
-                            </a>
+                      {/* Name + memo preview */}
+                      <td className="px-2 py-1 max-w-0">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            {project.state === '완료' ? (
+                              <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <Clock className="size-4 text-orange-400 shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <InlineTextCell
+                                value={project.project_name}
+                                isEditing={isEditing(project.id, 'project_name')}
+                                onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
+                                onSave={(v) => saveProjectField(project.id, 'project_name', v)}
+                                className={cn('font-semibold text-[13px]', project.state === '완료' && 'line-through text-muted-foreground')}
+                              />
+                            </div>
+                            {tasks.length > 0 && (
+                              <span className="text-[9px] text-muted-foreground/50 bg-muted rounded px-1 py-0 shrink-0">{tasks.length}</span>
+                            )}
+                            {project.url && (
+                              <a href={project.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground/30 hover:text-primary shrink-0">
+                                <ExternalLink className="size-3" />
+                              </a>
+                            )}
+                          </div>
+                          {/* 메모 1줄 미리보기 */}
+                          {project.memo && !isExpanded && (
+                            <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5 pl-5">{project.memo}</p>
                           )}
                         </div>
                       </td>
