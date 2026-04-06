@@ -809,7 +809,13 @@ export function BoardView({
 }: BoardViewProps) {
   const todayMs = useTodayMs();
   const [showCompleted, setShowCompleted] = useState(false);
-  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('roadmap-board-column-order');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [dragColId, setDragColId] = useState<string | null>(null);
   const [dragOverColId, setDragOverColId] = useState<string | null>(null);
 
@@ -1006,6 +1012,7 @@ export function BoardView({
                     if (fromIdx === -1 || toIdx === -1) return order;
                     const [moved] = order.splice(fromIdx, 1);
                     order.splice(toIdx, 0, moved);
+                    try { localStorage.setItem('roadmap-board-column-order', JSON.stringify(order)); } catch {}
                     return order;
                   });
                 }
