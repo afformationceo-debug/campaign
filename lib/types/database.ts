@@ -190,12 +190,16 @@ export interface ActivityLog {
   created_at: string;
 }
 
+export type ProjectPriority = '긴급' | '높음' | '보통' | '낮음';
+
 export interface Project {
   id: string;
   project_name: string;
   url: string | null;
   assignee_id: string | null;
   assignee_ids: string[];
+  parent_project_id: string | null;
+  priority: ProjectPriority;
   start_date: string | null;
   due_date: string | null;
   state: ProjectState;
@@ -213,6 +217,7 @@ export interface ProjectTask {
   state: ProjectState;
   assignee_id: string | null;
   assignee_ids: string[];
+  priority: ProjectPriority;
   start_date: string | null;
   due_date: string | null;
   sort_order: number;

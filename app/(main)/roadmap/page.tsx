@@ -83,7 +83,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
+import type { Project, ProjectTask, ProjectState, ProjectPriority, User as UserType } from '@/lib/types/database';
 
 type ViewMode = 'cards' | 'kanban' | 'table' | 'grouped' | 'board';
 type GroupBy = 'state' | 'assignee' | 'due_month';
@@ -124,6 +124,51 @@ function DueDateBadge({ dueDate, state }: { dueDate: string | null; state: strin
 };
 
 const KANBAN_COLUMNS: ProjectState[] = ['진행중', '완료'];
+
+// 우선순위 설정
+const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: string; bg: string; dot: string }> = {
+  '긴급': { label: '긴급', color: 'text-red-600', bg: 'bg-red-50', dot: 'bg-red-500' },
+  '높음': { label: '높음', color: 'text-orange-600', bg: 'bg-orange-50', dot: 'bg-orange-500' },
+  '보통': { label: '보통', color: 'text-blue-600', bg: 'bg-blue-50', dot: 'bg-blue-400' },
+  '낮음': { label: '낮음', color: 'text-stone-500', bg: 'bg-stone-50', dot: 'bg-stone-300' },
+};
+const PRIORITIES: ProjectPriority[] = ['긴급', '높음', '보통', '낮음'];
+
+function PriorityBadge({ priority, onValueChange, size = 'sm' }: { priority?: ProjectPriority; onValueChange?: (v: ProjectPriority) => void; size?: 'sm' | 'xs' }) {
+  const p = priority ?? '보통';
+  const config = PRIORITY_CONFIG[p];
+  if (!onValueChange) {
+    return (
+      <span className={cn('inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full', config.color, config.bg)}>
+        <span className={cn('size-1.5 rounded-full', config.dot)} />
+        {config.label}
+      </span>
+    );
+  }
+  return (
+    <Select value={p} onValueChange={(v) => onValueChange(v as ProjectPriority)}>
+      <SelectTrigger className={cn('border-0 bg-transparent px-1', size === 'xs' ? 'h-5 w-[55px] text-[9px]' : 'h-6 w-[60px] text-[10px]', config.color)}>
+        <div className="flex items-center gap-1">
+          <span className={cn('size-1.5 rounded-full', config.dot)} />
+          <span>{config.label}</span>
+        </div>
+      </SelectTrigger>
+      <SelectContent position="popper" className="min-w-[80px]">
+        {PRIORITIES.map((pr) => {
+          const pc = PRIORITY_CONFIG[pr];
+          return (
+            <SelectItem key={pr} value={pr}>
+              <div className="flex items-center gap-1.5">
+                <span className={cn('size-2 rounded-full', pc.dot)} />
+                <span className={pc.color}>{pc.label}</span>
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+}
 
 // ─── Inline Editable Cell ─────────────────────────────────
 interface EditingCell {
@@ -1283,12 +1328,13 @@ export default function RoadmapPage() {
                   <colgroup>
                     <col style={{ width: 28 }} />
                     <col style={{ width: 28 }} />
-                    <col style={{ width: '35%' }} />
-                    <col style={{ width: 80 }} />
-                    <col style={{ width: 80 }} />
-                    <col style={{ width: 64 }} />
-                    <col style={{ width: 90 }} />
-                    <col style={{ width: 90 }} />
+                    <col style={{ width: '30%' }} />
+                    <col style={{ width: 72 }} />
+                    <col style={{ width: 60 }} />
+                    <col style={{ width: 72 }} />
+                    <col style={{ width: 56 }} />
+                    <col style={{ width: 84 }} />
+                    <col style={{ width: 84 }} />
                     <col style={{ width: 28 }} />
                   </colgroup>
                   <thead>
@@ -1297,6 +1343,7 @@ export default function RoadmapPage() {
                       <th className="px-1 py-0.5"></th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">프로젝트</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">상태</th>
+                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">우선순위</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">담당자</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">진행률</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">시작일</th>
@@ -1376,6 +1423,9 @@ export default function RoadmapPage() {
                               </Select>
                             </td>
                             <td className="px-2 py-0.5">
+                              <PriorityBadge priority={project.priority} onValueChange={(v) => saveProjectField(project.id, 'priority', v)} size="xs" />
+                            </td>
+                            <td className="px-2 py-0.5">
                               <MultiAssigneeSelect
                                 assigneeIds={project.assignee_ids?.length ? project.assignee_ids : (project.assignee_id ? [project.assignee_id] : [])}
                                 users={users}
@@ -1438,7 +1488,7 @@ export default function RoadmapPage() {
                           {/* Project Detail Panel — 편집 가능한 메모/결과/URL */}
                           {isExpanded && (
                             <tr className="border-b border-border/30 bg-orange-50/10">
-                              <td colSpan={9} className="px-4 py-3">
+                              <td colSpan={10} className="px-4 py-3">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
                                   <div className="space-y-1">
                                     <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">메모</span>
@@ -1560,6 +1610,9 @@ export default function RoadmapPage() {
                                   </Badge>
                                 </td>
                                 <td className="px-2 py-0.5">
+                                  <PriorityBadge priority={task.priority} onValueChange={(v) => saveTaskField(task.id, project.id, 'priority', v)} size="xs" />
+                                </td>
+                                <td className="px-2 py-0.5">
                                   <MultiAssigneeSelect
                                     assigneeIds={task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : [])}
                                     users={users}
@@ -1588,7 +1641,7 @@ export default function RoadmapPage() {
                               {/* Task detail panel — 메모/결과 편집 */}
                               {expandedProjects.has(`task-${task.id}`) && (
                                 <tr className="border-b border-border/20 bg-stone-50/40">
-                                  <td colSpan={9} className="px-4 py-2.5 pl-14">
+                                  <td colSpan={10} className="px-4 py-2.5 pl-14">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
                                       <div className="space-y-1">
                                         <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">메모</span>
@@ -1622,7 +1675,7 @@ export default function RoadmapPage() {
                             <tr className="border-b border-border/30 bg-stone-50/30">
                               <td className="px-1 py-0.5"></td>
                               <td className="px-1 py-0.5"></td>
-                              <td className="px-2 py-0.5 pl-8" colSpan={7}>
+                              <td className="px-2 py-0.5 pl-8" colSpan={8}>
                                 <div className="flex items-center gap-1.5">
                                   <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                                   <input
@@ -1650,7 +1703,7 @@ export default function RoadmapPage() {
                     <tr className="border-b bg-stone-50/30">
                       <td className="px-1 py-0.5"></td>
                       <td className="px-1 py-0.5"></td>
-                      <td className="px-2 py-1" colSpan={7}>
+                      <td className="px-2 py-1" colSpan={8}>
                         <form
                           className="flex items-center gap-2"
                           onSubmit={(e) => {
