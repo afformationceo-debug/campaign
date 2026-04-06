@@ -1686,7 +1686,7 @@ export default function RoadmapPage() {
                                         const input = e.currentTarget;
                                         const title = input.value.trim();
                                         if (title) {
-                                          createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length });
+                                          createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length, assignee_id: project.assignee_id });
                                           input.value = '';
                                         }
                                       }
@@ -2269,7 +2269,7 @@ export default function RoadmapPage() {
                                   const input = e.currentTarget;
                                   const title = input.value.trim();
                                   if (title) {
-                                    createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length });
+                                    createTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length, assignee_id: project.assignee_id });
                                     input.value = '';
                                   }
                                 }
