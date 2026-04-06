@@ -1878,6 +1878,8 @@ export default function RoadmapPage() {
           onUpdateTask={(input) => updateTask(input as Parameters<typeof updateTask>[0])}
           onReorderProjects={(items) => reorderProjects(items)}
           onReorderTasks={(input) => reorderTasks(input)}
+          onCreateProject={(input) => createProject(input as Parameters<typeof createProject>[0])}
+          onCreateTask={(input) => createTask(input as Parameters<typeof createTask>[0])}
         />
       ) : (
         /* ═══════════════ TABLE VIEW ═══════════════ */

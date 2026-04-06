@@ -16,6 +16,7 @@ import {
   Users,
   ExternalLink,
   FileText,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,8 @@ interface BoardViewProps {
   onUpdateTask: (input: { id: string; project_id: string; [key: string]: any }) => void;
   onReorderProjects: (items: { id: string; sort_order: number }[]) => void;
   onReorderTasks: (input: { projectId: string; items: { id: string; sort_order: number }[] }) => void;
+  onCreateProject?: (input: { project_name: string; state: ProjectState; assignee_id?: string | null; sort_order?: number }) => void;
+  onCreateTask?: (input: { project_id: string; title: string; state: ProjectState; sort_order?: number }) => void;
 }
 
 // ── Helpers (todayMs 파라미터로 hydration 안전) ───────
@@ -506,6 +509,7 @@ function ProjectCard({
   onTaskDragStart,
   onTaskDragOver,
   onTaskDrop,
+  onCreateTask,
 }: {
   node: ProjectTreeNode;
   users: UserType[];
@@ -523,6 +527,7 @@ function ProjectCard({
   onTaskDragStart: (taskId: string, projectId: string) => void;
   onTaskDragOver: (e: React.DragEvent, taskId: string, projectId: string) => void;
   onTaskDrop: (projectId: string) => void;
+  onCreateTask?: (input: { project_id: string; title: string; state: ProjectState; sort_order?: number }) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { project, subProjects, tasks, stats } = node;
@@ -760,6 +765,27 @@ function ProjectCard({
                   하위 항목 없음
                 </p>
               )}
+
+              {/* 새 태스크 추가 */}
+              {onCreateTask && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-t border-dashed border-stone-200 mt-1">
+                  <Plus className="size-3 text-muted-foreground/30 shrink-0" />
+                  <input
+                    className="w-full bg-transparent text-[11px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none"
+                    placeholder="새 하위업무 추가..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                        const input = e.currentTarget;
+                        const title = input.value.trim();
+                        if (title) {
+                          onCreateTask({ project_id: project.id, title, state: '진행중' as ProjectState, sort_order: tasks.length });
+                          input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -778,6 +804,8 @@ export function BoardView({
   onUpdateTask,
   onReorderProjects,
   onReorderTasks,
+  onCreateProject,
+  onCreateTask,
 }: BoardViewProps) {
   const todayMs = useTodayMs();
   const [showCompleted, setShowCompleted] = useState(false);
@@ -1031,12 +1059,39 @@ export function BoardView({
                       onTaskDragStart={handleTaskDragStart}
                       onTaskDragOver={handleTaskDragOver}
                       onTaskDrop={handleTaskDrop}
+                      onCreateTask={onCreateTask}
                     />
                   ))}
                 </AnimatePresence>
                 {visibleNodes.length === 0 && (
                   <div className="text-center py-6 text-[11px] text-muted-foreground border border-dashed rounded-xl">
                     {completedCount > 0 ? `완료 ${completedCount}건 (숨김)` : '프로젝트 없음'}
+                  </div>
+                )}
+
+                {/* 새 프로젝트 추가 */}
+                {onCreateProject && (
+                  <div className="flex items-center gap-1.5 px-3 py-2 border border-dashed border-stone-200 rounded-xl hover:border-orange-300 hover:bg-orange-50/30 transition-colors">
+                    <Plus className="size-3.5 text-muted-foreground/30 shrink-0" />
+                    <input
+                      className="w-full bg-transparent text-[12px] text-muted-foreground/60 placeholder:text-muted-foreground/30 outline-none"
+                      placeholder="새 프로젝트 추가..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                          const input = e.currentTarget;
+                          const name = input.value.trim();
+                          if (name) {
+                            onCreateProject({
+                              project_name: name,
+                              state: '진행중' as ProjectState,
+                              assignee_id: col.id !== '__unassigned__' ? col.id : null,
+                              sort_order: col.nodes.length,
+                            });
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </div>
