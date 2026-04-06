@@ -781,6 +781,9 @@ export function BoardView({
 }: BoardViewProps) {
   const todayMs = useTodayMs();
   const [showCompleted, setShowCompleted] = useState(false);
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [dragColId, setDragColId] = useState<string | null>(null);
+  const [dragOverColId, setDragOverColId] = useState<string | null>(null);
 
   // ─── Drag & Drop State ──────────────────────────────
   const [dragItem, setDragItem] = useState<DragItem>(null);
@@ -893,8 +896,23 @@ export function BoardView({
       result.push({ id: '__unassigned__', user: null, nodes: unassigned });
     }
 
+    // columnOrder가 있으면 그 순서대로 정렬
+    if (columnOrder.length > 0) {
+      const orderMap = new Map(columnOrder.map((id, idx) => [id, idx]));
+      result.sort((a, b) => {
+        const aIdx = orderMap.get(a.id) ?? 999;
+        const bIdx = orderMap.get(b.id) ?? 999;
+        return aIdx - bIdx;
+      });
+    }
+
+    // columnOrder 초기화 (처음에만)
+    if (columnOrder.length === 0 && result.length > 0) {
+      setColumnOrder(result.map((c) => c.id));
+    }
+
     return result;
-  }, [roots, users]);
+  }, [roots, users, columnOrder]);
 
   if (columns.length === 0) {
     return (
@@ -938,9 +956,43 @@ export function BoardView({
           const inProgressCount = col.nodes.length - completedCount;
 
           return (
-            <div key={col.id} className={cn('flex-shrink-0 w-[340px] max-md:w-full snap-start flex flex-col gap-2')}>
-              {/* Column header */}
-              <div className="flex items-center gap-2 px-2 py-2 sticky top-0 bg-stone-50/90 backdrop-blur-sm z-10 rounded-xl border">
+            <div
+              key={col.id}
+              className={cn(
+                'flex-shrink-0 w-[340px] max-md:w-full snap-start flex flex-col gap-2',
+                dragColId === col.id && 'opacity-40',
+                dragOverColId === col.id && dragColId && dragColId !== col.id && 'ring-2 ring-orange-400 ring-offset-2 rounded-xl',
+              )}
+              onDragOver={(e) => {
+                if (dragColId && dragColId !== col.id) {
+                  e.preventDefault();
+                  setDragOverColId(col.id);
+                }
+              }}
+              onDrop={() => {
+                if (dragColId && dragColId !== col.id) {
+                  setColumnOrder((prev) => {
+                    const order = prev.length > 0 ? [...prev] : columns.map((c) => c.id);
+                    const fromIdx = order.indexOf(dragColId);
+                    const toIdx = order.indexOf(col.id);
+                    if (fromIdx === -1 || toIdx === -1) return order;
+                    const [moved] = order.splice(fromIdx, 1);
+                    order.splice(toIdx, 0, moved);
+                    return order;
+                  });
+                }
+                setDragColId(null);
+                setDragOverColId(null);
+              }}
+            >
+              {/* Column header — draggable */}
+              <div
+                draggable
+                onDragStart={() => setDragColId(col.id)}
+                onDragEnd={() => { setDragColId(null); setDragOverColId(null); }}
+                className="flex items-center gap-2 px-2 py-2 sticky top-0 bg-stone-50/90 backdrop-blur-sm z-10 rounded-xl border cursor-grab active:cursor-grabbing"
+              >
+                <GripVertical className="size-3.5 text-muted-foreground/30 shrink-0" />
                 {col.user ? (
                   <div className="size-7 rounded-full bg-orange-100 flex items-center justify-center ring-2 ring-white">
                     <UserIcon className="size-4 text-orange-600" />
