@@ -921,9 +921,12 @@ export function BoardView({
       <div
         className={cn(
           'flex gap-4 pb-4 snap-x',
-          'overflow-x-auto overscroll-x-contain',
-          'max-md:flex-col max-md:overflow-x-visible',
-          '[&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-stone-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-stone-400',
+          // 높이를 뷰포트 기준으로 제한하여 가로 스크롤바가 보이는 영역에 위치
+          'overflow-x-auto overflow-y-auto overscroll-x-contain',
+          'max-h-[calc(100vh-280px)]',
+          'max-md:flex-col max-md:overflow-x-visible max-md:max-h-none',
+          '[&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-stone-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-stone-400',
+          '[&::-webkit-scrollbar:vertical]:w-2 [&::-webkit-scrollbar-thumb:vertical]:bg-stone-200',
         )}
         style={{ scrollbarGutter: 'stable' }}
       >
