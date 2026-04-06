@@ -33,6 +33,7 @@ import {
   Bot,
   Copy,
   Expand,
+  LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -49,7 +50,11 @@ import {
   useReorderTasks,
 } from '@/hooks/use-project-mutations';
 import { useAuth } from '@/hooks/use-auth';
+import { useProjectTree } from '@/hooks/use-project-tree';
+import { useDeadlineAlerts } from '@/hooks/use-deadline-alerts';
 import { AiCommandCenter } from '@/components/ai/ai-command-center';
+import { RoadmapDeadlineBanner } from '@/components/roadmap/roadmap-deadline-banner';
+import { BoardView } from '@/components/roadmap/views/board-view';
 import { MultiAssigneeSelect } from '@/components/views/multi-assignee-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,7 +85,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Project, ProjectTask, ProjectState, User as UserType } from '@/lib/types/database';
 
-type ViewMode = 'cards' | 'kanban' | 'table' | 'grouped';
+type ViewMode = 'cards' | 'kanban' | 'table' | 'grouped' | 'board';
 type GroupBy = 'state' | 'assignee' | 'due_month';
 
 const GROUP_BY_LABELS: Record<GroupBy, string> = {
@@ -461,7 +466,7 @@ function ProjectCard({
         {assignee && (<span className="flex items-center gap-1"><User className="size-3" />{assignee.name}</span>)}
         {project.due_date && (<span className="flex items-center gap-1"><Calendar className="size-3" />{project.due_date}</span>)}
       </div>
-      {project.memo && (<p className="mt-2 text-[11px] text-muted-foreground/70 line-clamp-2">{project.memo}</p>)}
+      {project.memo && (<p className="mt-2 text-[12px] text-muted-foreground/70 line-clamp-4">{project.memo}</p>)}
       <a href={`/roadmap/${project.id}`} className="absolute inset-0 rounded-xl" aria-label={`${project.project_name} 상세보기`} />
     </motion.div>
   );
@@ -588,6 +593,10 @@ export default function RoadmapPage() {
       return data as UserType[];
     },
   });
+
+  // 3-level tree + deadline alerts
+  const { roots: projectTree, tasksByProject: treeTasksByProject } = useProjectTree(projects, allTasks);
+  const deadlineAlerts = useDeadlineAlerts(projects, allTasks);
 
   const tasksByProject = useMemo(() => {
     const map = new Map<string, ProjectTask[]>();
@@ -809,7 +818,16 @@ export default function RoadmapPage() {
   };
 
   const handleDelete = () => {
-    if (deletingId) deleteProject(deletingId);
+    if (deletingId === '__bulk__') {
+      selectedProjects.forEach((id) => deleteProject(id));
+      selectedTasks.forEach((taskId) => {
+        const task = allTasks.find((t) => t.id === taskId);
+        if (task) deleteTask({ id: taskId, project_id: task.project_id });
+      });
+      clearSelection();
+    } else if (deletingId) {
+      deleteProject(deletingId);
+    }
     setDeleteDialogOpen(false);
     setDeletingId(null);
   };
@@ -1088,6 +1106,13 @@ export default function RoadmapPage() {
         </div>
       </div>
 
+      {/* Deadline Banner */}
+      <RoadmapDeadlineBanner
+        overdue={deadlineAlerts.overdue}
+        imminent={deadlineAlerts.imminent}
+        okCount={deadlineAlerts.counts.ok}
+      />
+
       {/* Filters & View Toggle */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[180px] max-w-[260px]">
@@ -1149,6 +1174,7 @@ export default function RoadmapPage() {
             { mode: 'kanban' as ViewMode, icon: Kanban, label: '칸반' },
             { mode: 'table' as ViewMode, icon: Table2, label: '테이블' },
             { mode: 'grouped' as ViewMode, icon: Layers, label: '그룹화' },
+            { mode: 'board' as ViewMode, icon: LayoutList, label: '보드' },
           ]).map(({ mode, icon: Icon, label }) => (
             <Button key={mode} variant={viewMode === mode ? 'secondary' : 'ghost'} size="sm" className={cn('h-7 px-2 text-[11px] gap-1 rounded-full', viewMode === mode && 'bg-orange-500 text-white shadow-sm hover:bg-orange-600')} onClick={() => setViewMode(mode)}>
               <Icon className="size-3" /><span className="hidden sm:inline">{label}</span>
@@ -1223,15 +1249,12 @@ export default function RoadmapPage() {
                   <colgroup>
                     <col style={{ width: 28 }} />
                     <col style={{ width: 28 }} />
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: 72 }} />
+                    <col style={{ width: '35%' }} />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 80 }} />
                     <col style={{ width: 64 }} />
-                    <col style={{ width: 52 }} />
-                    <col style={{ width: 76 }} />
-                    <col style={{ width: 76 }} />
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: 72 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 90 }} />
                     <col style={{ width: 28 }} />
                   </colgroup>
                   <thead>
@@ -1244,9 +1267,6 @@ export default function RoadmapPage() {
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">진행률</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">시작일</th>
                       <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">마감일</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">결과값</th>
-                      <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">메모</th>
-                      <th className="text-center px-1 py-0.5 font-medium text-muted-foreground text-[10px]">시간</th>
                       <th className="px-1 py-0.5"></th>
                     </tr>
                   </thead>
@@ -1289,7 +1309,7 @@ export default function RoadmapPage() {
                                         isEditing={isEditing(project.id, 'project_name')}
                                         onStartEdit={() => startEdit(project.id, 'project_name', 'project')}
                                         onSave={(v) => saveProjectField(project.id, 'project_name', v)}
-                                        className={cn('font-semibold text-[12px]', project.state === '완료' && 'text-foreground')}
+                                        className={cn('font-semibold text-[13px]', project.state === '완료' && 'line-through text-muted-foreground')}
                                       />
                                     </div>
                                   </TooltipTrigger>
@@ -1342,26 +1362,6 @@ export default function RoadmapPage() {
                             <td className="px-2 py-0.5">
                               <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
                             </td>
-                            <td className="px-2 py-0.5 overflow-hidden">
-                              <ExpandableTextCell value={project.result_value ?? ''} name={project.project_name} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveProjectField(project.id, 'result_value', v || null)} />
-                            </td>
-                            <td className="px-2 py-0.5 overflow-hidden">
-                              <ExpandableTextCell value={project.memo ?? ''} name={project.project_name} label="메모" placeholder="메모 입력..." onSave={(v) => saveProjectField(project.id, 'memo', v || null)} />
-                            </td>
-                            <td className="px-1 py-0.5 text-center">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex flex-col items-center leading-tight cursor-default">
-                                    <span className="text-[10px] tabular-nums text-stone-800 font-bold">
-                                      {new Date(project.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p className="text-xs">최종 수정: {new Date(project.updated_at).toLocaleString('ko-KR')}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </td>
                             <td className="px-1 py-0.5">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -1380,14 +1380,7 @@ export default function RoadmapPage() {
                                       memo: project.memo,
                                       sort_order: project.sort_order + 1,
                                     };
-                                    try {
-                                      createProject(data, {
-                                        onSuccess: () => window.alert('복사 완료!'),
-                                        onError: (err) => window.alert('복사 실패: ' + (err as Error).message),
-                                      });
-                                    } catch (e) {
-                                      window.alert('복사 호출 에러: ' + (e as Error).message);
-                                    }
+                                    createProject(data);
                                   }}><Copy className="size-3.5 mr-2" />행 복사</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openDeleteDialog(project.id)} className="text-destructive"><Trash2 className="size-3.5 mr-2" />삭제</DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -1395,20 +1388,73 @@ export default function RoadmapPage() {
                             </td>
                           </tr>
 
-                          {/* Sub-tasks */}
+                          {/* Project Detail Panel — 편집 가능한 메모/결과/URL */}
+                          {isExpanded && (
+                            <tr className="border-b border-border/30 bg-orange-50/10">
+                              <td colSpan={9} className="px-4 py-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">메모</span>
+                                    <ExpandableTextCell
+                                      value={project.memo ?? ''}
+                                      name={project.project_name}
+                                      label="메모"
+                                      placeholder="메모를 입력하세요..."
+                                      onSave={(v) => saveProjectField(project.id, 'memo', v || null)}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">결과</span>
+                                    <ExpandableTextCell
+                                      value={project.result_value ?? ''}
+                                      name={project.project_name}
+                                      label="결과값"
+                                      placeholder="결과값을 입력하세요..."
+                                      onSave={(v) => saveProjectField(project.id, 'result_value', v || null)}
+                                    />
+                                  </div>
+                                  {project.url && (
+                                    <div className="space-y-1">
+                                      <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">URL</span>
+                                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 bg-white/60 rounded-lg px-3 py-2 border border-stone-100">
+                                        <ExternalLink className="size-3" />
+                                        {project.url}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* Sub-tasks with drag support */}
                           {isExpanded && tasks.map((task, idx) => {
                             const taskConfig = STATE_CONFIG[task.state];
                             const TaskIcon = taskConfig.icon;
-                            const taskAssignee = users.find((u) => u.id === task.assignee_id);
                             const isTaskCompleted = task.state === '완료';
                             const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
                             return (
-                              <tr key={task.id} className={cn(
-                                'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap bg-stone-50/30',
-                                isTaskCompleted && 'bg-emerald-50/20 dark:bg-emerald-950/10 border-l-[3px] border-l-emerald-200',
-                                isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 dark:bg-orange-950/10 border-l-[3px] border-l-orange-300',
-                              )}>
-                                <td className="px-1 py-0.5"></td>
+                              <React.Fragment key={task.id}>
+                              <tr
+                                draggable
+                                onDragStart={() => handleTaskDragStart(task.id, project.id)}
+                                onDragOver={(e) => handleTaskDragOver(e, task.id, project.id)}
+                                onDrop={() => handleTaskDrop(project.id)}
+                                onDragEnd={handleDragEnd}
+                                className={cn(
+                                  'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap',
+                                  isTaskCompleted
+                                    ? 'bg-emerald-50/30 border-l-[3px] border-l-emerald-300'
+                                    : 'bg-stone-50/30',
+                                  isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 border-l-[3px] border-l-orange-300',
+                                  dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
+                                  dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
+                                )}
+                              >
+                                {/* Drag handle for reordering */}
+                                <td className="px-1 py-0.5 cursor-grab active:cursor-grabbing">
+                                  <GripVertical className="size-3 text-muted-foreground/20 group-hover/task:text-muted-foreground/50 transition-colors ml-2" />
+                                </td>
                                 <td className="px-1 py-0.5">
                                   <Checkbox
                                     checked={selectedTasks.has(task.id)}
@@ -1416,36 +1462,50 @@ export default function RoadmapPage() {
                                     className="size-3.5"
                                   />
                                 </td>
-                                <td className="px-2 py-0.5 pl-8 max-w-0">
+                                <td className="px-2 py-0.5 pl-6 max-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className="text-[9px] text-muted-foreground/40 w-3.5 shrink-0 text-right">{idx + 1}</span>
-                                    <div className="w-px h-3 bg-border/60 shrink-0" />
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className="min-w-0 flex-1">
-                                          <InlineTextCell
-                                            value={task.title}
-                                            isEditing={isEditing(task.id, 'title')}
-                                            onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
-                                            onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                            className={cn('text-[11px]', isTaskCompleted ? 'text-foreground' : isFilteredAssignee && 'font-semibold text-foreground')}
-                                          />
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="bottom"><p className="text-xs">{task.title}</p></TooltipContent>
-                                    </Tooltip>
-                                    {isTaskCompleted && <CheckCircle2 className="size-3 text-foreground shrink-0" />}
+                                    {/* 완료/진행중 상태 아이콘 — 클릭으로 토글 */}
+                                    <button
+                                      type="button"
+                                      className="shrink-0"
+                                      onClick={(e) => { e.stopPropagation(); saveTaskField(task.id, project.id, 'state', isTaskCompleted ? '진행중' : '완료'); }}
+                                    >
+                                      {isTaskCompleted
+                                        ? <CheckCircle2 className="size-4 text-emerald-500" />
+                                        : <Clock className="size-4 text-orange-400 hover:text-emerald-500 transition-colors" />
+                                      }
+                                    </button>
+                                    <div className="min-w-0 flex-1">
+                                      <InlineTextCell
+                                        value={task.title}
+                                        isEditing={isEditing(task.id, 'title')}
+                                        onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
+                                        onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
+                                        className={cn(
+                                          'text-[12px]',
+                                          isTaskCompleted && 'line-through text-muted-foreground',
+                                          !isTaskCompleted && isFilteredAssignee && 'font-semibold text-foreground',
+                                        )}
+                                      />
+                                    </div>
+                                    {/* 메모/결과 토글 — 항상 표시 */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); toggleExpand(`task-${task.id}`); }}
+                                      className="shrink-0 p-0.5 rounded hover:bg-orange-50"
+                                      title="메모/결과 보기"
+                                    >
+                                      <Expand className={cn('size-3', expandedProjects.has(`task-${task.id}`) ? 'text-orange-500' : 'text-stone-300')} />
+                                    </button>
                                   </div>
                                 </td>
                                 <td className="px-2 py-0.5">
-                                  <Select value={task.state} onValueChange={(v) => saveTaskField(task.id, project.id, 'state', v)}>
-                                    <SelectTrigger className={cn('h-5 w-[70px] text-[10px] border-0 bg-transparent px-1', taskConfig.color)}>
-                                      <div className="flex items-center gap-0.5"><TaskIcon className="size-2.5" /><span>{taskConfig.label}</span></div>
-                                    </SelectTrigger>
-                                    <SelectContent position="popper" className="min-w-[100px]">
-                                      {KANBAN_COLUMNS.map((s) => { const sc = STATE_CONFIG[s]; const SI = sc.icon; return (<SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SI className={cn('size-3', sc.color)} />{sc.label}</div></SelectItem>); })}
-                                    </SelectContent>
-                                  </Select>
+                                  <Badge variant="secondary" className={cn(
+                                    'text-[10px] px-1.5 py-0 rounded-full',
+                                    isTaskCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600',
+                                  )}>
+                                    {taskConfig.label}
+                                  </Badge>
                                 </td>
                                 <td className="px-2 py-0.5">
                                   <MultiAssigneeSelect
@@ -1462,28 +1522,44 @@ export default function RoadmapPage() {
                                 <td className="px-2 py-0.5">
                                   <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
                                 </td>
-                                <td className="px-2 py-0.5 overflow-hidden">
-                                  <ExpandableTextCell value={task.result_value ?? ''} name={task.title} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} />
-                                </td>
-                                <td className="px-2 py-0.5 overflow-hidden">
-                                  <ExpandableTextCell value={task.memo ?? ''} name={task.title} label="메모" placeholder="메모 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'memo', v || null)} />
-                                </td>
-                                <td className="px-1 py-0.5 text-center">
-                                  <span className="text-[10px] tabular-nums text-stone-600 font-medium">
-                                    {new Date(task.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                </td>
                                 <td className="px-1 py-0.5">
                                   <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
-                                    <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-blue-50" title="복사" onClick={() => createTask({ project_id: project.id, title: task.title, state: task.state, assignee_id: task.assignee_id, due_date: task.due_date, sort_order: (tasks.length), memo: task.memo })}>
-                                      <Copy className="size-2.5 text-muted-foreground/50 hover:text-blue-500" />
-                                    </button>
                                     <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-destructive/10" title="삭제" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
                                       <Trash2 className="size-2.5 text-muted-foreground/50 hover:text-destructive" />
                                     </button>
                                   </div>
                                 </td>
                               </tr>
+                              {/* Task detail panel — 메모/결과 편집 */}
+                              {expandedProjects.has(`task-${task.id}`) && (
+                                <tr className="border-b border-border/20 bg-stone-50/40">
+                                  <td colSpan={9} className="px-4 py-2.5 pl-14">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">메모</span>
+                                        <ExpandableTextCell
+                                          value={task.memo ?? ''}
+                                          name={task.title}
+                                          label="메모"
+                                          placeholder="메모를 입력하세요..."
+                                          onSave={(v) => saveTaskField(task.id, project.id, 'memo', v || null)}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">결과</span>
+                                        <ExpandableTextCell
+                                          value={task.result_value ?? ''}
+                                          name={task.title}
+                                          label="결과값"
+                                          placeholder="결과값을 입력하세요..."
+                                          onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                             );
                           })}
                           {/* Add sub-task */}
@@ -1491,7 +1567,7 @@ export default function RoadmapPage() {
                             <tr className="border-b border-border/30 bg-stone-50/30">
                               <td className="px-1 py-0.5"></td>
                               <td className="px-1 py-0.5"></td>
-                              <td className="px-2 py-0.5 pl-8" colSpan={10}>
+                              <td className="px-2 py-0.5 pl-8" colSpan={7}>
                                 <div className="flex items-center gap-1.5">
                                   <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                                   <input
@@ -1519,7 +1595,7 @@ export default function RoadmapPage() {
                     <tr className="border-b bg-stone-50/30">
                       <td className="px-1 py-0.5"></td>
                       <td className="px-1 py-0.5"></td>
-                      <td className="px-2 py-1" colSpan={10}>
+                      <td className="px-2 py-1" colSpan={7}>
                         <form
                           className="flex items-center gap-2"
                           onSubmit={(e) => {
@@ -1542,7 +1618,6 @@ export default function RoadmapPage() {
                               },
                               {
                                 onSuccess: () => { if (input) input.value = ''; },
-                                onError: (err) => window.alert('추가 실패: ' + (err as Error).message),
                               }
                             );
                           }}
@@ -1685,6 +1760,15 @@ export default function RoadmapPage() {
             return renderGroups(groupedProjects, 0);
           })()}
         </div>
+      ) : viewMode === 'board' ? (
+        /* ═══════════════ BOARD VIEW (NEW) ═══════════════ */
+        <BoardView
+          roots={projectTree}
+          users={users}
+          tasksByProject={tasksByProject}
+          onUpdateProject={(input) => updateProject(input as Parameters<typeof updateProject>[0])}
+          onUpdateTask={(input) => updateTask(input as Parameters<typeof updateTask>[0])}
+        />
       ) : (
         /* ═══════════════ TABLE VIEW ═══════════════ */
         <div className="rounded-2xl border border-stone-100 bg-white shadow-sm overflow-auto">
@@ -1701,19 +1785,17 @@ export default function RoadmapPage() {
             </div>
           </div>
 
-          <table className="w-full text-[12px] min-w-[860px]" style={{ tableLayout: 'fixed' }}>
+          <table className="w-full text-[12px] min-w-[640px]" style={{ tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 20 }} />
               <col style={{ width: 28 }} />
               <col style={{ width: 24 }} />
-              <col style={{ width: '22%' }} />
-              <col style={{ width: 72 }} />
+              <col style={{ width: '40%' }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 80 }} />
               <col style={{ width: 64 }} />
-              <col style={{ width: 52 }} />
-              <col style={{ width: 76 }} />
-              <col style={{ width: 76 }} />
-              <col style={{ width: '16%' }} />
-              <col style={{ width: '16%' }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 90 }} />
               <col style={{ width: 28 }} />
             </colgroup>
             <thead>
@@ -1733,8 +1815,6 @@ export default function RoadmapPage() {
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">진행률</th>
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">시작일</th>
                 <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">마감일</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">결과값</th>
-                <th className="text-left px-2 py-0.5 font-medium text-muted-foreground text-[10px]">메모</th>
                 <th className="px-1 py-0.5"></th>
               </tr>
             </thead>
@@ -1882,13 +1962,6 @@ export default function RoadmapPage() {
                         />
                       </td>
                       {/* Result Value */}
-                      <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <ExpandableTextCell value={project.result_value ?? ''} name={project.project_name} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveProjectField(project.id, 'result_value', v || null)} />
-                      </td>
-                      {/* Memo */}
-                      <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <ExpandableTextCell value={project.memo ?? ''} name={project.project_name} label="메모" placeholder="메모 입력..." onSave={(v) => saveProjectField(project.id, 'memo', v || null)} />
-                      </td>
                       {/* Actions */}
                       <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
@@ -1905,18 +1978,57 @@ export default function RoadmapPage() {
                       </td>
                     </tr>
 
+                    {/* ── Project Detail Panel (Table View) — 편집 가능 ── */}
+                    {isExpanded && (
+                      <tr className="border-b border-border/30 bg-orange-50/10">
+                        <td colSpan={12} className="px-4 py-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">메모</span>
+                              <ExpandableTextCell
+                                value={project.memo ?? ''}
+                                name={project.project_name}
+                                label="메모"
+                                placeholder="메모를 입력하세요..."
+                                onSave={(v) => saveProjectField(project.id, 'memo', v || null)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">결과</span>
+                              <ExpandableTextCell
+                                value={project.result_value ?? ''}
+                                name={project.project_name}
+                                label="결과값"
+                                placeholder="결과값을 입력하세요..."
+                                onSave={(v) => saveProjectField(project.id, 'result_value', v || null)}
+                              />
+                            </div>
+                            {project.url && (
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">URL</span>
+                                <a href={project.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 bg-white/60 rounded-lg px-3 py-2 border border-stone-100">
+                                  <ExternalLink className="size-3" />
+                                  {project.url}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
                     {/* ── Sub-task Rows ── */}
                     {isExpanded && tasks.length > 0 && tasks.map((task, idx) => {
                       const taskConfig = STATE_CONFIG[task.state];
                       const TaskIcon = taskConfig.icon;
-                      const taskAssignee = users.find((u) => u.id === task.assignee_id);
                       const isTaskSelected = selectedTasks.has(task.id);
                       const isTaskCompleted = task.state === '완료';
                       const isFilteredAssignee = assigneeFilter && task.assignee_id === assigneeFilter;
+                      const hasDetail = task.memo || task.result_value;
 
                       return (
+                        <React.Fragment key={task.id}>
                         <tr
-                          key={task.id}
                           draggable
                           onDragStart={() => handleTaskDragStart(task.id, project.id)}
                           onDragOver={(e) => handleTaskDragOver(e, task.id, project.id)}
@@ -1932,108 +2044,80 @@ export default function RoadmapPage() {
                             dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
                           )}
                         >
-                          {/* Drag handle */}
                           <td className="px-1 py-0.5 cursor-grab active:cursor-grabbing">
                             <GripVertical className="size-3 text-muted-foreground/20 group-hover/task:text-muted-foreground/50 transition-colors" />
                           </td>
-                          {/* Checkbox */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={isTaskSelected}
-                              onCheckedChange={() => toggleTaskSelection(task.id)}
-                              className="size-3"
-                            />
+                            <Checkbox checked={isTaskSelected} onCheckedChange={() => toggleTaskSelection(task.id)} className="size-3" />
                           </td>
-                          {/* Spacer */}
                           <td className="px-1 py-0.5"></td>
-                          {/* Title */}
                           <td className="px-2 py-0.5 pl-8 max-w-0">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-[9px] text-muted-foreground/40 w-3.5 shrink-0 text-right">{idx + 1}</span>
                               <div className="w-px h-3 bg-border/60 shrink-0" />
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="min-w-0 flex-1">
-                                    <InlineTextCell
-                                      value={task.title}
-                                      isEditing={isEditing(task.id, 'title')}
-                                      onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
-                                      onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
-                                      className={cn('text-[11px]', isTaskCompleted ? 'text-foreground' : isFilteredAssignee && 'font-semibold text-foreground')}
-                                    />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[300px]">
-                                  <p className="text-xs">{task.title}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              {isTaskCompleted && <CheckCircle2 className="size-3 text-foreground shrink-0" />}
+                              <div className="min-w-0 flex-1">
+                                <InlineTextCell
+                                  value={task.title}
+                                  isEditing={isEditing(task.id, 'title')}
+                                  onStartEdit={() => startEdit(task.id, 'title', 'task', project.id)}
+                                  onSave={(v) => saveTaskField(task.id, project.id, 'title', v)}
+                                  className={cn('text-[11px]', isTaskCompleted ? 'line-through text-muted-foreground' : isFilteredAssignee && 'font-semibold text-foreground')}
+                                />
+                              </div>
+                              {isTaskCompleted && <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />}
+                              {hasDetail && (
+                                <button type="button" onClick={(e) => { e.stopPropagation(); toggleExpand(`tv-task-${task.id}`); }} className="shrink-0 p-0.5 rounded hover:bg-orange-50" title="메모/결과 보기">
+                                  <Expand className={cn('size-3', expandedProjects.has(`tv-task-${task.id}`) ? 'text-orange-500' : 'text-stone-300')} />
+                                </button>
+                              )}
                             </div>
                           </td>
-                          {/* State */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                             <Select value={task.state} onValueChange={(v) => saveTaskField(task.id, project.id, 'state', v)}>
                               <SelectTrigger className={cn('h-5 w-[70px] text-[10px] border-0 bg-transparent px-1', taskConfig.color)}>
-                                <div className="flex items-center gap-0.5">
-                                  <TaskIcon className="size-2.5" />
-                                  <span>{taskConfig.label}</span>
-                                </div>
+                                <div className="flex items-center gap-0.5"><TaskIcon className="size-2.5" /><span>{taskConfig.label}</span></div>
                               </SelectTrigger>
                               <SelectContent position="popper" className="min-w-[100px]">
-                                {KANBAN_COLUMNS.map((s) => {
-                                  const sc = STATE_CONFIG[s]; const SI = sc.icon;
-                                  return (<SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SI className={cn('size-3', sc.color)} />{sc.label}</div></SelectItem>);
-                                })}
+                                {KANBAN_COLUMNS.map((s) => { const sc = STATE_CONFIG[s]; const SI = sc.icon; return (<SelectItem key={s} value={s}><div className="flex items-center gap-1.5"><SI className={cn('size-3', sc.color)} />{sc.label}</div></SelectItem>); })}
                               </SelectContent>
                             </Select>
                           </td>
-                          {/* Assignee */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <MultiAssigneeSelect
-                              assigneeIds={task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : [])}
-                              users={users}
-                              onSave={(ids) => saveTaskField(task.id, project.id, 'assignee_ids', ids)}
-                              size="xs"
-                            />
+                            <MultiAssigneeSelect assigneeIds={task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : [])} users={users} onSave={(ids) => saveTaskField(task.id, project.id, 'assignee_ids', ids)} size="xs" />
                           </td>
-                          {/* Progress - empty for tasks */}
                           <td className="px-2 py-0.5"></td>
-                          {/* Start Date */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <InlineDateCell
-                              value={task.start_date}
-                              isEditing={isEditing(task.id, 'start_date')}
-                              onStartEdit={() => startEdit(task.id, 'start_date', 'task', project.id)}
-                              onSave={(v) => saveTaskField(task.id, project.id, 'start_date', v)}
-                            />
+                            <InlineDateCell value={task.start_date} isEditing={isEditing(task.id, 'start_date')} onStartEdit={() => startEdit(task.id, 'start_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'start_date', v)} />
                           </td>
-                          {/* Due Date */}
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <InlineDateCell
-                              value={task.due_date}
-                              isEditing={isEditing(task.id, 'due_date')}
-                              onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)}
-                              onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)}
-                            />
+                            <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
                           </td>
-                          {/* Result Value */}
-                          <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <ExpandableTextCell value={task.result_value ?? ''} name={task.title} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} />
-                          </td>
-                          {/* Memo */}
-                          <td className="px-2 py-0.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <ExpandableTextCell value={task.memo ?? ''} name={task.title} label="메모" placeholder="메모 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'memo', v || null)} />
-                          </td>
-                          {/* Delete */}
                           <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="size-5 flex items-center justify-center rounded hover:bg-destructive/10 opacity-0 group-hover/task:opacity-100 transition-opacity"
-                              onClick={() => deleteTask({ id: task.id, project_id: project.id })}
-                            >
-                              <Trash2 className="size-3 text-muted-foreground/50 hover:text-destructive" />
-                            </button>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
+                              <button type="button" className="size-5 flex items-center justify-center rounded hover:bg-destructive/10" onClick={() => deleteTask({ id: task.id, project_id: project.id })}>
+                                <Trash2 className="size-3 text-muted-foreground/50 hover:text-destructive" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
+                        {/* Task detail toggle (테이블 뷰) */}
+                        {expandedProjects.has(`tv-task-${task.id}`) && (
+                          <tr className="border-b border-border/20 bg-orange-50/10">
+                            <td colSpan={10} className="px-4 py-2 pl-12">
+                              <div className="grid grid-cols-2 gap-3 text-[11px]">
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-semibold text-stone-400 uppercase">메모</span>
+                                  <ExpandableTextCell value={task.memo ?? ''} name={task.title} label="메모" placeholder="메모 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'memo', v || null)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-semibold text-stone-400 uppercase">결과</span>
+                                  <ExpandableTextCell value={task.result_value ?? ''} name={task.title} label="결과값" placeholder="결과값 입력..." onSave={(v) => saveTaskField(task.id, project.id, 'result_value', v || null)} />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                     {/* Empty state for no tasks */}
@@ -2042,7 +2126,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={10}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={7}>
                           <span className="text-[11px] text-stone-400 italic">하위 업무가 없어요. 아래에서 추가해 보세요!</span>
                         </td>
                       </tr>
@@ -2053,7 +2137,7 @@ export default function RoadmapPage() {
                         <td className="px-1 py-0.5"></td>
                         <td className="px-2 py-0.5"></td>
                         <td className="px-1 py-0.5"></td>
-                        <td className="px-2 py-0.5 pl-8" colSpan={10}>
+                        <td className="px-2 py-0.5 pl-8" colSpan={7}>
                           <div className="flex items-center gap-1.5">
                             <Plus className="size-3 text-muted-foreground/30 shrink-0" />
                             <input
@@ -2084,7 +2168,7 @@ export default function RoadmapPage() {
                 <td className="px-1 py-1">
                   <Plus className="size-3.5 text-muted-foreground/30" />
                 </td>
-                <td className="px-2 py-1" colSpan={10}>
+                <td className="px-2 py-1" colSpan={7}>
                   <form
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
@@ -2096,7 +2180,6 @@ export default function RoadmapPage() {
                         { project_name: name, state: '진행중' as ProjectState, sort_order: filteredProjects.length },
                         {
                           onSuccess: () => { if (input) input.value = ''; },
-                          onError: (err) => window.alert('추가 실패: ' + (err as Error).message),
                         }
                       );
                     }}
@@ -2232,14 +2315,8 @@ export default function RoadmapPage() {
                 size="sm"
                 className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive"
                 onClick={() => {
-                  if (window.confirm(`${totalSelected}개 항목을 삭제하시겠습니까?`)) {
-                    selectedProjects.forEach((id) => deleteProject(id));
-                    selectedTasks.forEach((taskId) => {
-                      const task = allTasks.find((t) => t.id === taskId);
-                      if (task) deleteTask({ id: taskId, project_id: task.project_id });
-                    });
-                    clearSelection();
-                  }
+                  setDeleteDialogOpen(true);
+                  setDeletingId('__bulk__');
                 }}
               >
                 <Trash2 className="size-3.5" />
@@ -2272,7 +2349,12 @@ export default function RoadmapPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>프로젝트 삭제</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">이 프로젝트와 모든 하위 업무가 삭제됩니다. 계속하시겠습니까?</p>
+          <p className="text-sm text-muted-foreground">
+            {deletingId === '__bulk__'
+              ? `${totalSelected}개 항목이 삭제됩니다. 계속하시겠습니까?`
+              : `"${projects.find((p) => p.id === deletingId)?.project_name ?? ''}" 프로젝트와 모든 하위 업무가 삭제됩니다. 계속하시겠습니까?`
+            }
+          </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>취소</Button>
             <Button variant="destructive" onClick={handleDelete}>삭제</Button>

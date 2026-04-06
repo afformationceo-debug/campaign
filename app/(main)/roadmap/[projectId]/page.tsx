@@ -93,6 +93,7 @@ export default function ProjectDetailPage() {
       if (error) throw error;
       return data as Project;
     },
+    enabled: !!projectId,
   });
 
   // Fetch tasks for this project
@@ -107,6 +108,7 @@ export default function ProjectDetailPage() {
       if (error) throw error;
       return data as ProjectTask[];
     },
+    enabled: !!projectId,
   });
 
   // Fetch users
