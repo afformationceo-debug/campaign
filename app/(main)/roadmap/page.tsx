@@ -109,6 +109,20 @@ const STATE_CONFIG: Record<ProjectState, { label: string; color: string; icon: R
   '완료': { label: '완료', color: 'text-emerald-600', icon: CheckCircle2, bg: 'bg-emerald-50 text-emerald-600' },
 };
 
+// 마감일 위험도 배지 컴포넌트
+function DueDateBadge({ dueDate, state }: { dueDate: string | null; state: string }) {
+  if (!dueDate || state === '완료') return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200">{Math.abs(diff)}일 지남</span>;
+  if (diff === 0) return <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-medium border border-red-100">오늘</span>;
+  if (diff <= 3) return <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-100">{diff}일</span>;
+  return null;
+};
+
 const KANBAN_COLUMNS: ProjectState[] = ['진행중', '완료'];
 
 // ─── Inline Editable Cell ─────────────────────────────────
@@ -530,6 +544,7 @@ export default function RoadmapPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grouped');
   const [groupBys, setGroupBys] = useState<GroupBy[]>(['state', 'assignee']);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'default' | 'due_date' | 'updated_at'>('default');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(['완료']));
   const [searchText, setSearchText] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('');
@@ -624,8 +639,19 @@ export default function RoadmapPage() {
     if (!showCompleted && !stateFilter) {
       filtered = filtered.filter((p) => p.state !== '완료');
     }
+    // 정렬
+    if (sortBy === 'due_date') {
+      filtered = [...filtered].sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
+    } else if (sortBy === 'updated_at') {
+      filtered = [...filtered].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    }
     return filtered;
-  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted, tasksByProject]);
+  }, [projects, stateFilter, assigneeFilter, searchText, showCompleted, tasksByProject, sortBy]);
 
   const completedProjects = useMemo(() => {
     if (showCompleted || stateFilter) return [];
@@ -1127,6 +1153,14 @@ export default function RoadmapPage() {
           <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="담당자" /></SelectTrigger>
           <SelectContent>{[<SelectItem key="all" value="all">전체 담당자</SelectItem>, ...users.filter((u) => u.is_active).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)]}</SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">기본 순서</SelectItem>
+            <SelectItem value="due_date">마감일 순</SelectItem>
+            <SelectItem value="updated_at">최근 수정순</SelectItem>
+          </SelectContent>
+        </Select>
         {!stateFilter && stats.completed > 0 && (
           <Button
             variant={showCompleted ? 'outline' : 'secondary'}
@@ -1370,7 +1404,10 @@ export default function RoadmapPage() {
                               <InlineDateCell value={project.start_date} isEditing={isEditing(project.id, 'start_date')} onStartEdit={() => startEdit(project.id, 'start_date', 'project')} onSave={(v) => saveProjectField(project.id, 'start_date', v)} />
                             </td>
                             <td className="px-2 py-0.5">
-                              <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
+                              <div className="flex items-center gap-1">
+                                <InlineDateCell value={project.due_date} isEditing={isEditing(project.id, 'due_date')} onStartEdit={() => startEdit(project.id, 'due_date', 'project')} onSave={(v) => saveProjectField(project.id, 'due_date', v)} />
+                                <DueDateBadge dueDate={project.due_date} state={project.state} />
+                              </div>
                             </td>
                             <td className="px-1 py-0.5">
                               <DropdownMenu>
@@ -1460,7 +1497,7 @@ export default function RoadmapPage() {
                                   'border-b border-border/30 hover:bg-stone-50/80 transition-colors group/task whitespace-nowrap',
                                   isTaskCompleted
                                     ? 'bg-emerald-50/30 border-l-[3px] border-l-emerald-300'
-                                    : 'bg-stone-50/30',
+                                    : 'bg-stone-50/30 border-l-[3px] border-l-orange-200',
                                   isFilteredAssignee && !isTaskCompleted && 'bg-orange-50/40 border-l-[3px] border-l-orange-300',
                                   dragItem?.type === 'task' && dragItem.id === task.id && 'opacity-40',
                                   dragOverItem?.type === 'task' && dragOverItem.id === task.id && 'border-t-2 border-t-primary',
@@ -1535,7 +1572,10 @@ export default function RoadmapPage() {
                                   <InlineDateCell value={task.start_date} isEditing={isEditing(task.id, 'start_date')} onStartEdit={() => startEdit(task.id, 'start_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'start_date', v)} />
                                 </td>
                                 <td className="px-2 py-0.5">
-                                  <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
+                                  <div className="flex items-center gap-1">
+                                    <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
+                                    <DueDateBadge dueDate={task.due_date} state={task.state} />
+                                  </div>
                                 </td>
                                 <td className="px-1 py-0.5">
                                   <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
@@ -1970,12 +2010,15 @@ export default function RoadmapPage() {
                       </td>
                       {/* Due Date */}
                       <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                        <InlineDateCell
-                          value={project.due_date}
-                          isEditing={isEditing(project.id, 'due_date')}
-                          onStartEdit={() => startEdit(project.id, 'due_date', 'project')}
-                          onSave={(v) => saveProjectField(project.id, 'due_date', v)}
-                        />
+                        <div className="flex items-center gap-1">
+                          <InlineDateCell
+                            value={project.due_date}
+                            isEditing={isEditing(project.id, 'due_date')}
+                            onStartEdit={() => startEdit(project.id, 'due_date', 'project')}
+                            onSave={(v) => saveProjectField(project.id, 'due_date', v)}
+                          />
+                          <DueDateBadge dueDate={project.due_date} state={project.state} />
+                        </div>
                       </td>
                       {/* Result Value */}
                       {/* Actions */}
@@ -2110,7 +2153,10 @@ export default function RoadmapPage() {
                             <InlineDateCell value={task.start_date} isEditing={isEditing(task.id, 'start_date')} onStartEdit={() => startEdit(task.id, 'start_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'start_date', v)} />
                           </td>
                           <td className="px-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                            <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
+                            <div className="flex items-center gap-1">
+                              <InlineDateCell value={task.due_date} isEditing={isEditing(task.id, 'due_date')} onStartEdit={() => startEdit(task.id, 'due_date', 'task', project.id)} onSave={(v) => saveTaskField(task.id, project.id, 'due_date', v)} />
+                              <DueDateBadge dueDate={task.due_date} state={task.state} />
+                            </div>
                           </td>
                           <td className="px-1 py-0.5" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
