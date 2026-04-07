@@ -221,7 +221,9 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const projectStateConfig = STATE_CONFIG[project.state];
+  // Defensive: STATE_CONFIG only knows '진행중'/'완료'. Any legacy/dirty value falls back to '진행중'
+  // to prevent client-side exception (root cause of past crash with stale '진행전' rows).
+  const projectStateConfig = STATE_CONFIG[project.state] ?? STATE_CONFIG['진행중'];
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -328,7 +330,7 @@ export default function ProjectDetailPage() {
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
               {tasks.map((task, idx) => {
-                const config = STATE_CONFIG[task.state];
+                const config = STATE_CONFIG[task.state] ?? STATE_CONFIG['진행중'];
                 const StateIcon = config.icon;
                 const taskAssignee = users.find((u) => u.id === task.assignee_id);
 
