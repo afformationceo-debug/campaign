@@ -7,6 +7,8 @@ import { ko } from 'date-fns/locale';
 import {
   motion,
   AnimatePresence,
+  Reorder,
+  useDragControls,
   useMotionValue,
   useTransform,
   useSpring,
@@ -14,8 +16,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  ChevronDown,
   Plus,
   Trash2,
   Pencil,
@@ -359,10 +359,7 @@ function CheckItemRow({
   onToggleNA,
   onEditItem,
   onDeleteItem,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast,
+  dragControls,
 }: {
   item: CheckItem;
   record?: CheckRecord;
@@ -371,10 +368,7 @@ function CheckItemRow({
   onToggleNA: (itemId: string) => void;
   onEditItem: (item: CheckItem) => void;
   onDeleteItem: (itemId: string) => void;
-  onMoveUp: (itemId: string) => void;
-  onMoveDown: (itemId: string) => void;
-  isFirst: boolean;
-  isLast: boolean;
+  dragControls: ReturnType<typeof useDragControls>;
 }) {
   const isChecked = record?.checked ?? false;
   const dataStatus = record?.data_status ?? 'pending';
@@ -398,18 +392,22 @@ function CheckItemRow({
   );
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
+    <div
       className={cn(
-        'group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+        'group flex items-center gap-2 rounded-xl px-2 py-2.5 transition-all duration-200',
         isChecked
           ? 'bg-green-50/60 border border-green-100'
           : 'bg-white border border-stone-100 hover:border-stone-200 hover:shadow-sm'
       )}
     >
+      {/* Drag handle */}
+      <div
+        onPointerDown={(e) => dragControls.start(e)}
+        className="flex items-center justify-center size-6 shrink-0 cursor-grab active:cursor-grabbing rounded-md text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-colors touch-none"
+      >
+        <GripVertical className="size-3.5" />
+      </div>
+
       <AnimatedCheckbox
         checked={isChecked}
         onToggle={() => onToggleCheck(item.id)}
@@ -454,30 +452,8 @@ function CheckItemRow({
         </button>
       )}
 
-      {/* Move / Edit / Delete */}
+      {/* Edit / Delete */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button
-          type="button"
-          onClick={() => onMoveUp(item.id)}
-          disabled={isFirst}
-          className={cn(
-            'rounded-md p-1 transition-colors',
-            isFirst ? 'text-stone-200 cursor-not-allowed' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'
-          )}
-        >
-          <ChevronUp className="size-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMoveDown(item.id)}
-          disabled={isLast}
-          className={cn(
-            'rounded-md p-1 transition-colors',
-            isLast ? 'text-stone-200 cursor-not-allowed' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'
-          )}
-        >
-          <ChevronDown className="size-3" />
-        </button>
         <button
           type="button"
           onClick={() => onEditItem(item)}
@@ -493,11 +469,44 @@ function CheckItemRow({
           <Trash2 className="size-3" />
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 // ─── Section Card ─────────────────────────────────────────────────────
+function ReorderableItem({ item, record, onToggleCheck, onUpdateData, onToggleNA, onEditItem, onDeleteItem }: {
+  item: CheckItem;
+  record?: CheckRecord;
+  onToggleCheck: (itemId: string) => void;
+  onUpdateData: (itemId: string, value: string) => void;
+  onToggleNA: (itemId: string) => void;
+  onEditItem: (item: CheckItem) => void;
+  onDeleteItem: (itemId: string) => void;
+}) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      className="list-none"
+      whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.12)', zIndex: 50 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+    >
+      <CheckItemRow
+        item={item}
+        record={record}
+        onToggleCheck={onToggleCheck}
+        onUpdateData={onUpdateData}
+        onToggleNA={onToggleNA}
+        onEditItem={onEditItem}
+        onDeleteItem={onDeleteItem}
+        dragControls={controls}
+      />
+    </Reorder.Item>
+  );
+}
+
 function SectionCard({
   section,
   items,
@@ -508,8 +517,7 @@ function SectionCard({
   onAddItem,
   onEditItem,
   onDeleteItem,
-  onMoveItemUp,
-  onMoveItemDown,
+  onReorderItems,
   onEditSection,
   onDeleteSection,
 }: {
@@ -522,12 +530,12 @@ function SectionCard({
   onAddItem: (sectionId: string) => void;
   onEditItem: (item: CheckItem) => void;
   onDeleteItem: (itemId: string) => void;
-  onMoveItemUp: (itemId: string, sectionId: string) => void;
-  onMoveItemDown: (itemId: string, sectionId: string) => void;
+  onReorderItems: (sectionId: string, reorderedItems: CheckItem[]) => void;
   onEditSection: (section: Section) => void;
   onDeleteSection: (sectionId: string) => void;
 }) {
   const color = getSectionColor(section.name);
+  const sortedItems = useMemo(() => [...items].sort((a, b) => a.sort_order - b.sort_order), [items]);
   const checkedCount = items.filter((i) => records.get(i.id)?.checked).length;
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
@@ -608,27 +616,26 @@ function SectionCard({
 
         {/* Items */}
         <div className="px-3 pb-2 space-y-1.5">
-          <AnimatePresence mode="popLayout">
-            {(() => {
-              const sorted = [...items].sort((a, b) => a.sort_order - b.sort_order);
-              return sorted.map((item, idx) => (
-                <CheckItemRow
-                  key={item.id}
-                  item={item}
-                  record={records.get(item.id)}
-                  onToggleCheck={onToggleCheck}
-                  onUpdateData={onUpdateData}
-                  onToggleNA={onToggleNA}
-                  onEditItem={onEditItem}
-                  onDeleteItem={onDeleteItem}
-                  onMoveUp={(id) => onMoveItemUp(id, section.id)}
-                  onMoveDown={(id) => onMoveItemDown(id, section.id)}
-                  isFirst={idx === 0}
-                  isLast={idx === sorted.length - 1}
-                />
-              ));
-            })()}
-          </AnimatePresence>
+          <Reorder.Group
+            axis="y"
+            values={sortedItems}
+            onReorder={(newOrder) => onReorderItems(section.id, newOrder)}
+            className="space-y-1.5"
+            layoutScroll
+          >
+            {sortedItems.map((item) => (
+              <ReorderableItem
+                key={item.id}
+                item={item}
+                record={records.get(item.id)}
+                onToggleCheck={onToggleCheck}
+                onUpdateData={onUpdateData}
+                onToggleNA={onToggleNA}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
+              />
+            ))}
+          </Reorder.Group>
         </div>
 
         {/* Add Item Button */}
@@ -1014,37 +1021,32 @@ export default function MustCheckPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
   });
 
-  // Item reorder
-  const swapItemOrder = useMutation({
-    mutationFn: async ({ itemId, sectionId, direction }: { itemId: string; sectionId: string; direction: 'up' | 'down' }) => {
-      const sectionItems = [...(itemsBySection.get(sectionId) ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-      const idx = sectionItems.findIndex((i) => i.id === itemId);
-      if (idx < 0) return;
-      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= sectionItems.length) return;
+  // Item reorder (drag & drop)
+  const reorderItems = useMutation({
+    mutationFn: async ({ sectionId, reorderedItems }: { sectionId: string; reorderedItems: CheckItem[] }) => {
+      // Assign new sort_order based on array index
+      const updates = reorderedItems.map((item, idx) => ({
+        id: item.id,
+        sort_order: idx,
+      }));
 
-      const current = sectionItems[idx];
-      const target = sectionItems[swapIdx];
-
-      // Swap sort_order values
-      const [{ error: e1 }, { error: e2 }] = await Promise.all([
-        supabase.from('must_check_items').update({ sort_order: target.sort_order }).eq('id', current.id),
-        supabase.from('must_check_items').update({ sort_order: current.sort_order }).eq('id', target.id),
-      ]);
-      if (e1) throw e1;
-      if (e2) throw e2;
+      // Batch update all items in the section
+      const results = await Promise.all(
+        updates.map(({ id, sort_order }) =>
+          supabase.from('must_check_items').update({ sort_order }).eq('id', id)
+        )
+      );
+      const err = results.find((r) => r.error);
+      if (err?.error) throw err.error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
   });
 
-  const handleMoveItemUp = useCallback(
-    (itemId: string, sectionId: string) => swapItemOrder.mutate({ itemId, sectionId, direction: 'up' }),
-    [swapItemOrder]
-  );
-
-  const handleMoveItemDown = useCallback(
-    (itemId: string, sectionId: string) => swapItemOrder.mutate({ itemId, sectionId, direction: 'down' }),
-    [swapItemOrder]
+  const handleReorderItems = useCallback(
+    (sectionId: string, reorderedItems: CheckItem[]) => {
+      reorderItems.mutate({ sectionId, reorderedItems });
+    },
+    [reorderItems]
   );
 
   // ─── Stats ────────────────────────────────────────────────────────
@@ -1325,8 +1327,7 @@ export default function MustCheckPage() {
                 onAddItem={(sectionId) => setItemDialog({ open: true, sectionId })}
                 onEditItem={(item) => setItemDialog({ open: true, item })}
                 onDeleteItem={handleDeleteItem}
-                onMoveItemUp={handleMoveItemUp}
-                onMoveItemDown={handleMoveItemDown}
+                onReorderItems={handleReorderItems}
                 onEditSection={(s) => setSectionDialog({ open: true, section: s })}
                 onDeleteSection={handleDeleteSection}
               />
