@@ -1287,9 +1287,9 @@ export default function MustCheckPage() {
         {/* Character + Date Navigation */}
         <div className="flex items-center gap-3">
           <motion.img
-            src="/characters/afformation-thumbsup.png"
-            alt="어포메이션"
-            className="h-14 w-14 object-contain drop-shadow-md hidden sm:block"
+            src="/characters/afformation-ceo-duo.png"
+            alt="어포메이션 공동대표"
+            className="h-16 object-contain drop-shadow-md hidden sm:block"
             animate={{ y: [0, -3, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
