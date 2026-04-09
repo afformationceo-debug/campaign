@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryKeys } from '@/lib/utils/query-keys';
 
 // ─── KST Date Utility ─────────────────────────────────────────────────
@@ -454,25 +455,30 @@ function CheckItemRow({
 
       {/* Data input area */}
       {item.has_data_field && dataStatus !== 'not_applicable' && (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Input
-            type="text"
-            placeholder="결과값 입력..."
-            value={localValue}
-            onChange={(e) => handleDataChange(e.target.value)}
-            className={cn(
-              'h-8 w-36 text-[12px] rounded-lg transition-all duration-200',
-              localValue
-                ? 'bg-blue-50 border-blue-300 text-blue-800 font-semibold ring-1 ring-blue-200/50'
-                : 'bg-stone-50 border-stone-200 text-stone-600 focus:bg-white focus:border-blue-300'
-            )}
-          />
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Input
+                type="text"
+                placeholder="결과값 입력..."
+                value={localValue}
+                onChange={(e) => handleDataChange(e.target.value)}
+                className={cn(
+                  'h-8 w-36 text-[12px] rounded-lg transition-all duration-200',
+                  localValue
+                    ? 'bg-blue-50 border-blue-300 text-blue-800 font-semibold ring-1 ring-blue-200/50'
+                    : 'bg-stone-50 border-stone-200 text-stone-600 focus:bg-white focus:border-blue-300'
+                )}
+              />
+            </div>
+          </TooltipTrigger>
           {localValue && (
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 rounded-md px-1.5 py-0.5 shrink-0">
-              {localValue}
-            </span>
+            <TooltipContent side="top" className="max-w-[240px] rounded-xl px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">{item.label}</p>
+              <p className="text-[13px] font-bold">{localValue}</p>
+            </TooltipContent>
           )}
-        </div>
+        </Tooltip>
       )}
 
       {/* Data status toggle */}
@@ -747,24 +753,28 @@ function SectionCard({
                 </span>
               )}
             </div>
-            {/* Data value badges */}
+            {/* Data summary — hover to see details */}
             {(() => {
               const filledItems = items.filter(
                 (i) => i.has_data_field && records.get(i.id)?.data_value
               );
               if (filledItems.length === 0) return null;
               return (
-                <div className="flex flex-wrap gap-1">
-                  {filledItems.map((i) => (
-                    <span
-                      key={i.id}
-                      className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] border border-blue-100"
-                    >
-                      <span className="text-blue-400 truncate max-w-[80px]">{i.label.slice(0, 10)}</span>
-                      <span className="font-bold text-blue-700">{records.get(i.id)?.data_value}</span>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <span className="text-[11px] text-blue-500 font-medium cursor-default hover:text-blue-700 transition-colors">
+                      결과값 {filledItems.length}건 입력됨
                     </span>
-                  ))}
-                </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[280px] rounded-xl px-3 py-2.5 space-y-1">
+                    {filledItems.map((i) => (
+                      <div key={i.id} className="flex items-center justify-between gap-3">
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{i.label}</span>
+                        <span className="text-[12px] font-bold text-foreground">{records.get(i.id)?.data_value}</span>
+                      </div>
+                    ))}
+                  </TooltipContent>
+                </Tooltip>
               );
             })()}
           </div>
