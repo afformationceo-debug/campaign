@@ -298,11 +298,11 @@ function AnimatedCheckbox({
     ['rgb(34, 197, 94)', 'rgb(229, 231, 235)']
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     if (disabled) return;
-    if (!checked && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const pos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    if (!checked) {
+      // Use click event coords directly — works reliably in all contexts
+      const pos = { x: e.clientX, y: e.clientY };
       setBurst(pos);
       setCharPop(pos);
       setTimeout(() => setBurst(null), 600);
@@ -586,6 +586,44 @@ function SectionCard({
   const filledDataCount = items.filter(
     (i) => i.has_data_field && records.get(i.id)?.data_status === 'filled'
   ).length;
+
+  // Empty section — compact inline row instead of full card
+  if (totalCount === 0) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={cn(
+          'col-span-1 lg:col-span-2 flex items-center gap-3 rounded-xl border bg-gradient-to-r px-4 py-2.5',
+          color.border,
+          color.bg
+        )}
+      >
+        <div className={cn('flex items-center gap-1.5 rounded-lg px-2.5 py-1', color.badge)}>
+          <span className="text-[14px]">{color.emoji}</span>
+          <span className="text-[12px] font-bold">{section.name}</span>
+        </div>
+        <span className="text-[11px] text-stone-400">항목 없음</span>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onAddItem(section.id)}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-stone-500 hover:bg-white/60 transition-colors"
+          >
+            <Plus className="size-3" />
+            추가
+          </button>
+          <button type="button" onClick={() => onEditSection(section)} className="rounded-md p-1 text-stone-400 hover:text-stone-600 transition-colors">
+            <Pencil className="size-3" />
+          </button>
+          <button type="button" onClick={() => onDeleteSection(section.id)} className="rounded-md p-1 text-stone-400 hover:text-red-500 transition-colors">
+            <Trash2 className="size-3" />
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
