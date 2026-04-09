@@ -1504,6 +1504,18 @@ export default function MustCheckPage() {
         새 섹션 추가
       </motion.button>
 
+      {/* Character banner */}
+      <div className="flex justify-center pt-2 pb-4">
+        <motion.img
+          src="/characters/afformation-arms-crossed.png"
+          alt="어포메이션"
+          className="h-48 md:h-64 object-contain drop-shadow-2xl opacity-80"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 0.8, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        />
+      </div>
+
       {/* Dialogs */}
       <SectionDialog
         open={sectionDialog.open}
