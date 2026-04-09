@@ -67,31 +67,124 @@ interface CheckRecord {
   checked_at: string | null;
 }
 
-// ─── Section Colors ───────────────────────────────────────────────────
-const SECTION_COLORS: Record<string, { bg: string; border: string; text: string; badge: string; glow: string }> = {
-  '영업': { bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', glow: 'shadow-blue-200/60' },
-  '인플루언서': { bg: 'from-violet-50 to-purple-50', border: 'border-violet-200', text: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', glow: 'shadow-violet-200/60' },
-  '광고': { bg: 'from-amber-50 to-orange-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', glow: 'shadow-amber-200/60' },
-  'CS': { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', glow: 'shadow-emerald-200/60' },
+// ─── Section Colors + Emoji ───────────────────────────────────────────
+const SECTION_COLORS: Record<string, { bg: string; border: string; text: string; badge: string; glow: string; emoji: string; completedEmoji: string }> = {
+  '영업': { bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200/60', text: 'text-blue-700', badge: 'bg-blue-500/10 text-blue-700 ring-1 ring-blue-500/20', glow: 'shadow-blue-300/40', emoji: '💼', completedEmoji: '🏆' },
+  '인플루언서': { bg: 'from-violet-50 to-purple-50', border: 'border-violet-200/60', text: 'text-violet-700', badge: 'bg-violet-500/10 text-violet-700 ring-1 ring-violet-500/20', glow: 'shadow-violet-300/40', emoji: '🌟', completedEmoji: '✨' },
+  '광고': { bg: 'from-amber-50 to-orange-50', border: 'border-amber-200/60', text: 'text-amber-700', badge: 'bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20', glow: 'shadow-amber-300/40', emoji: '📢', completedEmoji: '🎯' },
+  'CS': { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200/60', text: 'text-emerald-700', badge: 'bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20', glow: 'shadow-emerald-300/40', emoji: '🎧', completedEmoji: '💚' },
 };
 
-const DEFAULT_COLOR = { bg: 'from-stone-50 to-stone-100', border: 'border-stone-200', text: 'text-stone-700', badge: 'bg-stone-100 text-stone-700', glow: 'shadow-stone-200/60' };
+const DEFAULT_COLOR = { bg: 'from-stone-50 to-stone-100', border: 'border-stone-200/60', text: 'text-stone-700', badge: 'bg-stone-500/10 text-stone-700 ring-1 ring-stone-500/20', glow: 'shadow-stone-300/40', emoji: '📋', completedEmoji: '✅' };
 
 function getSectionColor(name: string) {
   return SECTION_COLORS[name] || DEFAULT_COLOR;
 }
 
-// ─── Confetti Burst ───────────────────────────────────────────────────
+// ─── Progress Character ──────────────────────────────────────────────
+function getProgressCharacter(progress: number) {
+  if (progress === 0) return { emoji: '😴', label: '아직 시작 전...' };
+  if (progress < 25) return { emoji: '🏃', label: '시작했어요!' };
+  if (progress < 50) return { emoji: '💪', label: '힘내세요!' };
+  if (progress < 75) return { emoji: '🔥', label: '불타오르는 중!' };
+  if (progress < 100) return { emoji: '🚀', label: '거의 다 왔어요!' };
+  return { emoji: '🎉', label: 'ALL CLEAR!' };
+}
+
+// ─── Celebration Overlay ─────────────────────────────────────────────
+function CelebrationOverlay({ show, onClose }: { show: boolean; onClose: () => void }) {
+  const emojis = useMemo(
+    () =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: i,
+        emoji: ['🎉', '🎊', '✨', '🌟', '💫', '🏆', '🥳', '🎯', '💪', '🔥', '⭐', '💎'][i % 12],
+        x: Math.random() * 100,
+        delay: Math.random() * 0.8,
+        duration: 1.5 + Math.random() * 1,
+        size: 20 + Math.random() * 24,
+      })),
+    []
+  );
+
+  if (!show) return null;
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      {/* Falling emojis */}
+      {emojis.map((e) => (
+        <motion.div
+          key={e.id}
+          className="fixed pointer-events-none select-none"
+          style={{ left: `${e.x}%`, fontSize: e.size, top: -50 }}
+          animate={{ y: [0, typeof window !== 'undefined' ? window.innerHeight + 100 : 900], rotate: [0, 360] }}
+          transition={{ duration: e.duration, delay: e.delay, ease: 'easeIn' }}
+        >
+          {e.emoji}
+        </motion.div>
+      ))}
+
+      {/* Center card */}
+      <motion.div
+        className="relative rounded-3xl bg-white/95 backdrop-blur-xl shadow-2xl px-10 py-8 text-center border border-white/50"
+        initial={{ scale: 0, rotateY: -90 }}
+        animate={{ scale: 1, rotateY: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ perspective: 1000 }}
+      >
+        <motion.div
+          className="text-[72px] leading-none mb-3"
+          animate={{ scale: [1, 1.2, 1], rotate: [0, -10, 10, 0] }}
+          transition={{ duration: 1, repeat: Infinity, repeatDelay: 1 }}
+        >
+          🎉
+        </motion.div>
+        <h2 className="text-[24px] font-black text-stone-900 mb-1">ALL CLEAR!</h2>
+        <p className="text-[14px] text-stone-500 mb-4">오늘 할 일을 모두 완료했습니다!</p>
+        <motion.div
+          className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-green-200/50 cursor-pointer"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onClose}
+        >
+          <span>🏆</span> 수고하셨습니다!
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Emoji + Confetti Burst ───────────────────────────────────────────
 function ConfettiBurst({ x, y }: { x: number; y: number }) {
   const particles = useMemo(
-    () =>
-      Array.from({ length: 8 }, (_, i) => ({
+    () => [
+      // Color dots
+      ...Array.from({ length: 10 }, (_, i) => ({
         id: i,
-        angle: (i * 45 * Math.PI) / 180,
-        color: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#f97316', '#6366f1'][i],
-        distance: 30 + Math.random() * 20,
-        size: 4 + Math.random() * 4,
+        type: 'dot' as const,
+        angle: (i * 36 * Math.PI) / 180,
+        color: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#f97316', '#6366f1', '#14b8a6', '#e11d48'][i],
+        distance: 25 + Math.random() * 30,
+        size: 3 + Math.random() * 5,
+        emoji: '',
       })),
+      // Emoji particles
+      ...Array.from({ length: 4 }, (_, i) => ({
+        id: 10 + i,
+        type: 'emoji' as const,
+        angle: ((i * 90 + 45) * Math.PI) / 180,
+        color: '',
+        distance: 35 + Math.random() * 15,
+        size: 14,
+        emoji: ['✨', '⭐', '💫', '🌟'][i],
+      })),
+    ],
     []
   );
 
@@ -100,23 +193,29 @@ function ConfettiBurst({ x, y }: { x: number; y: number }) {
       {particles.map((p) => (
         <motion.div
           key={p.id}
-          className="absolute rounded-full"
+          className="absolute"
           style={{
             width: p.size,
             height: p.size,
-            backgroundColor: p.color,
+            backgroundColor: p.type === 'dot' ? p.color : undefined,
+            borderRadius: p.type === 'dot' ? '50%' : undefined,
+            fontSize: p.type === 'emoji' ? p.size : undefined,
+            lineHeight: 1,
             left: -p.size / 2,
             top: -p.size / 2,
           }}
           initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
           animate={{
-            scale: [0, 1.2, 0],
+            scale: [0, 1.4, 0],
             x: Math.cos(p.angle) * p.distance,
-            y: Math.sin(p.angle) * p.distance,
+            y: Math.sin(p.angle) * p.distance - (p.type === 'emoji' ? 10 : 0),
             opacity: [1, 1, 0],
+            rotate: p.type === 'emoji' ? [0, 180] : [0, 0],
           }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        />
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          {p.type === 'emoji' ? p.emoji : null}
+        </motion.div>
       ))}
     </div>
   );
@@ -397,23 +496,24 @@ function SectionCard({
         {/* Section Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="flex items-center gap-2.5">
-            <div className={cn('flex items-center gap-1.5 rounded-lg px-2.5 py-1', color.badge)}>
-              <Shield className="size-3.5" />
+            <div className={cn('flex items-center gap-1.5 rounded-xl px-3 py-1.5', color.badge)}>
+              <span className="text-[15px]">{isComplete ? color.completedEmoji : color.emoji}</span>
               <span className="text-[13px] font-bold">{section.name}</span>
             </div>
-            <span className="text-[12px] text-stone-400 font-medium">
+            <span className="text-[12px] text-stone-400 font-medium tabular-nums">
               {checkedCount}/{totalCount}
             </span>
           </div>
           <div className="flex items-center gap-1">
             {isComplete && (
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold text-green-700"
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: [1, 1.1, 1], rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                className="flex items-center gap-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 px-3 py-1 text-[11px] font-bold text-white shadow-md shadow-green-200/50"
               >
-                <Sparkles className="size-3" />
-                완료
+                <span className="text-[13px]">🎊</span>
+                완료!
               </motion.div>
             )}
             <button
@@ -856,6 +956,16 @@ export default function MustCheckPage() {
   const totalChecked = items.filter((i) => recordsMap.get(i.id)?.checked).length;
   const overallProgress = totalItems > 0 ? Math.round((totalChecked / totalItems) * 100) : 0;
 
+  // Celebration state
+  const [showCelebration, setShowCelebration] = useState(false);
+  const prevProgressRef = useRef(overallProgress);
+  useEffect(() => {
+    if (overallProgress === 100 && prevProgressRef.current < 100 && totalItems > 0) {
+      setShowCelebration(true);
+    }
+    prevProgressRef.current = overallProgress;
+  }, [overallProgress, totalItems]);
+
   // ─── Handlers ─────────────────────────────────────────────────────
   const handleSaveSection = useCallback(
     (name: string) => {
@@ -899,16 +1009,31 @@ export default function MustCheckPage() {
 
   return (
     <div className="space-y-5">
+      {/* Celebration Overlay */}
+      <AnimatePresence>
+        {showCelebration && (
+          <CelebrationOverlay show={showCelebration} onClose={() => setShowCelebration(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold text-stone-900 tracking-tight flex items-center gap-2">
-            <Shield className="size-5 text-orange-500" />
-            반드시 체크리스트
-          </h1>
-          <p className="text-[12px] text-stone-400 mt-0.5">
-            매일 확인해야 할 핵심 업무 체크리스트
-          </p>
+        <div className="flex items-center gap-3">
+          <motion.div
+            className="text-[28px]"
+            animate={{ rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+          >
+            🛡️
+          </motion.div>
+          <div>
+            <h1 className="text-[20px] font-bold text-stone-900 tracking-tight">
+              반드시 체크리스트
+            </h1>
+            <p className="text-[12px] text-stone-400 mt-0.5">
+              매일 확인해야 할 핵심 업무 체크리스트
+            </p>
+          </div>
         </div>
 
         {/* Date Navigation */}
@@ -963,86 +1088,129 @@ export default function MustCheckPage() {
       </div>
 
       {/* Overall Progress */}
-      <motion.div
-        className={cn(
-          'rounded-2xl border p-4 transition-all duration-500',
-          overallProgress === 100
-            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg shadow-green-100/50'
-            : 'bg-gradient-to-r from-stone-50 to-stone-100/50 border-stone-200'
-        )}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'flex items-center justify-center size-10 rounded-xl',
-              overallProgress === 100
-                ? 'bg-green-100 text-green-600'
-                : 'bg-stone-100 text-stone-500'
-            )}>
-              <BarChart3 className="size-5" />
-            </div>
-            <div>
-              <p className="text-[11px] text-stone-400 font-medium">금일 전체 진행률</p>
-              <p className="text-[22px] font-black text-stone-900 leading-tight">
-                {overallProgress}%
-                <span className="text-[13px] font-medium text-stone-400 ml-2">
-                  ({totalChecked}/{totalItems})
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {overallProgress === 100 && (
-            <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-              className="flex items-center gap-1.5 rounded-full bg-green-500 px-4 py-1.5 text-white text-[13px] font-bold shadow-lg shadow-green-200/50"
-            >
-              <Sparkles className="size-4" />
-              ALL CLEAR!
-            </motion.div>
-          )}
-        </div>
-
-        <div className="h-2.5 w-full rounded-full bg-white/60 overflow-hidden">
+      {(() => {
+        const character = getProgressCharacter(overallProgress);
+        return (
           <motion.div
             className={cn(
-              'h-full rounded-full',
+              'rounded-2xl border p-5 transition-all duration-500 relative overflow-hidden',
               overallProgress === 100
-                ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'
+                ? 'bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-200/60 shadow-xl shadow-green-100/40'
+                : 'bg-gradient-to-br from-white via-stone-50/50 to-orange-50/30 border-stone-200/60'
             )}
-            initial={{ width: 0 }}
-            animate={{ width: `${overallProgress}%` }}
-            transition={{ type: 'spring', stiffness: 60, damping: 20 }}
-          />
-        </div>
+          >
+            {/* Shimmer effect */}
+            {overallProgress === 100 && (
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              />
+            )}
 
-        {/* Per-section quick stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
-          {sections.map((section) => {
-            const sItems = itemsBySection.get(section.id) ?? [];
-            const sChecked = sItems.filter((i) => recordsMap.get(i.id)?.checked).length;
-            const sTotal = sItems.length;
-            const sColor = getSectionColor(section.name);
-            return (
-              <div
-                key={section.id}
-                className={cn(
-                  'flex items-center gap-2 rounded-xl px-3 py-2 border',
-                  sChecked === sTotal && sTotal > 0 ? 'bg-green-50 border-green-200' : 'bg-white border-stone-100'
-                )}
-              >
-                <span className={cn('text-[11px] font-bold', sColor.text)}>{section.name}</span>
-                <span className="text-[11px] text-stone-400 ml-auto">
-                  {sChecked}/{sTotal}
-                </span>
+            <div className="flex items-center justify-between mb-4 relative">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  className="text-[40px] leading-none"
+                  animate={overallProgress === 100
+                    ? { scale: [1, 1.2, 1], rotate: [0, -10, 10, 0] }
+                    : { scale: [1, 1.05, 1] }
+                  }
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                >
+                  {character.emoji}
+                </motion.div>
+                <div>
+                  <p className="text-[12px] text-stone-400 font-medium">{character.label}</p>
+                  <p className="text-[28px] font-black text-stone-900 leading-tight tabular-nums">
+                    {overallProgress}%
+                    <span className="text-[13px] font-medium text-stone-400 ml-2">
+                      ({totalChecked}/{totalItems})
+                    </span>
+                  </p>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </motion.div>
+
+              {overallProgress === 100 && (
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-5 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-green-200/50"
+                >
+                  <span className="text-[18px]">🏆</span>
+                  ALL CLEAR!
+                </motion.div>
+              )}
+            </div>
+
+            {/* Progress bar with character indicator */}
+            <div className="relative">
+              <div className="h-3 w-full rounded-full bg-stone-100/80 overflow-hidden backdrop-blur-sm">
+                <motion.div
+                  className={cn(
+                    'h-full rounded-full relative',
+                    overallProgress === 100
+                      ? 'bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400'
+                      : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'
+                  )}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${overallProgress}%` }}
+                  transition={{ type: 'spring', stiffness: 60, damping: 20 }}
+                >
+                  {/* Shimmer on bar */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+                  />
+                </motion.div>
+              </div>
+              {/* Floating emoji on progress edge */}
+              {overallProgress > 0 && overallProgress < 100 && (
+                <motion.div
+                  className="absolute -top-3 text-[18px]"
+                  style={{ left: `${Math.min(overallProgress, 95)}%` }}
+                  animate={{ y: [0, -3, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  {character.emoji}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Per-section quick stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+              {sections.map((section) => {
+                const sItems = itemsBySection.get(section.id) ?? [];
+                const sChecked = sItems.filter((i) => recordsMap.get(i.id)?.checked).length;
+                const sTotal = sItems.length;
+                const sColor = getSectionColor(section.name);
+                const sComplete = sChecked === sTotal && sTotal > 0;
+                return (
+                  <motion.div
+                    key={section.id}
+                    className={cn(
+                      'flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-all duration-300',
+                      sComplete
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200/60 shadow-sm shadow-green-100/50'
+                        : 'bg-white/80 border-stone-100 hover:border-stone-200'
+                    )}
+                    animate={sComplete ? { scale: [1, 1.02, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="text-[14px]">{sComplete ? sColor.completedEmoji : sColor.emoji}</span>
+                    <span className={cn('text-[11px] font-bold', sColor.text)}>{section.name}</span>
+                    <span className="text-[11px] text-stone-400 ml-auto tabular-nums font-medium">
+                      {sChecked}/{sTotal}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Section Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
