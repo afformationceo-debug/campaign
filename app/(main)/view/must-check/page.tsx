@@ -162,13 +162,13 @@ function CelebrationOverlay({ show, onClose }: { show: boolean; onClose: () => v
         onClick={(e) => e.stopPropagation()}
         style={{ perspective: 1000 }}
       >
-        <motion.div
-          className="text-[72px] leading-none mb-3"
-          animate={{ scale: [1, 1.2, 1], rotate: [0, -10, 10, 0] }}
-          transition={{ duration: 1, repeat: Infinity, repeatDelay: 1 }}
-        >
-          🎉
-        </motion.div>
+        <motion.img
+          src="/characters/afformation-thumbsup.jpeg"
+          alt="축하!"
+          className="size-28 rounded-3xl shadow-xl border-4 border-white mb-3 mx-auto"
+          animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 5, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 0.5 }}
+        />
         <h2 className="text-[24px] font-black text-stone-900 mb-1">ALL CLEAR!</h2>
         <p className="text-[14px] text-stone-500 mb-4">오늘 할 일을 모두 완료했습니다!</p>
         <motion.div
@@ -245,6 +245,36 @@ function ConfettiBurst({ x, y }: { x: number; y: number }) {
   );
 }
 
+// ─── Character Pop ───────────────────────────────────────────────────
+function CharacterPop({ x, y }: { x: number; y: number }) {
+  return (
+    <motion.div
+      className="pointer-events-none fixed z-[9998]"
+      style={{ left: x - 40, top: y - 90 }}
+      initial={{ scale: 0, y: 20, opacity: 0 }}
+      animate={{ scale: [0, 1.2, 1], y: [20, -10, 0], opacity: [0, 1, 1] }}
+      exit={{ scale: 0, y: -30, opacity: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <div className="relative">
+        <img
+          src="/characters/afformation-thumbsup.jpeg"
+          alt="Good job!"
+          className="size-20 rounded-2xl shadow-xl shadow-blue-200/50 border-2 border-white"
+        />
+        <motion.div
+          className="absolute -top-2 -right-2 rounded-full bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 shadow"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          NICE!
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── 3D Check Animation ──────────────────────────────────────────────
 function AnimatedCheckbox({
   checked,
@@ -256,6 +286,7 @@ function AnimatedCheckbox({
   disabled?: boolean;
 }) {
   const [burst, setBurst] = useState<{ x: number; y: number } | null>(null);
+  const [charPop, setCharPop] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<HTMLButtonElement>(null);
   const rotateY = useMotionValue(0);
   const scale = useMotionValue(1);
@@ -271,8 +302,11 @@ function AnimatedCheckbox({
     if (disabled) return;
     if (!checked && ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setBurst({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      const pos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      setBurst(pos);
+      setCharPop(pos);
       setTimeout(() => setBurst(null), 600);
+      setTimeout(() => setCharPop(null), 1200);
     }
     rotateY.set(checked ? 0 : -180);
     scale.set(1.3);
@@ -322,6 +356,9 @@ function AnimatedCheckbox({
       </motion.button>
       <AnimatePresence>
         {burst && <ConfettiBurst x={burst.x} y={burst.y} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {charPop && <CharacterPop x={charPop.x} y={charPop.y} />}
       </AnimatePresence>
     </>
   );
