@@ -163,9 +163,9 @@ function CelebrationOverlay({ show, onClose }: { show: boolean; onClose: () => v
         style={{ perspective: 1000 }}
       >
         <motion.img
-          src="/characters/afformation-thumbsup.jpeg"
+          src="/characters/afformation-thumbsup.png"
           alt="축하!"
-          className="size-28 rounded-3xl shadow-xl border-4 border-white mb-3 mx-auto"
+          className="w-40 h-40 object-contain drop-shadow-2xl mb-3 mx-auto"
           animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 5, 0] }}
           transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 0.5 }}
         />
@@ -250,23 +250,23 @@ function CharacterPop({ x, y }: { x: number; y: number }) {
   return (
     <motion.div
       className="pointer-events-none fixed z-[9998]"
-      style={{ left: x - 40, top: y - 90 }}
-      initial={{ scale: 0, y: 20, opacity: 0 }}
-      animate={{ scale: [0, 1.2, 1], y: [20, -10, 0], opacity: [0, 1, 1] }}
-      exit={{ scale: 0, y: -30, opacity: 0 }}
+      style={{ left: x - 56, top: y - 130 }}
+      initial={{ scale: 0, y: 30, opacity: 0 }}
+      animate={{ scale: [0, 1.15, 1], y: [30, -15, 0], opacity: [0, 1, 1] }}
+      exit={{ scale: 0, y: -40, opacity: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <div className="relative">
         <img
-          src="/characters/afformation-thumbsup.jpeg"
+          src="/characters/afformation-thumbsup.png"
           alt="Good job!"
-          className="size-20 rounded-2xl shadow-xl shadow-blue-200/50 border-2 border-white"
+          className="w-28 h-28 object-contain drop-shadow-xl"
         />
         <motion.div
-          className="absolute -top-2 -right-2 rounded-full bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 shadow"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2 }}
+          className="absolute -top-1 -right-1 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 shadow-lg"
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.2, type: 'spring', stiffness: 400 }}
         >
           NICE!
         </motion.div>
