@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -245,6 +246,10 @@ function ConfettiBurst({ x, y }: { x: number; y: number }) {
   );
 }
 
+// ─── Effects Context (renders via portal on document.body) ───────────
+type EffectPos = { x: number; y: number };
+const EffectsContext = createContext<(pos: EffectPos) => void>(() => {});
+
 // ─── Character Pop ───────────────────────────────────────────────────
 function CharacterPop({ x, y }: { x: number; y: number }) {
   return (
@@ -285,8 +290,7 @@ function AnimatedCheckbox({
   onToggle: () => void;
   disabled?: boolean;
 }) {
-  const [burst, setBurst] = useState<{ x: number; y: number } | null>(null);
-  const [charPop, setCharPop] = useState<{ x: number; y: number } | null>(null);
+  const triggerEffects = useContext(EffectsContext);
   const ref = useRef<HTMLButtonElement>(null);
   const rotateY = useMotionValue(0);
   const scale = useMotionValue(1);
@@ -301,18 +305,13 @@ function AnimatedCheckbox({
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (disabled) return;
     if (!checked) {
-      // Use click event coords directly — works reliably in all contexts
-      const pos = { x: e.clientX, y: e.clientY };
-      setBurst(pos);
-      setCharPop(pos);
-      setTimeout(() => setBurst(null), 600);
-      setTimeout(() => setCharPop(null), 1200);
+      triggerEffects({ x: e.clientX, y: e.clientY });
     }
     rotateY.set(checked ? 0 : -180);
     scale.set(1.3);
     setTimeout(() => scale.set(1), 150);
     onToggle();
-  }, [checked, onToggle, disabled, rotateY, scale]);
+  }, [checked, onToggle, disabled, rotateY, scale, triggerEffects]);
 
   useEffect(() => {
     rotateY.set(checked ? -180 : 0);
@@ -354,12 +353,6 @@ function AnimatedCheckbox({
           )}
         </AnimatePresence>
       </motion.button>
-      <AnimatePresence>
-        {burst && <ConfettiBurst x={burst.x} y={burst.y} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {charPop && <CharacterPop x={charPop.x} y={charPop.y} />}
-      </AnimatePresence>
     </>
   );
 }
@@ -1191,8 +1184,35 @@ export default function MustCheckPage() {
     [deleteItem]
   );
 
+  // ─── Effects (confetti + character) rendered via portal ──────────
+  const [effectBurst, setEffectBurst] = useState<EffectPos | null>(null);
+  const [effectChar, setEffectChar] = useState<EffectPos | null>(null);
+  const [portalMounted, setPortalMounted] = useState(false);
+  useEffect(() => setPortalMounted(true), []);
+
+  const triggerCheckEffects = useCallback((pos: EffectPos) => {
+    setEffectBurst(pos);
+    setEffectChar(pos);
+    setTimeout(() => setEffectBurst(null), 600);
+    setTimeout(() => setEffectChar(null), 1200);
+  }, []);
+
   return (
+    <EffectsContext.Provider value={triggerCheckEffects}>
     <div className="space-y-5">
+      {/* Effects portal — renders on document.body to escape all transform contexts */}
+      {portalMounted && createPortal(
+        <>
+          <AnimatePresence>
+            {effectBurst && <ConfettiBurst x={effectBurst.x} y={effectBurst.y} />}
+          </AnimatePresence>
+          <AnimatePresence>
+            {effectChar && <CharacterPop x={effectChar.x} y={effectChar.y} />}
+          </AnimatePresence>
+        </>,
+        document.body
+      )}
+
       {/* Celebration Overlay */}
       <AnimatePresence>
         {showCelebration && (
@@ -1447,5 +1467,6 @@ export default function MustCheckPage() {
         initial={itemDialog.item ? { label: itemDialog.item.label, has_data_field: itemDialog.item.has_data_field } : undefined}
       />
     </div>
+    </EffectsContext.Provider>
   );
 }
