@@ -1240,8 +1240,16 @@ export default function MustCheckPage() {
           </div>
         </div>
 
-        {/* Date Navigation */}
-        <div className="flex items-center gap-2">
+        {/* Character + Date Navigation */}
+        <div className="flex items-center gap-3">
+          <motion.img
+            src="/characters/afformation-thumbsup.png"
+            alt="어포메이션"
+            className="h-14 w-14 object-contain drop-shadow-md hidden sm:block"
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -1288,6 +1296,7 @@ export default function MustCheckPage() {
           >
             오늘
           </Button>
+          </div>
         </div>
       </div>
 
