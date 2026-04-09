@@ -1243,7 +1243,7 @@ export default function MustCheckPage() {
 
   return (
     <EffectsContext.Provider value={triggerCheckEffects}>
-    <div className="space-y-5">
+    <div className="space-y-5 -m-3 md:-m-5 p-3 md:p-5 min-h-full bg-gradient-to-b from-sky-50/60 via-blue-50/30 to-white rounded-xl">
       {/* Effects portal — renders on document.body to escape all transform contexts */}
       {portalMounted && createPortal(
         <>
