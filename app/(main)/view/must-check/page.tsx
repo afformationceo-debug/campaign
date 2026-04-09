@@ -14,6 +14,8 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Plus,
   Trash2,
   Pencil,
@@ -357,6 +359,10 @@ function CheckItemRow({
   onToggleNA,
   onEditItem,
   onDeleteItem,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
 }: {
   item: CheckItem;
   record?: CheckRecord;
@@ -365,6 +371,10 @@ function CheckItemRow({
   onToggleNA: (itemId: string) => void;
   onEditItem: (item: CheckItem) => void;
   onDeleteItem: (itemId: string) => void;
+  onMoveUp: (itemId: string) => void;
+  onMoveDown: (itemId: string) => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const isChecked = record?.checked ?? false;
   const dataStatus = record?.data_status ?? 'pending';
@@ -444,8 +454,30 @@ function CheckItemRow({
         </button>
       )}
 
-      {/* Edit/Delete */}
+      {/* Move / Edit / Delete */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          type="button"
+          onClick={() => onMoveUp(item.id)}
+          disabled={isFirst}
+          className={cn(
+            'rounded-md p-1 transition-colors',
+            isFirst ? 'text-stone-200 cursor-not-allowed' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'
+          )}
+        >
+          <ChevronUp className="size-3" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMoveDown(item.id)}
+          disabled={isLast}
+          className={cn(
+            'rounded-md p-1 transition-colors',
+            isLast ? 'text-stone-200 cursor-not-allowed' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'
+          )}
+        >
+          <ChevronDown className="size-3" />
+        </button>
         <button
           type="button"
           onClick={() => onEditItem(item)}
@@ -476,6 +508,8 @@ function SectionCard({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  onMoveItemUp,
+  onMoveItemDown,
   onEditSection,
   onDeleteSection,
 }: {
@@ -488,6 +522,8 @@ function SectionCard({
   onAddItem: (sectionId: string) => void;
   onEditItem: (item: CheckItem) => void;
   onDeleteItem: (itemId: string) => void;
+  onMoveItemUp: (itemId: string, sectionId: string) => void;
+  onMoveItemDown: (itemId: string, sectionId: string) => void;
   onEditSection: (section: Section) => void;
   onDeleteSection: (sectionId: string) => void;
 }) {
@@ -573,9 +609,9 @@ function SectionCard({
         {/* Items */}
         <div className="px-3 pb-2 space-y-1.5">
           <AnimatePresence mode="popLayout">
-            {items
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((item) => (
+            {(() => {
+              const sorted = [...items].sort((a, b) => a.sort_order - b.sort_order);
+              return sorted.map((item, idx) => (
                 <CheckItemRow
                   key={item.id}
                   item={item}
@@ -585,8 +621,13 @@ function SectionCard({
                   onToggleNA={onToggleNA}
                   onEditItem={onEditItem}
                   onDeleteItem={onDeleteItem}
+                  onMoveUp={(id) => onMoveItemUp(id, section.id)}
+                  onMoveDown={(id) => onMoveItemDown(id, section.id)}
+                  isFirst={idx === 0}
+                  isLast={idx === sorted.length - 1}
                 />
-              ))}
+              ));
+            })()}
           </AnimatePresence>
         </div>
 
@@ -973,6 +1014,39 @@ export default function MustCheckPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
   });
 
+  // Item reorder
+  const swapItemOrder = useMutation({
+    mutationFn: async ({ itemId, sectionId, direction }: { itemId: string; sectionId: string; direction: 'up' | 'down' }) => {
+      const sectionItems = [...(itemsBySection.get(sectionId) ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+      const idx = sectionItems.findIndex((i) => i.id === itemId);
+      if (idx < 0) return;
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= sectionItems.length) return;
+
+      const current = sectionItems[idx];
+      const target = sectionItems[swapIdx];
+
+      // Swap sort_order values
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        supabase.from('must_check_items').update({ sort_order: target.sort_order }).eq('id', current.id),
+        supabase.from('must_check_items').update({ sort_order: current.sort_order }).eq('id', target.id),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
+  });
+
+  const handleMoveItemUp = useCallback(
+    (itemId: string, sectionId: string) => swapItemOrder.mutate({ itemId, sectionId, direction: 'up' }),
+    [swapItemOrder]
+  );
+
+  const handleMoveItemDown = useCallback(
+    (itemId: string, sectionId: string) => swapItemOrder.mutate({ itemId, sectionId, direction: 'down' }),
+    [swapItemOrder]
+  );
+
   // ─── Stats ────────────────────────────────────────────────────────
   const totalItems = items.length;
   const totalChecked = items.filter((i) => recordsMap.get(i.id)?.checked).length;
@@ -1251,6 +1325,8 @@ export default function MustCheckPage() {
                 onAddItem={(sectionId) => setItemDialog({ open: true, sectionId })}
                 onEditItem={(item) => setItemDialog({ open: true, item })}
                 onDeleteItem={handleDeleteItem}
+                onMoveItemUp={handleMoveItemUp}
+                onMoveItemDown={handleMoveItemDown}
                 onEditSection={(s) => setSectionDialog({ open: true, section: s })}
                 onDeleteSection={handleDeleteSection}
               />
