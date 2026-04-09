@@ -535,7 +535,11 @@ function SectionCard({
   onDeleteSection: (sectionId: string) => void;
 }) {
   const color = getSectionColor(section.name);
-  const sortedItems = useMemo(() => [...items].sort((a, b) => a.sort_order - b.sort_order), [items]);
+  // Local state for drag reorder — syncs from props, updated on drag
+  const [sortedItems, setSortedItems] = useState<CheckItem[]>([]);
+  useEffect(() => {
+    setSortedItems([...items].sort((a, b) => a.sort_order - b.sort_order));
+  }, [items]);
   const checkedCount = items.filter((i) => records.get(i.id)?.checked).length;
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
@@ -619,9 +623,11 @@ function SectionCard({
           <Reorder.Group
             axis="y"
             values={sortedItems}
-            onReorder={(newOrder) => onReorderItems(section.id, newOrder)}
+            onReorder={(newOrder) => {
+              setSortedItems(newOrder);
+              onReorderItems(section.id, newOrder);
+            }}
             className="space-y-1.5"
-            layoutScroll
           >
             {sortedItems.map((item) => (
               <ReorderableItem
@@ -1042,9 +1048,14 @@ export default function MustCheckPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
   });
 
+  const reorderDebounceRef = useRef<NodeJS.Timeout>(undefined);
   const handleReorderItems = useCallback(
     (sectionId: string, reorderedItems: CheckItem[]) => {
-      reorderItems.mutate({ sectionId, reorderedItems });
+      // Debounce DB save — only persist after drag settles
+      clearTimeout(reorderDebounceRef.current);
+      reorderDebounceRef.current = setTimeout(() => {
+        reorderItems.mutate({ sectionId, reorderedItems });
+      }, 400);
     },
     [reorderItems]
   );
