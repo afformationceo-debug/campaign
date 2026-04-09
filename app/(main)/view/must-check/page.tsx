@@ -41,6 +41,28 @@ import {
 } from '@/components/ui/dialog';
 import { queryKeys } from '@/lib/utils/query-keys';
 
+// ─── KST Date Utility ─────────────────────────────────────────────────
+// 브라우저 타임존과 무관하게 항상 KST(UTC+9) 기준 날짜를 반환
+function getKSTDate(date?: Date): Date {
+  const d = date ?? new Date();
+  // KST offset: UTC+9 → UTC 시간에 9시간을 더한 후 날짜만 추출
+  const kstMs = d.getTime() + 9 * 60 * 60 * 1000;
+  const kstDate = new Date(kstMs);
+  // yyyy-mm-dd 문자열로 변환 후 다시 Date로 (시간 제거)
+  const year = kstDate.getUTCFullYear();
+  const month = kstDate.getUTCMonth();
+  const day = kstDate.getUTCDate();
+  return new Date(year, month, day);
+}
+
+function formatKSTDateStr(date: Date): string {
+  // 선택된 Date 객체에서 yyyy-MM-dd 추출 (로컬 기준 — 이미 KST로 보정된 Date)
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────
 interface Section {
   id: string;
@@ -735,8 +757,8 @@ export default function MustCheckPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const [selectedDate, setSelectedDate] = useState(() => getKSTDate());
+  const dateStr = formatKSTDateStr(selectedDate);
 
   // Dialog state
   const [sectionDialog, setSectionDialog] = useState<{ open: boolean; section?: Section }>({ open: false });
@@ -1080,7 +1102,7 @@ export default function MustCheckPage() {
             variant="outline"
             size="sm"
             className="h-8 rounded-xl text-[12px]"
-            onClick={() => setSelectedDate(new Date())}
+            onClick={() => setSelectedDate(getKSTDate())}
           >
             오늘
           </Button>
