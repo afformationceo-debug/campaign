@@ -259,9 +259,11 @@ function SidebarContent({ isCollapsed }: { isCollapsed: boolean }) {
         isCollapsed && 'justify-center px-2'
       )}>
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm shadow-orange-200/50">
-            <span className="text-[11px] font-black text-white tracking-tight">AF</span>
-          </div>
+          <img
+            src="/characters/afformation-thumbsup.png"
+            alt="어포메이션"
+            className="size-8 rounded-xl object-contain"
+          />
           {!isCollapsed && (
             <div className="flex flex-col">
               <span className="font-bold tracking-tight text-[14px] leading-none text-stone-900">어포메이션</span>
