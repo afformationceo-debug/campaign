@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Eye,
   Headset,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -43,6 +44,7 @@ const mainNav = [
 ];
 
 const viewNav = [
+  { href: '/view/must-check', label: '반드시 체크리스트', desc: '핵심 업무 일일 체크', icon: ShieldCheck, color: 'bg-red-100 text-red-600' },
   { href: '/view/assignee', label: '담당자별', desc: '사람별 업무 현황', icon: Users, color: 'bg-blue-100 text-blue-600' },
   { href: '/view/results', label: '일일 결과값', desc: '오늘 실적 확인', icon: FileText, color: 'bg-emerald-100 text-emerald-600' },
   { href: '/view/daily-report', label: '일일 보고서', desc: '보고서 작성/확인', icon: ClipboardCheck, color: 'bg-violet-100 text-violet-600' },

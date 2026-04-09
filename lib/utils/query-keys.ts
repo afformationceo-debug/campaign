@@ -110,4 +110,9 @@ export const queryKeys = {
     steps: (serviceId: string) => ['csManual', 'steps', serviceId] as const,
     templates: (stepId: string) => ['csManual', 'templates', stepId] as const,
   },
+  mustCheck: {
+    sections: ['mustCheck', 'sections'] as const,
+    items: ['mustCheck', 'items'] as const,
+    records: (date: string) => ['mustCheck', 'records', date] as const,
+  },
 };

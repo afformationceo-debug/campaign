@@ -1,0 +1,1098 @@
+'use client';
+
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, addDays, subDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+  useSpring,
+} from 'framer-motion';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  GripVertical,
+  Sparkles,
+  Shield,
+  CalendarDays,
+  BarChart3,
+  Ban,
+} from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { queryKeys } from '@/lib/utils/query-keys';
+
+// ─── Types ────────────────────────────────────────────────────────────
+interface Section {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+interface CheckItem {
+  id: string;
+  section_id: string;
+  label: string;
+  has_data_field: boolean;
+  sort_order: number;
+}
+
+interface CheckRecord {
+  id: string;
+  item_id: string;
+  check_date: string;
+  checked: boolean;
+  data_value: string | null;
+  data_status: 'pending' | 'filled' | 'not_applicable';
+  checked_by: string | null;
+  checked_at: string | null;
+}
+
+// ─── Section Colors ───────────────────────────────────────────────────
+const SECTION_COLORS: Record<string, { bg: string; border: string; text: string; badge: string; glow: string }> = {
+  '영업': { bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', glow: 'shadow-blue-200/60' },
+  '인플루언서': { bg: 'from-violet-50 to-purple-50', border: 'border-violet-200', text: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', glow: 'shadow-violet-200/60' },
+  '광고': { bg: 'from-amber-50 to-orange-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', glow: 'shadow-amber-200/60' },
+  'CS': { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', glow: 'shadow-emerald-200/60' },
+};
+
+const DEFAULT_COLOR = { bg: 'from-stone-50 to-stone-100', border: 'border-stone-200', text: 'text-stone-700', badge: 'bg-stone-100 text-stone-700', glow: 'shadow-stone-200/60' };
+
+function getSectionColor(name: string) {
+  return SECTION_COLORS[name] || DEFAULT_COLOR;
+}
+
+// ─── Confetti Burst ───────────────────────────────────────────────────
+function ConfettiBurst({ x, y }: { x: number; y: number }) {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, i) => ({
+        id: i,
+        angle: (i * 45 * Math.PI) / 180,
+        color: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#f97316', '#6366f1'][i],
+        distance: 30 + Math.random() * 20,
+        size: 4 + Math.random() * 4,
+      })),
+    []
+  );
+
+  return (
+    <div className="pointer-events-none fixed z-[9999]" style={{ left: x, top: y }}>
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            left: -p.size / 2,
+            top: -p.size / 2,
+          }}
+          initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
+          animate={{
+            scale: [0, 1.2, 0],
+            x: Math.cos(p.angle) * p.distance,
+            y: Math.sin(p.angle) * p.distance,
+            opacity: [1, 1, 0],
+          }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── 3D Check Animation ──────────────────────────────────────────────
+function AnimatedCheckbox({
+  checked,
+  onToggle,
+  disabled,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+}) {
+  const [burst, setBurst] = useState<{ x: number; y: number } | null>(null);
+  const ref = useRef<HTMLButtonElement>(null);
+  const rotateY = useMotionValue(0);
+  const scale = useMotionValue(1);
+  const springRotate = useSpring(rotateY, { stiffness: 300, damping: 20 });
+  const springScale = useSpring(scale, { stiffness: 400, damping: 15 });
+  const background = useTransform(
+    springRotate,
+    [-180, 0],
+    ['rgb(34, 197, 94)', 'rgb(229, 231, 235)']
+  );
+
+  const handleClick = useCallback(() => {
+    if (disabled) return;
+    if (!checked && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setBurst({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      setTimeout(() => setBurst(null), 600);
+    }
+    rotateY.set(checked ? 0 : -180);
+    scale.set(1.3);
+    setTimeout(() => scale.set(1), 150);
+    onToggle();
+  }, [checked, onToggle, disabled, rotateY, scale]);
+
+  useEffect(() => {
+    rotateY.set(checked ? -180 : 0);
+  }, [checked, rotateY]);
+
+  return (
+    <>
+      <motion.button
+        ref={ref}
+        type="button"
+        onClick={handleClick}
+        disabled={disabled}
+        className={cn(
+          'relative flex size-6 shrink-0 items-center justify-center rounded-lg border-2 transition-colors cursor-pointer',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500',
+          checked
+            ? 'border-green-500 bg-green-500 text-white'
+            : 'border-stone-300 bg-white hover:border-stone-400',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+        style={{
+          rotateY: springRotate,
+          scale: springScale,
+          perspective: 600,
+        }}
+        whileHover={!disabled ? { scale: 1.1 } : undefined}
+        whileTap={!disabled ? { scale: 0.9 } : undefined}
+      >
+        <AnimatePresence mode="wait">
+          {checked && (
+            <motion.div
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 45 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            >
+              <Check className="size-3.5 stroke-[3]" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
+      <AnimatePresence>
+        {burst && <ConfettiBurst x={burst.x} y={burst.y} />}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// ─── Data Status Badge ────────────────────────────────────────────────
+function DataStatusBadge({
+  status,
+  onToggleNA,
+}: {
+  status: 'pending' | 'filled' | 'not_applicable';
+  onToggleNA: () => void;
+}) {
+  if (status === 'not_applicable') {
+    return (
+      <button
+        type="button"
+        onClick={onToggleNA}
+        className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[11px] font-medium text-stone-500 hover:bg-stone-200 transition-colors"
+      >
+        <Ban className="size-3" />
+        해당없음
+      </button>
+    );
+  }
+  return null;
+}
+
+// ─── Check Item Row ──────────────────────────────────────────────────
+function CheckItemRow({
+  item,
+  record,
+  onToggleCheck,
+  onUpdateData,
+  onToggleNA,
+  onEditItem,
+  onDeleteItem,
+}: {
+  item: CheckItem;
+  record?: CheckRecord;
+  onToggleCheck: (itemId: string) => void;
+  onUpdateData: (itemId: string, value: string) => void;
+  onToggleNA: (itemId: string) => void;
+  onEditItem: (item: CheckItem) => void;
+  onDeleteItem: (itemId: string) => void;
+}) {
+  const isChecked = record?.checked ?? false;
+  const dataStatus = record?.data_status ?? 'pending';
+  const dataValue = record?.data_value ?? '';
+  const [localValue, setLocalValue] = useState(dataValue);
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+
+  useEffect(() => {
+    setLocalValue(record?.data_value ?? '');
+  }, [record?.data_value]);
+
+  const handleDataChange = useCallback(
+    (val: string) => {
+      setLocalValue(val);
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        onUpdateData(item.id, val);
+      }, 500);
+    },
+    [item.id, onUpdateData]
+  );
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className={cn(
+        'group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+        isChecked
+          ? 'bg-green-50/60 border border-green-100'
+          : 'bg-white border border-stone-100 hover:border-stone-200 hover:shadow-sm'
+      )}
+    >
+      <AnimatedCheckbox
+        checked={isChecked}
+        onToggle={() => onToggleCheck(item.id)}
+      />
+
+      <span
+        className={cn(
+          'flex-1 text-[13px] font-medium transition-all duration-300 min-w-0',
+          isChecked ? 'text-green-700 line-through opacity-70' : 'text-stone-800'
+        )}
+      >
+        {item.label}
+      </span>
+
+      {/* Data input area */}
+      {item.has_data_field && dataStatus !== 'not_applicable' && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Input
+            type="text"
+            placeholder="데이터 입력"
+            value={localValue}
+            onChange={(e) => handleDataChange(e.target.value)}
+            className="h-7 w-28 text-[12px] rounded-lg border-stone-200 bg-stone-50 focus:bg-white transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Data status toggle */}
+      {item.has_data_field && (
+        <DataStatusBadge status={dataStatus} onToggleNA={() => onToggleNA(item.id)} />
+      )}
+
+      {/* N/A toggle button when not already N/A */}
+      {item.has_data_field && dataStatus !== 'not_applicable' && (
+        <button
+          type="button"
+          onClick={() => onToggleNA(item.id)}
+          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-all"
+          title="해당없음으로 변경"
+        >
+          <Ban className="size-3" />
+        </button>
+      )}
+
+      {/* Edit/Delete */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          type="button"
+          onClick={() => onEditItem(item)}
+          className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
+        >
+          <Pencil className="size-3" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteItem(item.id)}
+          className="rounded-md p-1 text-stone-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+        >
+          <Trash2 className="size-3" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────
+function SectionCard({
+  section,
+  items,
+  records,
+  onToggleCheck,
+  onUpdateData,
+  onToggleNA,
+  onAddItem,
+  onEditItem,
+  onDeleteItem,
+  onEditSection,
+  onDeleteSection,
+}: {
+  section: Section;
+  items: CheckItem[];
+  records: Map<string, CheckRecord>;
+  onToggleCheck: (itemId: string) => void;
+  onUpdateData: (itemId: string, value: string) => void;
+  onToggleNA: (itemId: string) => void;
+  onAddItem: (sectionId: string) => void;
+  onEditItem: (item: CheckItem) => void;
+  onDeleteItem: (itemId: string) => void;
+  onEditSection: (section: Section) => void;
+  onDeleteSection: (sectionId: string) => void;
+}) {
+  const color = getSectionColor(section.name);
+  const checkedCount = items.filter((i) => records.get(i.id)?.checked).length;
+  const totalCount = items.length;
+  const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
+  const isComplete = totalCount > 0 && checkedCount === totalCount;
+
+  // Section total data count
+  const filledDataCount = items.filter(
+    (i) => i.has_data_field && records.get(i.id)?.data_status === 'filled'
+  ).length;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={cn(
+        'rounded-2xl border bg-gradient-to-br p-0.5 transition-shadow duration-300',
+        color.border,
+        color.bg,
+        isComplete && `shadow-lg ${color.glow}`
+      )}
+    >
+      <div className="rounded-[14px] bg-white/80 backdrop-blur-sm">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2.5">
+            <div className={cn('flex items-center gap-1.5 rounded-lg px-2.5 py-1', color.badge)}>
+              <Shield className="size-3.5" />
+              <span className="text-[13px] font-bold">{section.name}</span>
+            </div>
+            <span className="text-[12px] text-stone-400 font-medium">
+              {checkedCount}/{totalCount}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {isComplete && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold text-green-700"
+              >
+                <Sparkles className="size-3" />
+                완료
+              </motion.div>
+            )}
+            <button
+              type="button"
+              onClick={() => onEditSection(section)}
+              className="rounded-md p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeleteSection(section.id)}
+              className="rounded-md p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="px-4 pb-3">
+          <div className="h-1.5 w-full rounded-full bg-stone-100 overflow-hidden">
+            <motion.div
+              className={cn(
+                'h-full rounded-full',
+                isComplete ? 'bg-green-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+              )}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            />
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="px-3 pb-2 space-y-1.5">
+          <AnimatePresence mode="popLayout">
+            {items
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((item) => (
+                <CheckItemRow
+                  key={item.id}
+                  item={item}
+                  record={records.get(item.id)}
+                  onToggleCheck={onToggleCheck}
+                  onUpdateData={onUpdateData}
+                  onToggleNA={onToggleNA}
+                  onEditItem={onEditItem}
+                  onDeleteItem={onDeleteItem}
+                />
+              ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Add Item Button */}
+        <div className="px-3 pb-4">
+          <button
+            type="button"
+            onClick={() => onAddItem(section.id)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-stone-200 py-2 text-[12px] font-medium text-stone-400 hover:border-stone-300 hover:text-stone-600 hover:bg-stone-50 transition-all"
+          >
+            <Plus className="size-3.5" />
+            항목 추가
+          </button>
+        </div>
+
+        {/* Section Summary */}
+        {totalCount > 0 && (
+          <div className="border-t border-stone-100 px-4 py-2.5 flex items-center justify-between">
+            <span className="text-[11px] text-stone-400">
+              금일 체크: <span className="font-bold text-stone-600">{checkedCount}</span>/{totalCount}
+            </span>
+            {items.some((i) => i.has_data_field) && (
+              <span className="text-[11px] text-stone-400">
+                데이터 입력: <span className="font-bold text-stone-600">{filledDataCount}</span>건
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Dialogs ──────────────────────────────────────────────────────────
+function SectionDialog({
+  open,
+  onClose,
+  onSave,
+  initial,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (name: string) => void;
+  initial?: string;
+}) {
+  const [name, setName] = useState(initial ?? '');
+  useEffect(() => setName(initial ?? ''), [initial, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-[15px]">
+            {initial ? '섹션 수정' : '새 섹션 추가'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 pt-2">
+          <Input
+            placeholder="섹션 이름 (예: 영업, 마케팅)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && name.trim()) {
+                onSave(name.trim());
+                onClose();
+              }
+            }}
+            className="rounded-xl"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl">
+              취소
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (name.trim()) {
+                  onSave(name.trim());
+                  onClose();
+                }
+              }}
+              className="rounded-xl"
+            >
+              {initial ? '수정' : '추가'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ItemDialog({
+  open,
+  onClose,
+  onSave,
+  initial,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (label: string, hasDataField: boolean) => void;
+  initial?: { label: string; has_data_field: boolean };
+}) {
+  const [label, setLabel] = useState(initial?.label ?? '');
+  const [hasData, setHasData] = useState(initial?.has_data_field ?? true);
+  useEffect(() => {
+    setLabel(initial?.label ?? '');
+    setHasData(initial?.has_data_field ?? true);
+  }, [initial, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-[15px]">
+            {initial ? '항목 수정' : '새 항목 추가'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 pt-2">
+          <Input
+            placeholder="체크리스트 항목명"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && label.trim()) {
+                onSave(label.trim(), hasData);
+                onClose();
+              }
+            }}
+            className="rounded-xl"
+            autoFocus
+          />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasData}
+              onChange={(e) => setHasData(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-[13px] text-stone-600">데이터 입력란 표시</span>
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl">
+              취소
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (label.trim()) {
+                  onSave(label.trim(), hasData);
+                  onClose();
+                }
+              }}
+              className="rounded-xl"
+            >
+              {initial ? '수정' : '추가'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────
+export default function MustCheckPage() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+
+  // Dialog state
+  const [sectionDialog, setSectionDialog] = useState<{ open: boolean; section?: Section }>({ open: false });
+  const [itemDialog, setItemDialog] = useState<{ open: boolean; sectionId?: string; item?: CheckItem }>({ open: false });
+
+  // ─── Queries ──────────────────────────────────────────────────────
+  const { data: sections = [] } = useQuery({
+    queryKey: queryKeys.mustCheck.sections,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('must_check_sections')
+        .select('*')
+        .order('sort_order');
+      if (error) throw error;
+      return data as Section[];
+    },
+  });
+
+  const { data: items = [] } = useQuery({
+    queryKey: queryKeys.mustCheck.items,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('must_check_items')
+        .select('*')
+        .order('sort_order');
+      if (error) throw error;
+      return data as CheckItem[];
+    },
+  });
+
+  const { data: records = [] } = useQuery({
+    queryKey: queryKeys.mustCheck.records(dateStr),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('must_check_records')
+        .select('*')
+        .eq('check_date', dateStr);
+      if (error) throw error;
+      return data as CheckRecord[];
+    },
+  });
+
+  // Records map
+  const recordsMap = useMemo(() => {
+    const map = new Map<string, CheckRecord>();
+    records.forEach((r) => map.set(r.item_id, r));
+    return map;
+  }, [records]);
+
+  // Items by section
+  const itemsBySection = useMemo(() => {
+    const map = new Map<string, CheckItem[]>();
+    sections.forEach((s) => map.set(s.id, []));
+    items.forEach((i) => {
+      const arr = map.get(i.section_id);
+      if (arr) arr.push(i);
+    });
+    return map;
+  }, [sections, items]);
+
+  // ─── Mutations ────────────────────────────────────────────────────
+  const upsertRecord = useMutation({
+    mutationFn: async (params: {
+      item_id: string;
+      checked?: boolean;
+      data_value?: string;
+      data_status?: 'pending' | 'filled' | 'not_applicable';
+    }) => {
+      const existing = recordsMap.get(params.item_id);
+      const payload: Record<string, unknown> = {
+        item_id: params.item_id,
+        check_date: dateStr,
+      };
+      if (params.checked !== undefined) {
+        payload.checked = params.checked;
+        payload.checked_by = user?.id;
+        payload.checked_at = params.checked ? new Date().toISOString() : null;
+      }
+      if (params.data_value !== undefined) {
+        payload.data_value = params.data_value;
+        payload.data_status = params.data_value ? 'filled' : 'pending';
+      }
+      if (params.data_status !== undefined) {
+        payload.data_status = params.data_status;
+        if (params.data_status === 'not_applicable') {
+          payload.data_value = null;
+        }
+      }
+
+      if (existing) {
+        const { error } = await supabase
+          .from('must_check_records')
+          .update(payload)
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('must_check_records')
+          .insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.records(dateStr) });
+    },
+  });
+
+  const toggleCheck = useCallback(
+    (itemId: string) => {
+      const existing = recordsMap.get(itemId);
+      upsertRecord.mutate({ item_id: itemId, checked: !(existing?.checked ?? false) });
+    },
+    [recordsMap, upsertRecord]
+  );
+
+  const updateData = useCallback(
+    (itemId: string, value: string) => {
+      upsertRecord.mutate({ item_id: itemId, data_value: value });
+    },
+    [upsertRecord]
+  );
+
+  const toggleNA = useCallback(
+    (itemId: string) => {
+      const existing = recordsMap.get(itemId);
+      const currentStatus = existing?.data_status ?? 'pending';
+      const newStatus = currentStatus === 'not_applicable' ? 'pending' : 'not_applicable';
+      upsertRecord.mutate({ item_id: itemId, data_status: newStatus });
+    },
+    [recordsMap, upsertRecord]
+  );
+
+  // Section CRUD
+  const addSection = useMutation({
+    mutationFn: async (name: string) => {
+      const maxOrder = Math.max(0, ...sections.map((s) => s.sort_order));
+      const { error } = await supabase
+        .from('must_check_sections')
+        .insert({ name, sort_order: maxOrder + 1 });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.sections }),
+  });
+
+  const updateSection = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from('must_check_sections')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.sections }),
+  });
+
+  const deleteSection = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('must_check_sections').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.sections });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items });
+    },
+  });
+
+  // Item CRUD
+  const addItem = useMutation({
+    mutationFn: async ({
+      sectionId,
+      label,
+      hasDataField,
+    }: {
+      sectionId: string;
+      label: string;
+      hasDataField: boolean;
+    }) => {
+      const sectionItems = itemsBySection.get(sectionId) ?? [];
+      const maxOrder = Math.max(0, ...sectionItems.map((i) => i.sort_order));
+      const { error } = await supabase
+        .from('must_check_items')
+        .insert({ section_id: sectionId, label, has_data_field: hasDataField, sort_order: maxOrder + 1 });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
+  });
+
+  const updateItem = useMutation({
+    mutationFn: async ({
+      id,
+      label,
+      hasDataField,
+    }: {
+      id: string;
+      label: string;
+      hasDataField: boolean;
+    }) => {
+      const { error } = await supabase
+        .from('must_check_items')
+        .update({ label, has_data_field: hasDataField, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
+  });
+
+  const deleteItem = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('must_check_items').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mustCheck.items }),
+  });
+
+  // ─── Stats ────────────────────────────────────────────────────────
+  const totalItems = items.length;
+  const totalChecked = items.filter((i) => recordsMap.get(i.id)?.checked).length;
+  const overallProgress = totalItems > 0 ? Math.round((totalChecked / totalItems) * 100) : 0;
+
+  // ─── Handlers ─────────────────────────────────────────────────────
+  const handleSaveSection = useCallback(
+    (name: string) => {
+      if (sectionDialog.section) {
+        updateSection.mutate({ id: sectionDialog.section.id, name });
+      } else {
+        addSection.mutate(name);
+      }
+    },
+    [sectionDialog.section, updateSection, addSection]
+  );
+
+  const handleSaveItem = useCallback(
+    (label: string, hasDataField: boolean) => {
+      if (itemDialog.item) {
+        updateItem.mutate({ id: itemDialog.item.id, label, hasDataField });
+      } else if (itemDialog.sectionId) {
+        addItem.mutate({ sectionId: itemDialog.sectionId, label, hasDataField });
+      }
+    },
+    [itemDialog, updateItem, addItem]
+  );
+
+  const handleDeleteSection = useCallback(
+    (id: string) => {
+      if (confirm('이 섹션과 모든 체크리스트 항목이 삭제됩니다. 계속하시겠습니까?')) {
+        deleteSection.mutate(id);
+      }
+    },
+    [deleteSection]
+  );
+
+  const handleDeleteItem = useCallback(
+    (id: string) => {
+      if (confirm('이 항목을 삭제하시겠습니까?')) {
+        deleteItem.mutate(id);
+      }
+    },
+    [deleteItem]
+  );
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[20px] font-bold text-stone-900 tracking-tight flex items-center gap-2">
+            <Shield className="size-5 text-orange-500" />
+            반드시 체크리스트
+          </h1>
+          <p className="text-[12px] text-stone-400 mt-0.5">
+            매일 확인해야 할 핵심 업무 체크리스트
+          </p>
+        </div>
+
+        {/* Date Navigation */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-xl"
+            onClick={() => setSelectedDate((d) => subDays(d, 1))}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-8 rounded-xl px-3 text-[13px] font-medium min-w-[140px]"
+              >
+                <CalendarDays className="size-3.5 mr-1.5" />
+                {format(selectedDate, 'yyyy.MM.dd (EEE)', { locale: ko })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => d && setSelectedDate(d)}
+                locale={ko}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-xl"
+            onClick={() => setSelectedDate((d) => addDays(d, 1))}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-xl text-[12px]"
+            onClick={() => setSelectedDate(new Date())}
+          >
+            오늘
+          </Button>
+        </div>
+      </div>
+
+      {/* Overall Progress */}
+      <motion.div
+        className={cn(
+          'rounded-2xl border p-4 transition-all duration-500',
+          overallProgress === 100
+            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg shadow-green-100/50'
+            : 'bg-gradient-to-r from-stone-50 to-stone-100/50 border-stone-200'
+        )}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'flex items-center justify-center size-10 rounded-xl',
+              overallProgress === 100
+                ? 'bg-green-100 text-green-600'
+                : 'bg-stone-100 text-stone-500'
+            )}>
+              <BarChart3 className="size-5" />
+            </div>
+            <div>
+              <p className="text-[11px] text-stone-400 font-medium">금일 전체 진행률</p>
+              <p className="text-[22px] font-black text-stone-900 leading-tight">
+                {overallProgress}%
+                <span className="text-[13px] font-medium text-stone-400 ml-2">
+                  ({totalChecked}/{totalItems})
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {overallProgress === 100 && (
+            <motion.div
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              className="flex items-center gap-1.5 rounded-full bg-green-500 px-4 py-1.5 text-white text-[13px] font-bold shadow-lg shadow-green-200/50"
+            >
+              <Sparkles className="size-4" />
+              ALL CLEAR!
+            </motion.div>
+          )}
+        </div>
+
+        <div className="h-2.5 w-full rounded-full bg-white/60 overflow-hidden">
+          <motion.div
+            className={cn(
+              'h-full rounded-full',
+              overallProgress === 100
+                ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'
+            )}
+            initial={{ width: 0 }}
+            animate={{ width: `${overallProgress}%` }}
+            transition={{ type: 'spring', stiffness: 60, damping: 20 }}
+          />
+        </div>
+
+        {/* Per-section quick stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+          {sections.map((section) => {
+            const sItems = itemsBySection.get(section.id) ?? [];
+            const sChecked = sItems.filter((i) => recordsMap.get(i.id)?.checked).length;
+            const sTotal = sItems.length;
+            const sColor = getSectionColor(section.name);
+            return (
+              <div
+                key={section.id}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl px-3 py-2 border',
+                  sChecked === sTotal && sTotal > 0 ? 'bg-green-50 border-green-200' : 'bg-white border-stone-100'
+                )}
+              >
+                <span className={cn('text-[11px] font-bold', sColor.text)}>{section.name}</span>
+                <span className="text-[11px] text-stone-400 ml-auto">
+                  {sChecked}/{sTotal}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* Section Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <AnimatePresence mode="popLayout">
+          {sections
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((section) => (
+              <SectionCard
+                key={section.id}
+                section={section}
+                items={itemsBySection.get(section.id) ?? []}
+                records={recordsMap}
+                onToggleCheck={toggleCheck}
+                onUpdateData={updateData}
+                onToggleNA={toggleNA}
+                onAddItem={(sectionId) => setItemDialog({ open: true, sectionId })}
+                onEditItem={(item) => setItemDialog({ open: true, item })}
+                onDeleteItem={handleDeleteItem}
+                onEditSection={(s) => setSectionDialog({ open: true, section: s })}
+                onDeleteSection={handleDeleteSection}
+              />
+            ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Add Section Button */}
+      <motion.button
+        type="button"
+        onClick={() => setSectionDialog({ open: true })}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-stone-200 py-4 text-[13px] font-medium text-stone-400 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50/30 transition-all"
+        whileHover={{ scale: 1.005 }}
+        whileTap={{ scale: 0.995 }}
+      >
+        <Plus className="size-4" />
+        새 섹션 추가
+      </motion.button>
+
+      {/* Dialogs */}
+      <SectionDialog
+        open={sectionDialog.open}
+        onClose={() => setSectionDialog({ open: false })}
+        onSave={handleSaveSection}
+        initial={sectionDialog.section?.name}
+      />
+      <ItemDialog
+        open={itemDialog.open}
+        onClose={() => setItemDialog({ open: false })}
+        onSave={handleSaveItem}
+        initial={itemDialog.item ? { label: itemDialog.item.label, has_data_field: itemDialog.item.has_data_field } : undefined}
+      />
+    </div>
+  );
+}
