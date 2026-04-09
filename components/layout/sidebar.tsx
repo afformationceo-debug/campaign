@@ -44,7 +44,7 @@ const mainNav = [
 ];
 
 const viewNav = [
-  { href: '/view/must-check', label: '반드시 체크리스트', desc: '핵심 업무 일일 체크', icon: ShieldCheck, color: 'bg-red-100 text-red-600' },
+  { href: '/view/must-check', label: '반드시 체크리스트', desc: '핵심 업무 일일 체크', icon: ShieldCheck, color: 'bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-sm shadow-orange-200/50' },
   { href: '/view/assignee', label: '담당자별', desc: '사람별 업무 현황', icon: Users, color: 'bg-blue-100 text-blue-600' },
   { href: '/view/results', label: '일일 결과값', desc: '오늘 실적 확인', icon: FileText, color: 'bg-emerald-100 text-emerald-600' },
   { href: '/view/daily-report', label: '일일 보고서', desc: '보고서 작성/확인', icon: ClipboardCheck, color: 'bg-violet-100 text-violet-600' },
@@ -101,7 +101,10 @@ function NavItem({
     >
       <div className={cn(
         'flex size-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
-        isActive ? color : 'bg-stone-50 text-stone-400 group-hover:bg-stone-100 group-hover:text-stone-600',
+        // 반드시 체크리스트: 항상 강조 색상 유지
+        href === '/view/must-check'
+          ? color
+          : isActive ? color : 'bg-stone-50 text-stone-400 group-hover:bg-stone-100 group-hover:text-stone-600',
         isCollapsed && 'size-8 rounded-xl'
       )}>
         <Icon className="size-3.5" />
