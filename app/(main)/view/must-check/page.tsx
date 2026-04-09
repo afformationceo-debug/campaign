@@ -1514,7 +1514,7 @@ export default function MustCheckPage() {
         transition={{ delay: 0.3, duration: 0.6 }}
       >
         <img
-          src="/characters/afformation-wide-banner.png"
+          src="/characters/afformation-ceo-banner.jpeg"
           alt="Afformation"
           className="w-full h-auto object-cover rounded-2xl"
         />
