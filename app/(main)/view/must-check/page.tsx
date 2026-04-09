@@ -93,15 +93,17 @@ interface CheckRecord {
   checked_at: string | null;
 }
 
-// ─── Section Colors + Emoji ───────────────────────────────────────────
+// ─── Afformation Brand Colors (Royal Blue Concept) ───────────────────
+// 캐릭터 수트: #2563EB (blue-600), 넥타이: #1E3A8A (blue-900)
+// 각 섹션을 블루 계열 톤 차이로 구분
 const SECTION_COLORS: Record<string, { bg: string; border: string; text: string; badge: string; glow: string; emoji: string; completedEmoji: string }> = {
-  '영업': { bg: 'from-blue-50 to-indigo-50', border: 'border-blue-200/60', text: 'text-blue-700', badge: 'bg-blue-500/10 text-blue-700 ring-1 ring-blue-500/20', glow: 'shadow-blue-300/40', emoji: '💼', completedEmoji: '🏆' },
-  '인플루언서': { bg: 'from-violet-50 to-purple-50', border: 'border-violet-200/60', text: 'text-violet-700', badge: 'bg-violet-500/10 text-violet-700 ring-1 ring-violet-500/20', glow: 'shadow-violet-300/40', emoji: '🌟', completedEmoji: '✨' },
-  '광고': { bg: 'from-amber-50 to-orange-50', border: 'border-amber-200/60', text: 'text-amber-700', badge: 'bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20', glow: 'shadow-amber-300/40', emoji: '📢', completedEmoji: '🎯' },
-  'CS': { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200/60', text: 'text-emerald-700', badge: 'bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20', glow: 'shadow-emerald-300/40', emoji: '🎧', completedEmoji: '💚' },
+  '영업': { bg: 'from-blue-50 to-blue-100/50', border: 'border-blue-300/50', text: 'text-blue-700', badge: 'bg-blue-600/10 text-blue-700 ring-1 ring-blue-400/30', glow: 'shadow-blue-300/50', emoji: '💼', completedEmoji: '🏆' },
+  '인플루언서': { bg: 'from-indigo-50 to-blue-50', border: 'border-indigo-300/50', text: 'text-indigo-700', badge: 'bg-indigo-600/10 text-indigo-700 ring-1 ring-indigo-400/30', glow: 'shadow-indigo-300/50', emoji: '🌟', completedEmoji: '✨' },
+  '광고': { bg: 'from-sky-50 to-blue-50', border: 'border-sky-300/50', text: 'text-sky-700', badge: 'bg-sky-600/10 text-sky-700 ring-1 ring-sky-400/30', glow: 'shadow-sky-300/50', emoji: '📢', completedEmoji: '🎯' },
+  'CS': { bg: 'from-slate-50 to-blue-50', border: 'border-slate-300/50', text: 'text-slate-700', badge: 'bg-slate-600/10 text-slate-700 ring-1 ring-slate-400/30', glow: 'shadow-slate-300/50', emoji: '🎧', completedEmoji: '💙' },
 };
 
-const DEFAULT_COLOR = { bg: 'from-stone-50 to-stone-100', border: 'border-stone-200/60', text: 'text-stone-700', badge: 'bg-stone-500/10 text-stone-700 ring-1 ring-stone-500/20', glow: 'shadow-stone-300/40', emoji: '📋', completedEmoji: '✅' };
+const DEFAULT_COLOR = { bg: 'from-blue-50/50 to-indigo-50/50', border: 'border-blue-200/40', text: 'text-blue-700', badge: 'bg-blue-500/10 text-blue-700 ring-1 ring-blue-400/20', glow: 'shadow-blue-200/40', emoji: '📋', completedEmoji: '✅' };
 
 function getSectionColor(name: string) {
   return SECTION_COLORS[name] || DEFAULT_COLOR;
@@ -174,7 +176,7 @@ function CelebrationOverlay({ show, onClose }: { show: boolean; onClose: () => v
         <h2 className="text-[24px] font-black text-stone-900 mb-1">ALL CLEAR!</h2>
         <p className="text-[14px] text-stone-500 mb-4">오늘 할 일을 모두 완료했습니다!</p>
         <motion.div
-          className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-green-200/50 cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-blue-200/50 cursor-pointer"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onClose}
@@ -269,7 +271,7 @@ function CharacterPop({ x, y }: { x: number; y: number }) {
           className="w-28 h-28 object-contain drop-shadow-xl"
         />
         <motion.div
-          className="absolute -top-1 -right-1 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 shadow-lg"
+          className="absolute -top-1 -right-1 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-[11px] font-bold px-2 py-0.5 shadow-lg"
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 400 }}
@@ -327,9 +329,9 @@ function AnimatedCheckbox({
         disabled={disabled}
         className={cn(
           'relative flex size-6 shrink-0 items-center justify-center rounded-lg border-2 transition-colors cursor-pointer',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500',
           checked
-            ? 'border-green-500 bg-green-500 text-white'
+            ? 'border-blue-500 bg-blue-500 text-white'
             : 'border-stone-300 bg-white hover:border-stone-400',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
@@ -427,7 +429,7 @@ function CheckItemRow({
       className={cn(
         'group flex items-center gap-2 rounded-xl px-2 py-2.5 transition-all duration-200',
         isChecked
-          ? 'bg-green-50/60 border border-green-100'
+          ? 'bg-blue-50/60 border border-blue-100'
           : 'bg-white border border-stone-100 hover:border-stone-200 hover:shadow-sm'
       )}
     >
@@ -447,7 +449,7 @@ function CheckItemRow({
       <span
         className={cn(
           'flex-1 text-[13px] font-medium transition-all duration-300 min-w-0',
-          isChecked ? 'text-green-700 line-through opacity-70' : 'text-stone-800'
+          isChecked ? 'text-blue-600 line-through opacity-70' : 'text-stone-800'
         )}
       >
         {item.label}
@@ -664,7 +666,7 @@ function SectionCard({
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: [1, 1.1, 1], rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-                className="flex items-center gap-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 px-3 py-1 text-[11px] font-bold text-white shadow-md shadow-green-200/50"
+                className="flex items-center gap-1 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 px-3 py-1 text-[11px] font-bold text-white shadow-md shadow-blue-200/50"
               >
                 <span className="text-[13px]">🎊</span>
                 완료!
@@ -693,7 +695,7 @@ function SectionCard({
             <motion.div
               className={cn(
                 'h-full rounded-full',
-                isComplete ? 'bg-green-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                isComplete ? 'bg-blue-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'
               )}
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
@@ -1350,8 +1352,8 @@ export default function MustCheckPage() {
             className={cn(
               'rounded-2xl border p-5 transition-all duration-500 relative overflow-hidden',
               overallProgress === 100
-                ? 'bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-200/60 shadow-xl shadow-green-100/40'
-                : 'bg-gradient-to-br from-white via-stone-50/50 to-orange-50/30 border-stone-200/60'
+                ? 'bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-50 border-blue-300/60 shadow-xl shadow-blue-100/40'
+                : 'bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 border-blue-200/40'
             )}
           >
             {/* Shimmer effect */}
@@ -1391,7 +1393,7 @@ export default function MustCheckPage() {
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 px-5 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-green-200/50"
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-700 px-5 py-2.5 text-white text-[14px] font-bold shadow-lg shadow-blue-200/50"
                 >
                   <span className="text-[18px]">🏆</span>
                   ALL CLEAR!
@@ -1406,8 +1408,8 @@ export default function MustCheckPage() {
                   className={cn(
                     'h-full rounded-full relative',
                     overallProgress === 100
-                      ? 'bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400'
-                      : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'
+                      ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500'
+                      : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600'
                   )}
                   initial={{ width: 0 }}
                   animate={{ width: `${overallProgress}%` }}
@@ -1448,7 +1450,7 @@ export default function MustCheckPage() {
                     className={cn(
                       'flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-all duration-300',
                       sComplete
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200/60 shadow-sm shadow-green-100/50'
+                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200/60 shadow-sm shadow-blue-100/50'
                         : 'bg-white/80 border-stone-100 hover:border-stone-200'
                     )}
                     animate={sComplete ? { scale: [1, 1.02, 1] } : {}}
@@ -1496,7 +1498,7 @@ export default function MustCheckPage() {
       <motion.button
         type="button"
         onClick={() => setSectionDialog({ open: true })}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-stone-200 py-4 text-[13px] font-medium text-stone-400 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50/30 transition-all"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-stone-200 py-4 text-[13px] font-medium text-stone-400 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/30 transition-all"
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.995 }}
       >
