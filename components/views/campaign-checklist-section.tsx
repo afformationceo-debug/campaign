@@ -412,30 +412,6 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
 
       {expanded && (
         <div className="p-4 space-y-4">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <SummaryCard
-              title="🏆 베스트 Top 3"
-              color="blue"
-              empty="후기/리뷰 업로드 데이터 없음"
-              items={bestTop.map((r) => ({
-                id: r.campaign.id,
-                label: r.campaign.client_name || r.campaign.campaign_name,
-                meta: `업로드 ${r.uploadCount}건`,
-              }))}
-            />
-            <SummaryCard
-              title="🚨 긴급 캠페인"
-              color="rose"
-              empty="긴급 캠페인 없음"
-              items={urgent.map((r) => ({
-                id: r.campaign.id,
-                label: r.campaign.client_name || r.campaign.campaign_name,
-                meta: r.urgentReason.join(' · '),
-              }))}
-            />
-          </div>
-
           {/* Search + Filter */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
@@ -564,6 +540,30 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Summary Cards (베스트/긴급) — 체크리스트 아래 배치 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <SummaryCard
+              title="🏆 베스트 Top 3"
+              color="blue"
+              empty="후기/리뷰 업로드 데이터 없음"
+              items={bestTop.map((r) => ({
+                id: r.campaign.id,
+                label: r.campaign.client_name || r.campaign.campaign_name,
+                meta: `업로드 ${r.uploadCount}건`,
+              }))}
+            />
+            <SummaryCard
+              title="🚨 긴급 캠페인"
+              color="rose"
+              empty="긴급 캠페인 없음"
+              items={urgent.map((r) => ({
+                id: r.campaign.id,
+                label: r.campaign.client_name || r.campaign.campaign_name,
+                meta: r.urgentReason.join(' · '),
+              }))}
+            />
           </div>
         </div>
       )}
