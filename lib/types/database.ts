@@ -402,6 +402,45 @@ export interface CampaignProductWithProduct extends CampaignProduct {
   collaboration_products: CollaborationProduct;
 }
 
+// Campaign Checklist Dashboard
+export type ChecklistColumnType = 'text' | 'number' | 'multi_url';
+
+export interface ChecklistSection {
+  id: string;
+  name: string;
+  color_theme: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ChecklistColumn {
+  id: string;
+  section_id: string;
+  name: string;
+  input_type: ChecklistColumnType;
+  helper_text: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChecklistCampaignOverride {
+  campaign_id: string;
+  is_hidden: boolean;
+  updated_at: string;
+}
+
+export interface ChecklistCampaignRecord {
+  id: string;
+  campaign_id: string;
+  column_id: string;
+  record_date: string;
+  value_text: string | null;
+  value_urls: string[] | null;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 export interface CampaignWorkflowCheckWithTask extends CampaignWorkflowCheck {
   workflow_tasks: WorkflowTask;
 }

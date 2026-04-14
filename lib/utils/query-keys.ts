@@ -115,4 +115,11 @@ export const queryKeys = {
     items: ['mustCheck', 'items'] as const,
     records: (date: string) => ['mustCheck', 'records', date] as const,
   },
+  campaignChecklist: {
+    sections: ['campaignChecklist', 'sections'] as const,
+    columns: ['campaignChecklist', 'columns'] as const,
+    eligibleCampaigns: ['campaignChecklist', 'eligibleCampaigns'] as const,
+    overrides: ['campaignChecklist', 'overrides'] as const,
+    records: (date: string) => ['campaignChecklist', 'records', date] as const,
+  },
 };

@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryKeys } from '@/lib/utils/query-keys';
+import { CampaignChecklistSection } from '@/components/views/campaign-checklist-section';
 
 // ─── KST Date Utility ─────────────────────────────────────────────────
 // 브라우저 타임존과 무관하게 항상 KST(UTC+9) 기준 날짜를 반환
@@ -1505,6 +1506,9 @@ export default function MustCheckPage() {
         <Plus className="size-4" />
         새 섹션 추가
       </motion.button>
+
+      {/* Design Ref: campaign-checklist-dashboard §4 — 캠페인별 필수 체크리스트 섹션 */}
+      <CampaignChecklistSection selectedDate={selectedDate} />
 
       {/* Brand banner */}
       <motion.div
