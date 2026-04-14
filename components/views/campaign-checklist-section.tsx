@@ -63,9 +63,19 @@ const SECTION_THEME: Record<string, { header: string; col: string; text: string;
 const DEFAULT_THEME = SECTION_THEME.purple;
 const getTheme = (t: string) => SECTION_THEME[t] || DEFAULT_THEME;
 
-// Design Ref: §3 — 중화권 제외 키워드
-const EXCLUDED_TARGET_COUNTRY = '중화권(홍,말,싱)';
+// Design Ref: §3 — 제외 조건: 해외환자유치상품 연결 O, 중화권 캠페인 X, kicon 캠페인 X
 const ELIGIBLE_PRODUCT_NAME = '해외환자유치상품';
+
+function isExcludedCampaign(c: Campaign): boolean {
+  const tc = (c.target_country || '').toLowerCase();
+  const name = (c.campaign_name || '').toLowerCase();
+  const client = (c.client_name || '').toLowerCase();
+  // 중화권 (target_country='중화권' 또는 이름에 '중화권' 포함)
+  if (tc.includes('중화권') || name.includes('중화권') || client.includes('중화권')) return true;
+  // kicon (케이스 무관)
+  if (name.includes('kicon') || client.includes('kicon')) return true;
+  return false;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 function parseNumber(s: string | null | undefined): number {
@@ -139,14 +149,13 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       const ids = Array.from(new Set((cps || []).map((r: { campaign_id: string }) => r.campaign_id)));
       if (ids.length === 0) return [];
 
-      // 3) campaigns에서 중화권 제외
+      // 3) campaigns 조회 후 클라이언트측 다중 조건 필터 (중화권·kicon 제외)
       const { data: campaigns } = await supabase
         .from('campaigns')
         .select('*')
         .in('id', ids)
-        .neq('target_country', EXCLUDED_TARGET_COUNTRY)
         .order('client_name', { ascending: true });
-      return (campaigns || []) as Campaign[];
+      return ((campaigns || []) as Campaign[]).filter((c) => !isExcludedCampaign(c));
     },
   });
 
