@@ -1510,20 +1510,6 @@ export default function MustCheckPage() {
       {/* Design Ref: campaign-checklist-dashboard §4 — 캠페인별 필수 체크리스트 섹션 */}
       <CampaignChecklistSection selectedDate={selectedDate} />
 
-      {/* Brand banner */}
-      <motion.div
-        className="rounded-2xl overflow-hidden shadow-lg shadow-blue-200/30"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.6 }}
-      >
-        <img
-          src="/characters/afformation-ceo-banner.jpeg"
-          alt="Afformation"
-          className="w-full h-auto object-cover rounded-2xl"
-        />
-      </motion.div>
-
       {/* Dialogs */}
       <SectionDialog
         open={sectionDialog.open}
