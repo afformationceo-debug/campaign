@@ -489,12 +489,12 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                     return cols.map((c) => (
                       <th
                         key={c.id}
-                        className={cn('border-b border-stone-200 px-2 py-1.5 text-[11px] font-medium min-w-[110px]', theme.col)}
+                        className={cn('border-b border-stone-200 px-2 py-1.5 text-[11px] font-medium min-w-[130px] align-middle', theme.col)}
                       >
-                        <div className="flex flex-col leading-tight">
-                          <span>{c.name}</span>
+                        <div className="flex flex-col leading-tight gap-0.5">
+                          <span className="whitespace-normal break-keep">{c.name}</span>
                           {c.helper_text && (
-                            <span className="text-[9px] font-normal text-stone-500 mt-0.5">{c.helper_text}</span>
+                            <span className="text-[9px] font-normal text-stone-500 whitespace-normal break-keep">{c.helper_text}</span>
                           )}
                         </div>
                       </th>
