@@ -75,6 +75,9 @@ const getTheme = (t: string) => SECTION_THEME[t] || DEFAULT_THEME;
 // Design Ref: §3 — 제외 조건: 해외환자유치상품 연결 O, 중화권 캠페인 X, kicon 캠페인 X
 const ELIGIBLE_PRODUCT_NAME = '해외환자유치상품';
 
+// 액션아이템 기본 담당자 (이름으로 user id 조회)
+const DEFAULT_ASSIGNEE_NAMES = ['강상우', '송기찬', '김세인', '방선준'];
+
 // 일본 캠페인 여부 (target_country/campaign_name/client_name 중 하나라도 '일본' 포함)
 function isJapanCampaign(c: Campaign): boolean {
   const tc = (c.target_country || '').toLowerCase();
@@ -224,6 +227,19 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         .eq('record_date', dateStr);
       return (data || []) as ChecklistCampaignRecord[];
     },
+  });
+
+  // 액션 기본 담당자 ID 조회 (이름 매칭)
+  const { data: defaultAssigneeIds = [] } = useQuery({
+    queryKey: ['defaultActionAssignees'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('name', DEFAULT_ASSIGNEE_NAMES);
+      return (data || []).map((u: { id: string }) => u.id);
+    },
+    staleTime: 30 * 60 * 1000,
   });
 
   // 캠페인별 액션아이템 (날짜 기반)
@@ -469,14 +485,14 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       .insert({
         project_name: projectName,
         state: '진행중',
-        assignee_ids: [],
+        assignee_ids: defaultAssigneeIds,
         sort_order: 0,
       })
       .select('id')
       .single();
     if (error) throw error;
     return created!.id as string;
-  }, []);
+  }, [defaultAssigneeIds]);
 
   // 액션 추가 (로드맵 ProjectTask 동기화)
   const addAction = useMutation({
@@ -484,8 +500,18 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       const trimmed = args.text.trim();
       if (!trimmed) return;
       const projectId = await ensureProjectForCampaign(args.campaign);
-      // 1) project_task 먼저 생성
-      // Bug fix: project_tasks도 priority 컬럼 없음
+      // 서버측 최대 sort_order 조회 → sort_order 중복 (0,0,0...) 으로 인한
+      // 로드맵 렌더 겹침/키 충돌 버그 방지
+      const { data: maxRow } = await supabase
+        .from('project_tasks')
+        .select('sort_order')
+        .eq('project_id', projectId)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextTaskSort = (maxRow?.sort_order ?? -1) + 1;
+
+      // 1) project_task 생성 (기본 담당자 4명 자동 지정)
       const { data: task, error: taskErr } = await supabase
         .from('project_tasks')
         .insert({
@@ -493,19 +519,29 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
           title: trimmed,
           state: '진행중',
           start_date: dateStr,
-          assignee_ids: [],
-          sort_order: 0,
+          assignee_ids: defaultAssigneeIds,
+          sort_order: nextTaskSort,
         })
         .select('id')
         .single();
       if (taskErr) throw taskErr;
-      // 2) checklist_campaign_actions 생성
-      const existingCount = (actionsByCampaign.get(args.campaign.id) || []).length;
+
+      // 2) checklist_campaign_actions 생성 — sort_order도 서버 조회 기반 (클라 캐시 경합 방지)
+      const { data: maxActionRow } = await supabase
+        .from('checklist_campaign_actions')
+        .select('sort_order')
+        .eq('campaign_id', args.campaign.id)
+        .eq('action_date', dateStr)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextActionSort = (maxActionRow?.sort_order ?? -1) + 1;
+
       const { error } = await supabase.from('checklist_campaign_actions').insert({
         campaign_id: args.campaign.id,
         action_date: dateStr,
         text: trimmed,
-        sort_order: existingCount,
+        sort_order: nextActionSort,
         project_task_id: task?.id ?? null,
         created_by: user?.id ?? null,
       });
