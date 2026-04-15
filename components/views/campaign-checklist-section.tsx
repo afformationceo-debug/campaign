@@ -316,12 +316,21 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     const colInfluencerReserve = findCol(influencerSection?.id, '예약확정 인플');
     const colCustomerReserve = findCol(customerSection?.id, '신규예약 고객');
 
+    // 컬럼 타입에 상관없이 "숫자값"을 얻기: multi_url이면 URL 개수, 그 외는 value_text 파싱
+    const getCountValue = (col: ChecklistColumn | undefined, campaignId: string): number => {
+      if (!col) return 0;
+      const rec = getRecord(campaignId, col.id);
+      if (!rec) return 0;
+      if (col.input_type === 'multi_url') return (rec.value_urls || []).length;
+      return parseNumber(rec.value_text);
+    };
+
     type Row = { campaign: Campaign; uploadCount: number; isUrgent: boolean; urgentReason: string[] };
     const rows: Row[] = visibleCampaigns.map((c) => {
       const infReviewUrls = colInfluencerReview ? getRecord(c.id, colInfluencerReview.id)?.value_urls || [] : [];
       const custReviewUrls = colCustomerReview ? getRecord(c.id, colCustomerReview.id)?.value_urls || [] : [];
-      const infReserve = colInfluencerReserve ? parseNumber(getRecord(c.id, colInfluencerReserve.id)?.value_text) : 0;
-      const custReserve = colCustomerReserve ? parseNumber(getRecord(c.id, colCustomerReserve.id)?.value_text) : 0;
+      const infReserve = getCountValue(colInfluencerReserve, c.id);
+      const custReserve = getCountValue(colCustomerReserve, c.id);
 
       const urgentReason: string[] = [];
       if (custReserve === 0) urgentReason.push('신규예약 고객 0');
@@ -403,7 +412,8 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
             // 빈 값 기본: 0
             lines.push(`- ${col.name}: 0`);
           } else {
-            lines.push(`- ${col.name}:`);
+            // URL 개수를 숫자로 노출
+            lines.push(`- ${col.name}: ${urls.length}`);
             for (const u of urls) lines.push(`  ${u}`);
           }
         } else {
@@ -956,8 +966,9 @@ function CellEditor({
     ? (record?.value_urls?.length || 0) > 0
     : !!record?.value_text?.trim();
 
+  const urlCount = record?.value_urls?.length || 0;
   const preview = isMultiUrl
-    ? `${record?.value_urls?.length || 0}건`
+    ? String(urlCount)
     : truncate(record?.value_text || '');
 
   const handleSave = () => {
@@ -977,14 +988,21 @@ function CellEditor({
         <button
           type="button"
           className={cn(
-            'w-full min-h-[32px] rounded-md px-2 py-1 text-left text-[12px] transition-all',
+            'w-full min-h-[32px] rounded-md px-2 py-1 text-[12px] transition-all',
+            isMultiUrl ? 'flex items-center justify-center gap-1' : 'text-left',
             hasValue
               ? 'bg-blue-50 text-blue-800 font-semibold ring-1 ring-blue-200 hover:ring-blue-400'
               : 'bg-stone-50 text-stone-400 hover:bg-white hover:ring-1 hover:ring-stone-300'
           )}
         >
-          {hasValue ? preview : '입력...'}
-          {isMultiUrl && hasValue && <LinkIcon className="inline-block ml-1 size-3" />}
+          {isMultiUrl ? (
+            <>
+              <span className={cn('tabular-nums', hasValue ? 'text-[14px] font-bold' : 'text-[12px]')}>{preview}</span>
+              {hasValue && <LinkIcon className="size-3 text-blue-500" />}
+            </>
+          ) : (
+            hasValue ? preview : '입력...'
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[340px] p-3 rounded-xl" align="start">
