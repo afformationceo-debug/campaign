@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Pencil, Copy, Search, X, Check,
   Flame, Trophy, Link as LinkIcon, Settings2, ChevronDown,
-  CalendarRange, LayoutList,
+  CalendarRange, LayoutList, StickyNote, ListTodo,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -30,6 +30,7 @@ import type {
   ChecklistColumn,
   ChecklistCampaignRecord,
   ChecklistCampaignOverride,
+  ChecklistCampaignAction,
   ChecklistColumnType,
   CampaignProductWithProduct,
 } from '@/lib/types/database';
@@ -113,6 +114,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [actionCampaign, setActionCampaign] = useState<Campaign | null>(null);
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
   const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
     const d = new Date();
@@ -206,6 +208,19 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     },
   });
 
+  // 캠페인별 액션아이템 (날짜 기반)
+  const { data: actions = [] } = useQuery({
+    queryKey: queryKeys.campaignChecklist.actions(dateStr),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('checklist_campaign_actions')
+        .select('*')
+        .eq('action_date', dateStr)
+        .order('sort_order');
+      return (data || []) as ChecklistCampaignAction[];
+    },
+  });
+
   // 월간 집계용 — viewMode=monthly일 때만 활성
   const { data: monthlyRecords = [] } = useQuery({
     queryKey: queryKeys.campaignChecklist.monthlyRecords(monthStr),
@@ -236,6 +251,9 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_overrides' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.overrides });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_actions' }, () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_products' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.eligibleCampaigns });
@@ -369,6 +387,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       columnId: string;
       valueText?: string | null;
       valueUrls?: string[] | null;
+      memo?: string | null;
     }) => {
       const payload = {
         campaign_id: args.campaignId,
@@ -376,6 +395,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         record_date: dateStr,
         value_text: args.valueText ?? null,
         value_urls: args.valueUrls ?? null,
+        memo: args.memo ?? null,
         updated_by: user?.id ?? null,
         updated_at: new Date().toISOString(),
       };
@@ -386,6 +406,115 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.records(dateStr) });
+    },
+  });
+
+  // 액션 맵: campaign_id → ChecklistCampaignAction[]
+  const actionsByCampaign = useMemo(() => {
+    const m = new Map<string, ChecklistCampaignAction[]>();
+    for (const a of actions) {
+      const arr = m.get(a.campaign_id) ?? [];
+      arr.push(a);
+      m.set(a.campaign_id, arr);
+    }
+    return m;
+  }, [actions]);
+
+  // 로드맵 Project 확보 (없으면 생성) → id 반환
+  const ensureProjectForCampaign = useCallback(async (campaign: Campaign): Promise<string> => {
+    const projectName = `[${campaign.client_name || campaign.campaign_name}]`;
+    const { data: existing } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('project_name', projectName)
+      .maybeSingle();
+    if (existing?.id) return existing.id as string;
+
+    const { data: created, error } = await supabase
+      .from('projects')
+      .insert({
+        project_name: projectName,
+        priority: '보통',
+        state: '진행중',
+        assignee_ids: [],
+        sort_order: 0,
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return created!.id as string;
+  }, []);
+
+  // 액션 추가 (로드맵 ProjectTask 동기화)
+  const addAction = useMutation({
+    mutationFn: async (args: { campaign: Campaign; text: string }) => {
+      const trimmed = args.text.trim();
+      if (!trimmed) return;
+      const projectId = await ensureProjectForCampaign(args.campaign);
+      // 1) project_task 먼저 생성
+      const { data: task, error: taskErr } = await supabase
+        .from('project_tasks')
+        .insert({
+          project_id: projectId,
+          title: trimmed,
+          state: '진행중',
+          priority: '보통',
+          start_date: dateStr,
+          assignee_ids: [],
+          sort_order: 0,
+        })
+        .select('id')
+        .single();
+      if (taskErr) throw taskErr;
+      // 2) checklist_campaign_actions 생성
+      const existingCount = (actionsByCampaign.get(args.campaign.id) || []).length;
+      const { error } = await supabase.from('checklist_campaign_actions').insert({
+        campaign_id: args.campaign.id,
+        action_date: dateStr,
+        text: trimmed,
+        sort_order: existingCount,
+        project_task_id: task?.id ?? null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
+    },
+  });
+
+  const updateAction = useMutation({
+    mutationFn: async (args: { action: ChecklistCampaignAction; text: string }) => {
+      const trimmed = args.text.trim();
+      if (!trimmed) return;
+      const { error } = await supabase
+        .from('checklist_campaign_actions')
+        .update({ text: trimmed, updated_at: new Date().toISOString() })
+        .eq('id', args.action.id);
+      if (error) throw error;
+      if (args.action.project_task_id) {
+        await supabase
+          .from('project_tasks')
+          .update({ title: trimmed, updated_at: new Date().toISOString() })
+          .eq('id', args.action.project_task_id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
+    },
+  });
+
+  const deleteAction = useMutation({
+    mutationFn: async (action: ChecklistCampaignAction) => {
+      // 로드맵 ProjectTask 먼저 삭제 (FK set null로 레이스 방지)
+      if (action.project_task_id) {
+        await supabase.from('project_tasks').delete().eq('id', action.project_task_id);
+      }
+      const { error } = await supabase.from('checklist_campaign_actions').delete().eq('id', action.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
     },
   });
 
@@ -428,11 +557,21 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
           const v = rec?.value_text?.trim() || '0';
           lines.push(`- ${col.name}: ${v}`);
         }
+        // 메모가 있으면 들여쓰기 줄로 추가
+        const m = rec?.memo?.trim();
+        if (m) lines.push(`  └ 메모: ${m}`);
       }
+    }
+    // 캠페인 액션아이템 (있으면)
+    const campActions = actionsByCampaign.get(campaign.id) || [];
+    if (campActions.length > 0) {
+      lines.push('');
+      lines.push('#액션아이템');
+      for (const a of campActions) lines.push(`- ${a.text}`);
     }
     return lines.join('\n');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections, columnsBySection, recordsMap]);
+  }, [sections, columnsBySection, recordsMap, actionsByCampaign]);
 
   const copyCampaign = async (campaign: Campaign) => {
     const text = buildCopyText(campaign);
@@ -596,6 +735,9 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                       </th>
                     );
                   })}
+                  <th className="bg-violet-600 border-b border-stone-200 px-2 py-2 text-[11px] font-bold text-white min-w-[100px]" rowSpan={2}>
+                    📋 액션
+                  </th>
                   <th className="sticky right-0 z-10 bg-stone-100 border-b border-l border-stone-200 px-2 py-2 text-[11px] font-bold text-stone-600 min-w-[90px]" rowSpan={2}>
                     작업
                   </th>
@@ -624,7 +766,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
               <tbody>
                 {visibleCampaigns.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length + 2} className="text-center text-[12px] text-stone-400 py-8">
+                    <td colSpan={columns.length + 3} className="text-center text-[12px] text-stone-400 py-8">
                       표시할 캠페인이 없습니다.
                     </td>
                   </tr>
@@ -646,13 +788,34 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                           <CellEditor
                             record={getRecord(campaign.id, col.id)}
                             column={col}
-                            onSave={(valueText, valueUrls) =>
-                              upsertRecord.mutate({ campaignId: campaign.id, columnId: col.id, valueText, valueUrls })
+                            onSave={(valueText, valueUrls, memo) =>
+                              upsertRecord.mutate({ campaignId: campaign.id, columnId: col.id, valueText, valueUrls, memo })
                             }
                           />
                         </td>
                       ));
                     })}
+                    {/* 액션 칩 셀 */}
+                    <td className="border-b border-stone-100 px-2 py-1 align-middle text-center">
+                      {(() => {
+                        const count = actionsByCampaign.get(campaign.id)?.length || 0;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setActionCampaign(campaign)}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all',
+                              count > 0
+                                ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:ring-violet-400'
+                                : 'bg-stone-50 text-stone-400 hover:bg-violet-50 hover:text-violet-600'
+                            )}
+                          >
+                            <ListTodo className="size-3" />
+                            <span className="tabular-nums">{count}</span>개
+                          </button>
+                        );
+                      })()}
+                    </td>
                     <td className="sticky right-0 z-10 bg-white border-b border-l border-stone-100 px-2 py-1">
                       <div className="flex items-center gap-1">
                         <Button
@@ -724,6 +887,17 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         </div>
       )}
 
+      {/* Action Items Dialog */}
+      <ActionItemsDialog
+        campaign={actionCampaign}
+        actions={actionCampaign ? (actionsByCampaign.get(actionCampaign.id) || []) : []}
+        dateLabel={dateStr}
+        onClose={() => setActionCampaign(null)}
+        onAdd={(text) => actionCampaign && addAction.mutate({ campaign: actionCampaign, text })}
+        onUpdate={(action, text) => updateAction.mutate({ action, text })}
+        onDelete={(action) => deleteAction.mutate(action)}
+      />
+
       {/* Column Management Dialog */}
       <ColumnManagementDialog
         open={columnDialogOpen}
@@ -776,6 +950,134 @@ function SummaryCard({
         </ul>
       )}
     </div>
+  );
+}
+
+// ─── Action Items Dialog ─────────────────────────────────────
+function ActionItemsDialog({
+  campaign, actions, dateLabel, onClose, onAdd, onUpdate, onDelete,
+}: {
+  campaign: Campaign | null;
+  actions: ChecklistCampaignAction[];
+  dateLabel: string;
+  onClose: () => void;
+  onAdd: (text: string) => void;
+  onUpdate: (action: ChecklistCampaignAction, text: string) => void;
+  onDelete: (action: ChecklistCampaignAction) => void;
+}) {
+  const [newText, setNewText] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+
+  useEffect(() => {
+    if (!campaign) {
+      setNewText('');
+      setEditingId(null);
+    }
+  }, [campaign]);
+
+  if (!campaign) return null;
+
+  const handleAdd = () => {
+    const t = newText.trim();
+    if (!t) return;
+    onAdd(t);
+    setNewText('');
+  };
+
+  return (
+    <Dialog open={!!campaign} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="text-base flex items-center gap-2">
+            <ListTodo className="size-4 text-violet-600" />
+            [{campaign.client_name || campaign.campaign_name}] 액션아이템
+            <Badge variant="outline" className="text-[10px] ml-1">{dateLabel}</Badge>
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            💡 로드맵 <span className="font-semibold">[{campaign.client_name}]</span> 프로젝트에 자동 반영됩니다.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          {actions.length === 0 && (
+            <p className="text-[12px] text-stone-400 italic text-center py-4">등록된 액션이 없습니다.</p>
+          )}
+          {actions.map((a, idx) => (
+            <div key={a.id} className="flex items-center gap-2 rounded-lg border border-stone-200 px-2 py-1.5 group">
+              <span className="text-[11px] text-stone-400 w-4 text-right tabular-nums">{idx + 1}.</span>
+              {editingId === a.id ? (
+                <>
+                  <Input
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="h-7 text-[12px] flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onUpdate(a, editText);
+                        setEditingId(null);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button size="icon" variant="ghost" className="size-7" onClick={() => { onUpdate(a, editText); setEditingId(null); }}>
+                    <Check className="size-3.5 text-emerald-600" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="size-7" onClick={() => setEditingId(null)}>
+                    <X className="size-3.5 text-stone-400" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-[12px] text-stone-800">{a.text}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7 opacity-0 group-hover:opacity-100"
+                    onClick={() => { setEditingId(a.id); setEditText(a.text); }}
+                  >
+                    <Pencil className="size-3 text-stone-400" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7 opacity-0 group-hover:opacity-100"
+                    onClick={() => {
+                      if (confirm('이 액션을 삭제하면 로드맵에서도 함께 삭제됩니다. 진행할까요?')) {
+                        onDelete(a);
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-3 text-rose-400" />
+                  </Button>
+                </>
+              )}
+            </div>
+          ))}
+
+          {/* Add new action */}
+          <div className="flex items-center gap-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/30 px-2 py-1.5">
+            <Plus className="size-3.5 text-violet-500" />
+            <Input
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              placeholder="새 액션 추가 (Enter)"
+              className="h-7 text-[12px] flex-1 border-0 bg-transparent focus-visible:ring-0"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdd();
+              }}
+            />
+            <Button size="sm" className="h-7 text-[11px]" disabled={!newText.trim()} onClick={handleAdd}>
+              추가
+            </Button>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -953,18 +1255,22 @@ function CellEditor({
 }: {
   record: ChecklistCampaignRecord | undefined;
   column: ChecklistColumn;
-  onSave: (valueText: string | null, valueUrls: string[] | null) => void;
+  onSave: (valueText: string | null, valueUrls: string[] | null, memo: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(record?.value_text ?? '');
   const [urls, setUrls] = useState<string[]>(record?.value_urls ?? []);
+  const [memo, setMemo] = useState(record?.memo ?? '');
 
   useEffect(() => {
     if (open) {
       setText(record?.value_text ?? '');
       setUrls(record?.value_urls ?? []);
+      setMemo(record?.memo ?? '');
     }
   }, [open, record]);
+
+  const hasMemo = !!record?.memo?.trim();
 
   const isMultiUrl = column.input_type === 'multi_url';
   const isNumber = column.input_type === 'number';
@@ -979,12 +1285,14 @@ function CellEditor({
     : truncate(record?.value_text || '');
 
   const handleSave = () => {
+    const trimmedMemo = memo.trim();
+    const memoPayload = trimmedMemo || null;
     if (isMultiUrl) {
       const cleaned = urls.map((u) => u.trim()).filter(Boolean);
-      onSave(null, cleaned.length > 0 ? cleaned : null);
+      onSave(null, cleaned.length > 0 ? cleaned : null, memoPayload);
     } else {
       const v = text.trim();
-      onSave(v || null, null);
+      onSave(v || null, null, memoPayload);
     }
     setOpen(false);
   };
@@ -995,7 +1303,7 @@ function CellEditor({
         <button
           type="button"
           className={cn(
-            'w-full min-h-[32px] rounded-md px-2 py-1 text-[12px] transition-all',
+            'relative w-full min-h-[32px] rounded-md px-2 py-1 text-[12px] transition-all',
             isMultiUrl ? 'flex items-center justify-center gap-1' : 'text-left',
             hasValue
               ? 'bg-blue-50 text-blue-800 font-semibold ring-1 ring-blue-200 hover:ring-blue-400'
@@ -1009,6 +1317,11 @@ function CellEditor({
             </>
           ) : (
             hasValue ? preview : '입력...'
+          )}
+          {hasMemo && (
+            <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px]" title={record?.memo || ''}>
+              <StickyNote className="size-2.5 text-white" />
+            </span>
           )}
         </button>
       </PopoverTrigger>
@@ -1086,6 +1399,19 @@ function CellEditor({
               }}
             />
           )}
+
+          {/* 메모 영역 */}
+          <div className="border-t border-stone-100 pt-2">
+            <label className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 mb-1">
+              <StickyNote className="size-3" /> 메모 (선택)
+            </label>
+            <Textarea
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="특이사항·맥락 기록"
+              className="text-[11px] min-h-[52px] bg-amber-50/40 border-amber-100"
+            />
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-[10px] text-stone-400">⌘+Enter 저장</span>

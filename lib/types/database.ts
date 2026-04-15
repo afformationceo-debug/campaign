@@ -437,7 +437,20 @@ export interface ChecklistCampaignRecord {
   record_date: string;
   value_text: string | null;
   value_urls: string[] | null;
+  memo: string | null;
   updated_by: string | null;
+  updated_at: string;
+}
+
+export interface ChecklistCampaignAction {
+  id: string;
+  campaign_id: string;
+  action_date: string;
+  text: string;
+  sort_order: number;
+  project_task_id: string | null;
+  created_by: string | null;
+  created_at: string;
   updated_at: string;
 }
 
