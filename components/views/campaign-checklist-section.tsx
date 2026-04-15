@@ -115,6 +115,8 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [actionCampaign, setActionCampaign] = useState<Campaign | null>(null);
+  // 섹션 필터: 'all' | section.id — 선택된 섹션만 컬럼 표시 (UX 개선)
+  const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
   const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
     const d = new Date();
@@ -294,6 +296,16 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     }
     return m;
   }, [sections, columns]);
+
+  // UX 개선: 섹션 필터 적용된 섹션 목록
+  const visibleSections = useMemo(() => {
+    if (sectionFilter === 'all') return sections;
+    return sections.filter((s) => s.id === sectionFilter);
+  }, [sections, sectionFilter]);
+
+  // 필터 모드 기반 동적 스타일
+  const isFiltered = sectionFilter !== 'all';
+  const colMinWidth = isFiltered ? 'min-w-[150px]' : 'min-w-[100px]';
 
   // records keyed by (campaign_id, column_id)
   const recordsMap = useMemo(() => {
@@ -693,6 +705,48 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
             )}
           </div>
 
+          {/* 섹션 필터 칩 — UX 개선: 컬럼이 많을 때 한 섹션씩 집중 */}
+          {viewMode === 'daily' && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-semibold text-stone-500 mr-1">섹션:</span>
+              <button
+                type="button"
+                onClick={() => setSectionFilter('all')}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-[11px] font-medium transition-all',
+                  sectionFilter === 'all'
+                    ? 'bg-stone-800 text-white shadow-sm'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                )}
+              >
+                전체
+              </button>
+              {sections.map((s) => {
+                const theme = getTheme(s.color_theme);
+                const active = sectionFilter === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSectionFilter(s.id)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1',
+                      active
+                        ? `${theme.header} shadow-sm`
+                        : `${theme.col} hover:opacity-80`
+                    )}
+                  >
+                    <span>{theme.emoji}</span>
+                    <span>{s.name}</span>
+                    <span className={cn('tabular-nums opacity-70 ml-0.5', active && 'opacity-90')}>
+                      {columnsBySection.get(s.id)?.length ?? 0}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Search + Filter */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
@@ -713,7 +767,12 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
 
           {/* Grid Table (일간 편집) */}
           {viewMode === 'daily' && (
-          <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+            {isFiltered && (
+              <div className="px-3 py-1.5 bg-stone-50 border-b border-stone-200 text-[10px] text-stone-500">
+                💡 단일 섹션 모드 — 가로 스크롤 없이 집중 편집. 다른 섹션 보려면 위에서 선택 전환
+              </div>
+            )}
             <table className="w-full border-collapse">
               <thead>
                 {/* Section header row */}
@@ -721,7 +780,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                   <th className="sticky left-0 z-10 bg-stone-100 border-b border-r border-stone-200 text-left px-3 py-2 text-[12px] font-bold text-stone-700 min-w-[160px]" rowSpan={2}>
                     캠페인
                   </th>
-                  {sections.map((s) => {
+                  {visibleSections.map((s) => {
                     const theme = getTheme(s.color_theme);
                     const count = columnsBySection.get(s.id)?.length ?? 0;
                     if (count === 0) return null;
@@ -744,13 +803,13 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                 </tr>
                 {/* Column header row */}
                 <tr>
-                  {sections.map((s) => {
+                  {visibleSections.map((s) => {
                     const theme = getTheme(s.color_theme);
                     const cols = columnsBySection.get(s.id) ?? [];
                     return cols.map((c) => (
                       <th
                         key={c.id}
-                        className={cn('border-b border-stone-200 px-2 py-1.5 text-[11px] font-medium min-w-[130px] align-middle', theme.col)}
+                        className={cn('border-b border-stone-200 px-2 py-1.5 text-[10.5px] font-medium align-middle', colMinWidth, theme.col)}
                       >
                         <div className="flex flex-col leading-tight gap-0.5">
                           <span className="whitespace-normal break-keep">{c.name}</span>
@@ -766,7 +825,12 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
               <tbody>
                 {visibleCampaigns.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length + 3} className="text-center text-[12px] text-stone-400 py-8">
+                    <td
+                      colSpan={
+                        1 + visibleSections.reduce((acc, s) => acc + (columnsBySection.get(s.id)?.length ?? 0), 0) + 2
+                      }
+                      className="text-center text-[12px] text-stone-400 py-8"
+                    >
                       표시할 캠페인이 없습니다.
                     </td>
                   </tr>
@@ -781,7 +845,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                         )}
                       </div>
                     </td>
-                    {sections.map((s) => {
+                    {visibleSections.map((s) => {
                       const cols = columnsBySection.get(s.id) ?? [];
                       return cols.map((col) => (
                         <td key={col.id} className="border-b border-stone-100 p-1 align-middle">
