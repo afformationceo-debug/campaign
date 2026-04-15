@@ -59,6 +59,13 @@ const SECTION_THEME: Record<string, { header: string; col: string; text: string;
     ring: 'ring-amber-300',
     emoji: '📢',
   },
+  sky: {
+    header: 'bg-sky-600 text-white',
+    col: 'bg-sky-50 text-sky-800 border-sky-200',
+    text: 'text-sky-700',
+    ring: 'ring-sky-300',
+    emoji: '📨',
+  },
 };
 
 const DEFAULT_THEME = SECTION_THEME.purple;
