@@ -435,6 +435,10 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.records(dateStr) });
     },
+    onError: (e: Error) => {
+      console.error('[셀 저장 실패]', e);
+      alert(`셀 저장 실패: ${e.message}`);
+    },
   });
 
   // 액션 맵: campaign_id → ChecklistCampaignAction[]
@@ -458,11 +462,12 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       .maybeSingle();
     if (existing?.id) return existing.id as string;
 
+    // Bug fix: 'priority' 컬럼은 실제 DB 스키마에 없음 — 제거
+    // Ref: docs/01-plan/features/checklist-action-roadmap-bug.plan.md §1.3
     const { data: created, error } = await supabase
       .from('projects')
       .insert({
         project_name: projectName,
-        priority: '보통',
         state: '진행중',
         assignee_ids: [],
         sort_order: 0,
@@ -480,13 +485,13 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       if (!trimmed) return;
       const projectId = await ensureProjectForCampaign(args.campaign);
       // 1) project_task 먼저 생성
+      // Bug fix: project_tasks도 priority 컬럼 없음
       const { data: task, error: taskErr } = await supabase
         .from('project_tasks')
         .insert({
           project_id: projectId,
           title: trimmed,
           state: '진행중',
-          priority: '보통',
           start_date: dateStr,
           assignee_ids: [],
           sort_order: 0,
@@ -509,6 +514,10 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
     },
+    onError: (e: Error) => {
+      console.error('[액션 추가 실패]', e);
+      alert(`액션 추가 실패: ${e.message}`);
+    },
   });
 
   const updateAction = useMutation({
@@ -530,6 +539,10 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
     },
+    onError: (e: Error) => {
+      console.error('[액션 수정 실패]', e);
+      alert(`액션 수정 실패: ${e.message}`);
+    },
   });
 
   const deleteAction = useMutation({
@@ -543,6 +556,10 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actions(dateStr) });
+    },
+    onError: (e: Error) => {
+      console.error('[액션 삭제 실패]', e);
+      alert(`액션 삭제 실패: ${e.message}`);
     },
   });
 
