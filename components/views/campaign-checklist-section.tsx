@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Pencil, Copy, Search, X, Check,
   Flame, Trophy, Link as LinkIcon, Settings2, ChevronDown,
+  CalendarRange, LayoutList,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -105,6 +106,26 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const monthStr = useMemo(() => {
+    const y = selectedMonth.getFullYear();
+    const m = String(selectedMonth.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }, [selectedMonth]);
+
+  const monthRange = useMemo(() => {
+    const y = selectedMonth.getFullYear();
+    const m = selectedMonth.getMonth();
+    const first = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    const nextFirst = new Date(y, m + 1, 1);
+    const nextStr = `${nextFirst.getFullYear()}-${String(nextFirst.getMonth() + 1).padStart(2, '0')}-01`;
+    return { first, nextFirst: nextStr };
+  }, [selectedMonth]);
 
   // ─── Queries ──────────────────────────────────────────────
   const { data: sections = [] } = useQuery({
@@ -178,6 +199,20 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     },
   });
 
+  // 월간 집계용 — viewMode=monthly일 때만 활성
+  const { data: monthlyRecords = [] } = useQuery({
+    queryKey: queryKeys.campaignChecklist.monthlyRecords(monthStr),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('checklist_campaign_records')
+        .select('*')
+        .gte('record_date', monthRange.first)
+        .lt('record_date', monthRange.nextFirst);
+      return (data || []) as ChecklistCampaignRecord[];
+    },
+    enabled: viewMode === 'monthly',
+  });
+
   // ─── Realtime ─────────────────────────────────────────────
   useEffect(() => {
     const channel = supabase
@@ -190,6 +225,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_records' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.records(dateStr) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.monthlyRecords(monthStr) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_overrides' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.overrides });
@@ -204,7 +240,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient, dateStr]);
+  }, [queryClient, dateStr, monthStr]);
 
   // ─── Derived ──────────────────────────────────────────────
   const hiddenIds = useMemo(() => new Set(overrides.filter((o) => o.is_hidden).map((o) => o.campaign_id)), [overrides]);
@@ -243,6 +279,28 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
 
   const getRecord = (campaignId: string, columnId: string) =>
     recordsMap.get(`${campaignId}|${columnId}`);
+
+  // 월간 집계: (campaign_id, column_id) → { numericSum, urlCount, dayCount, textSamples }
+  type MonthlyAgg = { numericSum: number; urlCount: number; dayCount: number; textSamples: string[] };
+  const monthlyAggMap = useMemo(() => {
+    const m = new Map<string, MonthlyAgg>();
+    const colTypeMap = new Map(columns.map((c) => [c.id, c.input_type]));
+    for (const r of monthlyRecords) {
+      const k = `${r.campaign_id}|${r.column_id}`;
+      const type = colTypeMap.get(r.column_id);
+      const entry = m.get(k) ?? { numericSum: 0, urlCount: 0, dayCount: 0, textSamples: [] };
+      entry.dayCount += 1;
+      if (type === 'multi_url') {
+        entry.urlCount += (r.value_urls || []).length;
+      } else if (type === 'number') {
+        entry.numericSum += parseNumber(r.value_text);
+      } else {
+        if (r.value_text?.trim()) entry.textSamples.push(r.value_text.trim());
+      }
+      m.set(k, entry);
+    }
+    return m;
+  }, [monthlyRecords, columns]);
 
   // ─── Summary: Best / Urgent ───────────────────────────────
   // Plan SC-06: 베스트=후기+리뷰 URL 합계 Top3, 긴급=일반고객 신규예약=0 OR 인플 예약확정=0
@@ -342,13 +400,15 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         if (col.input_type === 'multi_url') {
           const urls = rec?.value_urls || [];
           if (urls.length === 0) {
-            lines.push(`- ${col.name}: -`);
+            // 빈 값 기본: 0
+            lines.push(`- ${col.name}: 0`);
           } else {
             lines.push(`- ${col.name}:`);
             for (const u of urls) lines.push(`  ${u}`);
           }
         } else {
-          const v = rec?.value_text?.trim() || '-';
+          // 빈 값 기본: 0
+          const v = rec?.value_text?.trim() || '0';
           lines.push(`- ${col.name}: ${v}`);
         }
       }
@@ -412,6 +472,71 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
 
       {expanded && (
         <div className="p-4 space-y-4">
+          {/* View Mode Tabs */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="inline-flex rounded-xl bg-stone-100 p-1 text-[12px]">
+              <button
+                type="button"
+                onClick={() => setViewMode('daily')}
+                className={cn(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition-all',
+                  viewMode === 'daily'
+                    ? 'bg-white text-stone-900 shadow-sm'
+                    : 'text-stone-500 hover:text-stone-700'
+                )}
+              >
+                <LayoutList className="size-3.5" /> 일간 입력
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('monthly')}
+                className={cn(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition-all',
+                  viewMode === 'monthly'
+                    ? 'bg-white text-stone-900 shadow-sm'
+                    : 'text-stone-500 hover:text-stone-700'
+                )}
+              >
+                <CalendarRange className="size-3.5" /> 월간 집계
+              </button>
+            </div>
+
+            {viewMode === 'monthly' && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="size-7 rounded-lg"
+                  onClick={() => setSelectedMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                >
+                  <ChevronDown className="size-3.5 rotate-90" />
+                </Button>
+                <div className="text-[12px] font-semibold text-stone-700 min-w-[90px] text-center">
+                  {selectedMonth.getFullYear()}.{String(selectedMonth.getMonth() + 1).padStart(2, '0')}
+                </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="size-7 rounded-lg"
+                  onClick={() => setSelectedMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                >
+                  <ChevronDown className="size-3.5 -rotate-90" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px]"
+                  onClick={() => {
+                    const d = new Date();
+                    setSelectedMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+                  }}
+                >
+                  이번달
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Search + Filter */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
@@ -430,7 +555,8 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
             />
           </div>
 
-          {/* Grid Table */}
+          {/* Grid Table (일간 편집) */}
+          {viewMode === 'daily' && (
           <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
             <table className="w-full border-collapse">
               <thead>
@@ -541,6 +667,19 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
               </tbody>
             </table>
           </div>
+          )}
+
+          {/* Monthly Aggregate Table */}
+          {viewMode === 'monthly' && (
+            <MonthlyTable
+              sections={sections}
+              columns={columns}
+              columnsBySection={columnsBySection}
+              campaigns={visibleCampaigns}
+              aggMap={monthlyAggMap}
+              monthLabel={`${selectedMonth.getFullYear()}.${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`}
+            />
+          )}
 
           {/* Summary Cards (베스트/긴급) — 체크리스트 아래 배치 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -619,6 +758,172 @@ function SummaryCard({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ─── Monthly Aggregate Table ─────────────────────────────────
+function MonthlyTable({
+  sections,
+  columns,
+  columnsBySection,
+  campaigns,
+  aggMap,
+  monthLabel,
+}: {
+  sections: ChecklistSection[];
+  columns: ChecklistColumn[];
+  columnsBySection: Map<string, ChecklistColumn[]>;
+  campaigns: Campaign[];
+  aggMap: Map<string, { numericSum: number; urlCount: number; dayCount: number; textSamples: string[] }>;
+  monthLabel: string;
+}) {
+  // 컬럼별 전체 합계 (하단 요약 행)
+  const totals = useMemo(() => {
+    const t = new Map<string, { numericSum: number; urlCount: number }>();
+    for (const col of columns) {
+      let numericSum = 0;
+      let urlCount = 0;
+      for (const c of campaigns) {
+        const agg = aggMap.get(`${c.id}|${col.id}`);
+        if (!agg) continue;
+        numericSum += agg.numericSum;
+        urlCount += agg.urlCount;
+      }
+      t.set(col.id, { numericSum, urlCount });
+    }
+    return t;
+  }, [columns, campaigns, aggMap]);
+
+  const formatCell = (col: ChecklistColumn, agg: { numericSum: number; urlCount: number; dayCount: number; textSamples: string[] } | undefined): { value: string; sub?: string } => {
+    if (!agg) return { value: '0', sub: '미입력' };
+    if (col.input_type === 'multi_url') {
+      return { value: `${agg.urlCount}`, sub: `${agg.dayCount}일 기록` };
+    }
+    if (col.input_type === 'number') {
+      const avg = agg.dayCount > 0 ? (agg.numericSum / agg.dayCount) : 0;
+      return { value: agg.numericSum.toLocaleString(), sub: `일평균 ${avg.toFixed(1)}` };
+    }
+    return { value: `${agg.dayCount}일`, sub: agg.textSamples[0] ? truncate(agg.textSamples[0], 10) : undefined };
+  };
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+      <div className="px-3 py-2 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-stone-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarRange className="size-4 text-indigo-600" />
+          <span className="text-[13px] font-bold text-stone-800">{monthLabel} 월간 집계</span>
+        </div>
+        <span className="text-[10px] text-stone-500">숫자=합계 · URL=총 건수 · 텍스트=기록 일수</span>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="sticky left-0 z-10 bg-stone-100 border-b border-r border-stone-200 text-left px-3 py-2 text-[12px] font-bold text-stone-700 min-w-[160px]" rowSpan={2}>
+              캠페인
+            </th>
+            {sections.map((s) => {
+              const theme = getTheme(s.color_theme);
+              const count = columnsBySection.get(s.id)?.length ?? 0;
+              if (count === 0) return null;
+              return (
+                <th
+                  key={s.id}
+                  colSpan={count}
+                  className={cn('border-b border-stone-200 px-3 py-1.5 text-center text-[12px] font-bold', theme.header)}
+                >
+                  {theme.emoji} {s.name}
+                </th>
+              );
+            })}
+          </tr>
+          <tr>
+            {sections.map((s) => {
+              const cols = columnsBySection.get(s.id) ?? [];
+              const theme = getTheme(s.color_theme);
+              return cols.map((c) => (
+                <th
+                  key={c.id}
+                  className={cn('border-b border-stone-200 px-2 py-1.5 text-[11px] font-medium min-w-[120px] align-middle', theme.col)}
+                >
+                  <div className="flex flex-col leading-tight gap-0.5">
+                    <span className="whitespace-normal break-keep">{c.name}</span>
+                    {c.helper_text && (
+                      <span className="text-[9px] font-normal text-stone-500 whitespace-normal break-keep">{c.helper_text}</span>
+                    )}
+                  </div>
+                </th>
+              ));
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.length === 0 && (
+            <tr>
+              <td colSpan={columns.length + 1} className="text-center text-[12px] text-stone-400 py-8">
+                표시할 캠페인이 없습니다.
+              </td>
+            </tr>
+          )}
+          {campaigns.map((campaign) => (
+            <tr key={campaign.id} className="hover:bg-stone-50/60 transition-colors">
+              <td className="sticky left-0 z-10 bg-white border-b border-r border-stone-100 px-3 py-2 text-[12px] font-semibold text-stone-800">
+                <div className="flex flex-col">
+                  <span className="truncate max-w-[180px]">{campaign.client_name || campaign.campaign_name}</span>
+                  {campaign.target_country && (
+                    <span className="text-[9px] text-stone-400 font-normal">{campaign.target_country}</span>
+                  )}
+                </div>
+              </td>
+              {sections.map((s) => {
+                const cols = columnsBySection.get(s.id) ?? [];
+                return cols.map((col) => {
+                  const agg = aggMap.get(`${campaign.id}|${col.id}`);
+                  const { value, sub } = formatCell(col, agg);
+                  const isEmpty = !agg;
+                  return (
+                    <td key={col.id} className="border-b border-stone-100 px-2 py-1.5 align-middle text-center">
+                      <div className={cn(
+                        'flex flex-col items-center justify-center leading-tight',
+                        isEmpty ? 'text-stone-400' : 'text-stone-800'
+                      )}>
+                        <span className={cn('text-[13px] tabular-nums', !isEmpty && 'font-bold')}>{value}</span>
+                        {sub && <span className="text-[9px] text-stone-400 mt-0.5">{sub}</span>}
+                      </div>
+                    </td>
+                  );
+                });
+              })}
+            </tr>
+          ))}
+        </tbody>
+        {campaigns.length > 0 && (
+          <tfoot>
+            <tr className="bg-stone-50 border-t-2 border-stone-300">
+              <td className="sticky left-0 z-10 bg-stone-50 border-r border-stone-200 px-3 py-2 text-[12px] font-bold text-stone-700">
+                전체 합계
+              </td>
+              {sections.map((s) => {
+                const cols = columnsBySection.get(s.id) ?? [];
+                return cols.map((col) => {
+                  const t = totals.get(col.id);
+                  if (!t) return <td key={col.id} className="px-2 py-2 text-center text-[11px] text-stone-400">-</td>;
+                  const display = col.input_type === 'multi_url'
+                    ? `${t.urlCount}건`
+                    : col.input_type === 'number'
+                      ? t.numericSum.toLocaleString()
+                      : '-';
+                  return (
+                    <td key={col.id} className="px-2 py-2 text-center text-[12px] font-bold text-stone-800 tabular-nums">
+                      {display}
+                    </td>
+                  );
+                });
+              })}
+            </tr>
+          </tfoot>
+        )}
+      </table>
     </div>
   );
 }

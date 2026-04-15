@@ -121,5 +121,6 @@ export const queryKeys = {
     eligibleCampaigns: ['campaignChecklist', 'eligibleCampaigns'] as const,
     overrides: ['campaignChecklist', 'overrides'] as const,
     records: (date: string) => ['campaignChecklist', 'records', date] as const,
+    monthlyRecords: (yearMonth: string) => ['campaignChecklist', 'monthlyRecords', yearMonth] as const,
   },
 };
