@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Pencil, Copy, Search, X, Check,
   Flame, Trophy, Link as LinkIcon, Settings2, ChevronDown,
-  CalendarRange, LayoutList, StickyNote, ListTodo,
+  CalendarRange, LayoutList, StickyNote, ListTodo, Ban,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { queryKeys } from '@/lib/utils/query-keys';
@@ -74,6 +74,22 @@ const getTheme = (t: string) => SECTION_THEME[t] || DEFAULT_THEME;
 
 // Design Ref: §3 — 제외 조건: 해외환자유치상품 연결 O, 중화권 캠페인 X, kicon 캠페인 X
 const ELIGIBLE_PRODUCT_NAME = '해외환자유치상품';
+
+// 일본 캠페인 여부 (target_country/campaign_name/client_name 중 하나라도 '일본' 포함)
+function isJapanCampaign(c: Campaign): boolean {
+  const tc = (c.target_country || '').toLowerCase();
+  const name = (c.campaign_name || '').toLowerCase();
+  const client = (c.client_name || '').toLowerCase();
+  return tc.includes('일본') || name.includes('일본') || client.includes('일본');
+}
+
+// 컬럼이 특정 캠페인에서 입력 불가한지 판정
+function isColumnRestricted(col: ChecklistColumn, campaign: Campaign): { restricted: boolean; reason: string } {
+  if (col.name === '트위터 DM 발송' && !isJapanCampaign(campaign)) {
+    return { restricted: true, reason: '일본 캠페인만 해당' };
+  }
+  return { restricted: false, reason: '' };
+}
 
 function isExcludedCampaign(c: Campaign): boolean {
   const tc = (c.target_country || '').toLowerCase();
@@ -554,6 +570,11 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       lines.push(`#${section.name}`);
       for (const col of cols) {
         const rec = getRecord(campaign.id, col.id);
+        const { restricted } = isColumnRestricted(col, campaign);
+        if (restricted) {
+          lines.push(`- ${col.name}: 해당없음`);
+          continue;
+        }
         if (col.input_type === 'multi_url') {
           const urls = rec?.value_urls || [];
           if (urls.length === 0) {
@@ -847,17 +868,32 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                     </td>
                     {visibleSections.map((s) => {
                       const cols = columnsBySection.get(s.id) ?? [];
-                      return cols.map((col) => (
-                        <td key={col.id} className="border-b border-stone-100 p-1 align-middle">
-                          <CellEditor
-                            record={getRecord(campaign.id, col.id)}
-                            column={col}
-                            onSave={(valueText, valueUrls, memo) =>
-                              upsertRecord.mutate({ campaignId: campaign.id, columnId: col.id, valueText, valueUrls, memo })
-                            }
-                          />
-                        </td>
-                      ));
+                      return cols.map((col) => {
+                        const { restricted, reason } = isColumnRestricted(col, campaign);
+                        if (restricted) {
+                          return (
+                            <td key={col.id} className="border-b border-stone-100 p-1 align-middle">
+                              <div
+                                title={reason}
+                                className="w-full min-h-[32px] flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold bg-rose-50 text-rose-600 ring-1 ring-rose-200 cursor-not-allowed select-none"
+                              >
+                                <Ban className="size-3" /> 해당없음
+                              </div>
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={col.id} className="border-b border-stone-100 p-1 align-middle">
+                            <CellEditor
+                              record={getRecord(campaign.id, col.id)}
+                              column={col}
+                              onSave={(valueText, valueUrls, memo) =>
+                                upsertRecord.mutate({ campaignId: campaign.id, columnId: col.id, valueText, valueUrls, memo })
+                              }
+                            />
+                          </td>
+                        );
+                      });
                     })}
                     {/* 액션 칩 셀 */}
                     <td className="border-b border-stone-100 px-2 py-1 align-middle text-center">
