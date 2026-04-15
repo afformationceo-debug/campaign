@@ -943,6 +943,11 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                               onSave={(valueText, valueUrls, memo) =>
                                 upsertRecord.mutate({ campaignId: campaign.id, columnId: col.id, valueText, valueUrls, memo })
                               }
+                              onAddMemoAsAction={(memoText) => {
+                                // 컬럼명 prefix로 컨텍스트 보존: "[섹션] 컬럼명: 메모내용"
+                                const label = `[${s.name}/${col.name}] ${memoText}`;
+                                addAction.mutate({ campaign, text: label });
+                              }}
                             />
                           </td>
                         );
@@ -1405,10 +1410,12 @@ function CellEditor({
   record,
   column,
   onSave,
+  onAddMemoAsAction,
 }: {
   record: ChecklistCampaignRecord | undefined;
   column: ChecklistColumn;
   onSave: (valueText: string | null, valueUrls: string[] | null, memo: string | null) => void;
+  onAddMemoAsAction?: (memoText: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(record?.value_text ?? '');
@@ -1555,9 +1562,26 @@ function CellEditor({
 
           {/* 메모 영역 */}
           <div className="border-t border-stone-100 pt-2">
-            <label className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 mb-1">
-              <StickyNote className="size-3" /> 메모 (선택)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-amber-700">
+                <StickyNote className="size-3" /> 메모 (선택)
+              </label>
+              {onAddMemoAsAction && memo.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = memo.trim();
+                    if (!t) return;
+                    onAddMemoAsAction(t);
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-1 rounded-full bg-violet-100 hover:bg-violet-200 text-violet-700 px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                  title="이 메모를 금일 액션아이템으로 추가 + 로드맵 연동"
+                >
+                  <ListTodo className="size-3" /> 액션으로 추가
+                </button>
+              )}
+            </div>
             <Textarea
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
