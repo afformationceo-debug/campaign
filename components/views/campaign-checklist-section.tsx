@@ -1028,9 +1028,9 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                               </span>
                             ) : (
                               <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden">
-                                {campActions.slice(0, 3).map((a) => (
+                                {campActions.slice(0, 3).map((a, idx) => (
                                   <span key={a.id} className="text-[10px] text-violet-700 truncate block leading-tight">
-                                    {a.text}
+                                    <span className="text-violet-400 tabular-nums">{idx + 1}.</span> {a.text}
                                   </span>
                                 ))}
                                 {campActions.length > 3 && (
@@ -1582,11 +1582,18 @@ function CellEditor({
         >
           {isMultiUrl ? (
             hasValue ? (
-              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden">
+              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 {(record?.value_urls || []).slice(0, 3).map((u, i) => (
-                  <span key={i} className="text-[10px] text-blue-600 truncate block leading-tight">
+                  <a
+                    key={i}
+                    href={u}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-blue-600 underline decoration-blue-300 hover:text-blue-800 truncate block leading-tight"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {u.replace(/^https?:\/\//, '').slice(0, 30)}{u.length > 40 ? '…' : ''}
-                  </span>
+                  </a>
                 ))}
                 {(record?.value_urls || []).length > 3 && (
                   <span className="text-[9px] text-stone-400">+{(record?.value_urls || []).length - 3}개 더</span>
