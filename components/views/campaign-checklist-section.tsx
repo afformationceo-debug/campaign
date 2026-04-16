@@ -1007,23 +1007,37 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                         );
                       });
                     })}
-                    {/* 액션 칩 셀 */}
-                    <td className="border-b border-stone-100 px-2 py-1 align-middle text-center">
+                    {/* 액션 셀 — 텍스트 리스트 표시 */}
+                    <td className="border-b border-stone-100 px-2 py-1 align-middle">
                       {(() => {
-                        const count = actionsByCampaign.get(campaign.id)?.length || 0;
+                        const campActions = actionsByCampaign.get(campaign.id) || [];
                         return (
                           <button
                             type="button"
                             onClick={() => setActionCampaign(campaign)}
                             className={cn(
-                              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all',
-                              count > 0
-                                ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:ring-violet-400'
+                              'w-full rounded-md px-2 py-1 text-left transition-all min-h-[32px]',
+                              campActions.length > 0
+                                ? 'bg-violet-50 ring-1 ring-violet-200 hover:ring-violet-400'
                                 : 'bg-stone-50 text-stone-400 hover:bg-violet-50 hover:text-violet-600'
                             )}
                           >
-                            <ListTodo className="size-3" />
-                            <span className="tabular-nums">{count}</span>개
+                            {campActions.length === 0 ? (
+                              <span className="flex items-center gap-1 text-[11px]">
+                                <ListTodo className="size-3" /> 추가...
+                              </span>
+                            ) : (
+                              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden">
+                                {campActions.slice(0, 3).map((a) => (
+                                  <span key={a.id} className="text-[10px] text-violet-700 truncate block leading-tight">
+                                    {a.text}
+                                  </span>
+                                ))}
+                                {campActions.length > 3 && (
+                                  <span className="text-[9px] text-stone-400">+{campActions.length - 3}개 더</span>
+                                )}
+                              </div>
+                            )}
                           </button>
                         );
                       })()}
@@ -1560,18 +1574,27 @@ function CellEditor({
         <button
           type="button"
           className={cn(
-            'relative w-full min-h-[32px] rounded-md px-2 py-1 text-[12px] transition-all',
-            isMultiUrl ? 'flex items-center justify-center gap-1' : 'text-left',
+            'relative w-full min-h-[32px] rounded-md px-2 py-1 text-[12px] transition-all text-left',
             hasValue
               ? 'bg-blue-50 text-blue-800 font-semibold ring-1 ring-blue-200 hover:ring-blue-400'
               : 'bg-stone-50 text-stone-400 hover:bg-white hover:ring-1 hover:ring-stone-300'
           )}
         >
           {isMultiUrl ? (
-            <>
-              <span className={cn('tabular-nums', hasValue ? 'text-[14px] font-bold' : 'text-[12px]')}>{preview}</span>
-              {hasValue && <LinkIcon className="size-3 text-blue-500" />}
-            </>
+            hasValue ? (
+              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden">
+                {(record?.value_urls || []).slice(0, 3).map((u, i) => (
+                  <span key={i} className="text-[10px] text-blue-600 truncate block leading-tight">
+                    {u.replace(/^https?:\/\//, '').slice(0, 30)}{u.length > 40 ? '…' : ''}
+                  </span>
+                ))}
+                {(record?.value_urls || []).length > 3 && (
+                  <span className="text-[9px] text-stone-400">+{(record?.value_urls || []).length - 3}개 더</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[12px]">입력...</span>
+            )
           ) : (
             hasValue ? preview : '입력...'
           )}
