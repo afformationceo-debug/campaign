@@ -1027,15 +1027,12 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
                                 <ListTodo className="size-3" /> 추가...
                               </span>
                             ) : (
-                              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden">
-                                {campActions.slice(0, 3).map((a, idx) => (
+                              <div className="flex flex-col gap-0.5">
+                                {campActions.map((a, idx) => (
                                   <span key={a.id} className="text-[10px] text-violet-700 truncate block leading-tight">
                                     <span className="text-violet-400 tabular-nums">{idx + 1}.</span> {a.text}
                                   </span>
                                 ))}
-                                {campActions.length > 3 && (
-                                  <span className="text-[9px] text-stone-400">+{campActions.length - 3}개 더</span>
-                                )}
                               </div>
                             )}
                           </button>
