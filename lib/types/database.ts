@@ -410,6 +410,15 @@ export interface ChecklistSection {
   name: string;
   color_theme: string;
   sort_order: number;
+  is_persistent: boolean;
+  created_at: string;
+}
+
+export interface ChecklistActionPreset {
+  id: string;
+  section_id: string;
+  label: string;
+  sort_order: number;
   created_at: string;
 }
 

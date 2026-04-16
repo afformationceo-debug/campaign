@@ -31,6 +31,7 @@ import type {
   ChecklistCampaignRecord,
   ChecklistCampaignOverride,
   ChecklistCampaignAction,
+  ChecklistActionPreset,
   ChecklistColumnType,
   CampaignProductWithProduct,
 } from '@/lib/types/database';
@@ -229,6 +230,18 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     },
   });
 
+  // 액션 프리셋 (섹션별 드롭다운 값)
+  const { data: actionPresets = [] } = useQuery({
+    queryKey: queryKeys.campaignChecklist.actionPresets,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('checklist_action_presets')
+        .select('*')
+        .order('sort_order');
+      return (data || []) as ChecklistActionPreset[];
+    },
+  });
+
   // 액션 기본 담당자 ID 조회 (이름 매칭)
   const { data: defaultAssigneeIds = [] } = useQuery({
     queryKey: ['defaultActionAssignees'],
@@ -282,6 +295,10 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_records' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.records(dateStr) });
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.monthlyRecords(monthStr) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.persistentRecords });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_action_presets' }, () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actionPresets });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_campaign_overrides' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.overrides });
@@ -329,6 +346,40 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
     return m;
   }, [sections, columns]);
 
+  // 영속 섹션 컬럼 ID 집합 (광고현황 등 — 날짜 변경해도 최신 값 유지)
+  const persistentColumnIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of sections) {
+      if (s.is_persistent) {
+        const cols = columnsBySection.get(s.id) ?? [];
+        cols.forEach((c) => ids.add(c.id));
+      }
+    }
+    return ids;
+  }, [sections, columnsBySection]);
+
+  // 영속 컬럼의 최신 레코드 (날짜 무관, latest per campaign×column)
+  const { data: persistentRecords = [] } = useQuery({
+    queryKey: queryKeys.campaignChecklist.persistentRecords,
+    queryFn: async () => {
+      const colIds = Array.from(persistentColumnIds);
+      if (colIds.length === 0) return [];
+      const { data } = await supabase
+        .from('checklist_campaign_records')
+        .select('*')
+        .in('column_id', colIds)
+        .order('record_date', { ascending: false });
+      const seen = new Set<string>();
+      return ((data || []) as ChecklistCampaignRecord[]).filter((r) => {
+        const k = `${r.campaign_id}|${r.column_id}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    },
+    enabled: persistentColumnIds.size > 0,
+  });
+
   // UX 개선: 섹션 필터 적용된 섹션 목록
   const visibleSections = useMemo(() => {
     if (sectionFilter === 'all') return sections;
@@ -339,12 +390,15 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
   const isFiltered = sectionFilter !== 'all';
   const colMinWidth = isFiltered ? 'min-w-[150px]' : 'min-w-[100px]';
 
-  // records keyed by (campaign_id, column_id)
+  // records keyed by (campaign_id, column_id) — persistent records 먼저, 당일 records가 override
   const recordsMap = useMemo(() => {
     const m = new Map<string, ChecklistCampaignRecord>();
+    // 영속 레코드 (fallback — 오늘 값 없으면 최신 값 표시)
+    for (const r of persistentRecords) m.set(`${r.campaign_id}|${r.column_id}`, r);
+    // 당일 레코드 (우선 — 오늘 입력한 값이 있으면 덮어쓰기)
     for (const r of records) m.set(`${r.campaign_id}|${r.column_id}`, r);
     return m;
-  }, [records]);
+  }, [records, persistentRecords]);
 
   const getRecord = (campaignId: string, columnId: string) =>
     recordsMap.get(`${campaignId}|${columnId}`);
@@ -1050,6 +1104,8 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         campaign={actionCampaign}
         actions={actionCampaign ? (actionsByCampaign.get(actionCampaign.id) || []) : []}
         dateLabel={dateStr}
+        presets={actionPresets}
+        sections={sections}
         onClose={() => setActionCampaign(null)}
         onAdd={(text) => actionCampaign && addAction.mutate({ campaign: actionCampaign, text })}
         onUpdate={(action, text) => updateAction.mutate({ action, text })}
@@ -1062,6 +1118,7 @@ export function CampaignChecklistSection({ selectedDate }: { selectedDate: Date 
         onClose={() => setColumnDialogOpen(false)}
         sections={sections}
         columns={columns}
+        actionPresets={actionPresets}
         hiddenCampaigns={eligibleCampaigns.filter((c) => hiddenIds.has(c.id))}
         onUnhideCampaign={async (campaignId) => {
           await supabase
@@ -1113,11 +1170,13 @@ function SummaryCard({
 
 // ─── Action Items Dialog ─────────────────────────────────────
 function ActionItemsDialog({
-  campaign, actions, dateLabel, onClose, onAdd, onUpdate, onDelete,
+  campaign, actions, dateLabel, presets, sections: allSections, onClose, onAdd, onUpdate, onDelete,
 }: {
   campaign: Campaign | null;
   actions: ChecklistCampaignAction[];
   dateLabel: string;
+  presets: ChecklistActionPreset[];
+  sections: ChecklistSection[];
   onClose: () => void;
   onAdd: (text: string) => void;
   onUpdate: (action: ChecklistCampaignAction, text: string) => void;
@@ -1212,6 +1271,44 @@ function ActionItemsDialog({
               )}
             </div>
           ))}
+
+          {/* Preset quick-add (섹션별 프리셋 드롭다운) */}
+          {presets.length > 0 && (() => {
+            // 섹션별로 그룹핑
+            const grouped = new Map<string, ChecklistActionPreset[]>();
+            for (const p of presets) {
+              const arr = grouped.get(p.section_id) ?? [];
+              arr.push(p);
+              grouped.set(p.section_id, arr);
+            }
+            return (
+              <div className="space-y-1.5">
+                {Array.from(grouped.entries()).map(([sectionId, sPresets]) => {
+                  const sec = allSections.find((s) => s.id === sectionId);
+                  if (!sec) return null;
+                  const theme = getTheme(sec.color_theme);
+                  return (
+                    <div key={sectionId} className="flex items-center gap-1.5 flex-wrap">
+                      <span className={cn('text-[10px] font-bold', theme.text)}>{sec.name}:</span>
+                      {sPresets.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => onAdd(`[${sec.name}] ${p.label}`)}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-[10px] font-medium transition-all hover:scale-105',
+                            theme.col, 'hover:opacity-80 cursor-pointer'
+                          )}
+                        >
+                          + {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Add new action */}
           <div className="flex items-center gap-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/30 px-2 py-1.5">
@@ -1670,12 +1767,13 @@ function CampaignSelector({
 
 // ─── Column Management Dialog ────────────────────────────────
 function ColumnManagementDialog({
-  open, onClose, sections, columns, hiddenCampaigns, onUnhideCampaign,
+  open, onClose, sections, columns, actionPresets, hiddenCampaigns, onUnhideCampaign,
 }: {
   open: boolean;
   onClose: () => void;
   sections: ChecklistSection[];
   columns: ChecklistColumn[];
+  actionPresets: ChecklistActionPreset[];
   hiddenCampaigns: Campaign[];
   onUnhideCampaign: (id: string) => void;
 }) {
@@ -1832,6 +1930,59 @@ function ColumnManagementDialog({
             <Button size="sm" className="w-full h-7 text-[11px]" disabled={!newName.trim()} onClick={() => addCol.mutate()}>
               <Plus className="size-3 mr-1" /> 추가
             </Button>
+          </div>
+
+          {/* Action Presets CRUD */}
+          <div className="space-y-2 pt-2 border-t border-stone-200">
+            <p className="text-[11px] font-bold text-violet-700">📋 액션 프리셋 관리 (섹션별 드롭다운)</p>
+            {sections.map((sec) => {
+              const secPresets = actionPresets.filter((p) => p.section_id === sec.id);
+              const theme = getTheme(sec.color_theme);
+              return (
+                <div key={sec.id} className="space-y-1">
+                  <span className={cn('text-[10px] font-bold', theme.text)}>{sec.name}</span>
+                  {secPresets.map((p) => (
+                    <div key={p.id} className="flex items-center gap-1.5 ml-2">
+                      <span className="flex-1 text-[11px] text-stone-700">{p.label}</span>
+                      <Button size="icon" variant="ghost" className="size-6" onClick={async () => {
+                        const newLabel = prompt('프리셋 수정', p.label);
+                        if (newLabel && newLabel.trim()) {
+                          await supabase.from('checklist_action_presets').update({ label: newLabel.trim() }).eq('id', p.id);
+                          queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actionPresets });
+                        }
+                      }}>
+                        <Pencil className="size-2.5 text-stone-400" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="size-6" onClick={async () => {
+                        if (confirm(`"${p.label}" 프리셋을 삭제할까요?`)) {
+                          await supabase.from('checklist_action_presets').delete().eq('id', p.id);
+                          queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actionPresets });
+                        }
+                      }}>
+                        <Trash2 className="size-2.5 text-rose-400" />
+                      </Button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="ml-2 text-[10px] text-violet-600 hover:underline"
+                    onClick={async () => {
+                      const label = prompt(`[${sec.name}] 새 프리셋 이름`);
+                      if (label && label.trim()) {
+                        await supabase.from('checklist_action_presets').insert({
+                          section_id: sec.id,
+                          label: label.trim(),
+                          sort_order: secPresets.length,
+                        });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.campaignChecklist.actionPresets });
+                      }
+                    }}
+                  >
+                    + 프리셋 추가
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           {/* Hidden Campaigns */}

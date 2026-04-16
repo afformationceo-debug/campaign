@@ -123,5 +123,7 @@ export const queryKeys = {
     records: (date: string) => ['campaignChecklist', 'records', date] as const,
     monthlyRecords: (yearMonth: string) => ['campaignChecklist', 'monthlyRecords', yearMonth] as const,
     actions: (date: string) => ['campaignChecklist', 'actions', date] as const,
+    persistentRecords: ['campaignChecklist', 'persistentRecords'] as const,
+    actionPresets: ['campaignChecklist', 'actionPresets'] as const,
   },
 };
