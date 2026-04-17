@@ -1565,6 +1565,63 @@ function CellEditor({
     setOpen(false);
   };
 
+  // multi_url: URL 자유 클릭 + 수정 버튼 분리 + 메모 인라인 표시
+  if (isMultiUrl) {
+    return (
+      <div className={cn(
+        'relative w-full rounded-md px-2 py-1.5 text-[12px]',
+        hasValue
+          ? 'bg-blue-50 ring-1 ring-blue-200'
+          : 'bg-stone-50'
+      )}>
+        {/* URL 리스트 — 각각 클릭 가능 */}
+        {hasValue ? (
+          <div className="flex flex-col gap-1">
+            {(record?.value_urls || []).map((u, i) => (
+              <a
+                key={i}
+                href={u}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-blue-600 underline decoration-blue-300 hover:text-blue-800 break-all leading-tight"
+              >
+                {u.replace(/^https?:\/\//, '')}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[11px] text-stone-400">링크 없음</span>
+        )}
+
+        {/* 메모 인라인 표시 */}
+        {hasMemo && (
+          <div className="mt-1.5 pt-1.5 border-t border-blue-200/60">
+            <p className="text-[10px] text-amber-700 leading-snug">
+              <StickyNote className="inline-block size-3 mr-0.5 -mt-0.5" />
+              {record?.memo}
+            </p>
+          </div>
+        )}
+
+        {/* 수정 버튼 — Popover 트리거 */}
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="mt-1.5 flex items-center gap-1 rounded-md bg-white/80 hover:bg-white border border-stone-200 px-2 py-0.5 text-[10px] text-stone-600 hover:text-stone-900 transition-colors w-full justify-center"
+            >
+              <Pencil className="size-3" /> 수정
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[340px] p-3 rounded-xl" align="start">
+            {renderPopoverContent()}
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  }
+
+  // text / number: 기존 동작 (전체 셀이 트리거)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -1577,31 +1634,7 @@ function CellEditor({
               : 'bg-stone-50 text-stone-400 hover:bg-white hover:ring-1 hover:ring-stone-300'
           )}
         >
-          {isMultiUrl ? (
-            hasValue ? (
-              <div className="flex flex-col gap-0.5 max-h-[60px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                {(record?.value_urls || []).slice(0, 3).map((u, i) => (
-                  <a
-                    key={i}
-                    href={u}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-blue-600 underline decoration-blue-300 hover:text-blue-800 truncate block leading-tight"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {u.replace(/^https?:\/\//, '').slice(0, 30)}{u.length > 40 ? '…' : ''}
-                  </a>
-                ))}
-                {(record?.value_urls || []).length > 3 && (
-                  <span className="text-[9px] text-stone-400">+{(record?.value_urls || []).length - 3}개 더</span>
-                )}
-              </div>
-            ) : (
-              <span className="text-[12px]">입력...</span>
-            )
-          ) : (
-            hasValue ? preview : '입력...'
-          )}
+          {hasValue ? preview : '입력...'}
           {hasMemo && (
             <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px]" title={record?.memo || ''}>
               <StickyNote className="size-2.5 text-white" />
@@ -1610,7 +1643,14 @@ function CellEditor({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[340px] p-3 rounded-xl" align="start">
-        <div className="space-y-2">
+        {renderPopoverContent()}
+      </PopoverContent>
+    </Popover>
+  );
+
+  function renderPopoverContent() {
+    return (
+      <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-bold text-stone-700">{column.name}</p>
@@ -1726,9 +1766,8 @@ function CellEditor({
             </div>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
-  );
+      );
+  }
 }
 
 // ─── Campaign Multi-Select ───────────────────────────────────
